@@ -53,11 +53,41 @@ struct ChatView: View {
                 allowsMultipleSelection: false
             ) { result in
                 Task { @MainActor in
-                    guard case .success(let urls) = result, let url = urls.first else { return }
-                    let access = url.startAccessingSecurityScopedResource()
-                    defer { if access { url.stopAccessingSecurityScopedResource() } }
-                    if let data = try? Data(contentsOf: url) {
-                        viewModel.pendingImage = data
+                    switch result {
+                    case .failure(let error):
+                        viewModel.errorMessage = "文件选择失败 / File pick failed: \(error.localizedDescription)"
+                    case .success(let urls):
+                        guard let url = urls.first else {
+                            viewModel.errorMessage = "未选中任何文件 / No file selected"
+                            return
+                        }
+                        let access = url.startAccessingSecurityScopedResource()
+                        defer { if access { url.stopAccessingSecurityScopedResource() } }
+                        // NSFileCoordinator handles iCloud-Drive files that aren't yet downloaded.
+                        let coordinator = NSFileCoordinator()
+                        var coordError: NSError?
+                        var loaded: Data?
+                        var readError: Error?
+                        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordError) { effectiveURL in
+                            do {
+                                loaded = try Data(contentsOf: effectiveURL)
+                            } catch {
+                                readError = error
+                            }
+                        }
+                        if let coordError {
+                            viewModel.errorMessage = "文件读取失败 / Coordinator: \(coordError.localizedDescription)"
+                            return
+                        }
+                        if let readError {
+                            viewModel.errorMessage = "文件读取失败 / \(readError.localizedDescription)"
+                            return
+                        }
+                        if let data = loaded {
+                            viewModel.pendingImage = data
+                        } else {
+                            viewModel.errorMessage = "文件为空 / file empty"
+                        }
                     }
                 }
             }
