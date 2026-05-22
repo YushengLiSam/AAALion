@@ -1,5 +1,7 @@
 # Data
 
+> **2026-05-22 update**: I ran the Perplexity prompts below. Findings live in [`docs/research/`](research/) — the short version is that there's **no free, usable, real Chinese e-commerce dataset** with our full schema. Plan: keep the AI-generated seed as the pipeline demo + hand-curate 10-15 real products as a side validation set. Full reasoning in [`docs/research/README.md`](research/README.md).
+
 ## Current state
 
 `data/seed/` contains 100 product entries across four categories: 美妆护肤, 数码电子, 服饰运动, 食品生活. Each product has:
