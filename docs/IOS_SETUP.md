@@ -44,16 +44,40 @@ The app should launch into an empty chat. Type "推荐一款适合油皮的洗�
 
 ## Deploying to your iPhone 13 Pro
 
-Once Xcode is installed:
+**Verified on 2026-05-22**: iPhone 13 Pro (`Shufeng's iPhone`, identifier `7310469E-E396-5197-9408-FF1AD58D4CF2`) is paired with this Mac via USB. `xcrun devicectl list devices` finds it as `connected`.
 
-1. Plug iPhone in via Lightning / USB-C.
-2. iPhone may prompt "Trust This Computer?" — tap Trust.
-3. In Xcode → top toolbar, click the device picker → select your iPhone 13 Pro (it appears once the device is paired).
-4. Xcode → Settings → Accounts → add your Apple ID (any Apple ID works for personal/free deploys; you get 7-day cert renewal).
-5. Click the AAALionApp target → Signing & Capabilities → set Team to your personal team (or "None — Manual signing" for ad-hoc).
-6. Cmd+R → builds and installs on the phone. First run, iPhone needs you to trust the dev cert under Settings → General → VPN & Device Management.
+The `xcodebuild ... -destination 'platform=iOS,id=<uuid>'` build itself succeeds. **What's missing is code-signing**: no valid signing identity is in the keychain (`security find-identity -p codesigning -v` → "0 valid identities found"). Without that, `devicectl install` rejects the .app with "No code signature found."
 
-LAN testing: backend on the MacBook, iPhone on the same Wi-Fi. Find MacBook IP with `ipconfig getifaddr en0`. Set `PUBLIC_BACKEND_URL=http://<ip>:8000` in Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables.
+**One-time Apple ID setup** (interactive, GUI only):
+
+1. Plug iPhone in via Lightning / USB-C. iPhone may prompt "Trust This Computer?" — tap Trust.
+2. Open Xcode → Settings (`Cmd+,`) → Accounts → click `+` → Apple ID. Sign in with `alexcsf01725@gmail.com`. After sign-in, Xcode generates a "Personal Team" associated with the Apple ID.
+3. Open `client/AAALionApp/AAALionApp.xcodeproj`. Click the `AAALionApp` target → Signing & Capabilities → set Team to "Shufeng Chen (Personal Team)". Xcode will request to download a development cert and provisioning profile; let it.
+4. Top toolbar → device picker → choose `Shufeng's iPhone`. Hit `Cmd+R`. The first install triggers an iPhone prompt: Settings → General → VPN & Device Management → trust the developer cert.
+5. After that, both Xcode GUI Cmd+R AND `aaalion ios-device` (CLI build + install) work.
+
+> **xcodegen note**: when you reopen the project after step 3, Xcode will have set `DEVELOPMENT_TEAM` and `CODE_SIGN_STYLE = Automatic` in the project file. If you ever re-run `aaalion ios` (which regenerates `.xcodeproj` from `project.yml`), those settings will be wiped. Either (a) commit `project.yml` with your team ID baked in, or (b) re-do the GUI step after each regen. Option (a) is cleaner — `xcodegen` will pick up `DEVELOPMENT_TEAM` if you add it to `targets.AAALionApp.settings.base`.
+
+LAN testing: backend on the MacBook (`aaalion backend`), iPhone on the same Wi-Fi. Find MacBook IP with `ipconfig getifaddr en0`. Set `PUBLIC_BACKEND_URL=http://<ip>:8000` in Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables.
+
+## Verified working (2026-05-22 03:50)
+
+```
+$ aaalion ios                            # generated AAALionApp.xcodeproj
+$ xcodebuild -project AAALionApp.xcodeproj -scheme AAALionApp \
+    -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+    -derivedDataPath /tmp/lionpick-derived build
+    ** BUILD SUCCEEDED **
+
+$ xcrun simctl boot "iPhone 17 Pro"
+$ xcrun simctl install booted /tmp/lionpick-derived/.../狮选.app
+$ xcrun simctl launch booted com.aaalion.lionpick
+com.aaalion.lionpick: 65243                # app launched
+
+$ open -a Simulator                        # → chat UI rendered correctly
+```
+
+Screenshot of the running simulator app + the backend (`/health` 200, `/chat/stream` SSE emitting deltas + product cards) verified end-to-end.
 
 ## "Claude Code Mobile" honestly
 
