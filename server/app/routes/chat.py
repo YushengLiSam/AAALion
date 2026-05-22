@@ -84,10 +84,74 @@ async def _stream(provider, user_text: str, products: list[dict]) -> AsyncIterat
     yield _sse({"type": "done"})
 
 
+def _extract_user_text(messages) -> str:
+    """Pull the text portion of the last user message regardless of shape.
+    Multimodal messages have a list of content parts; we concat the text parts."""
+    for m in reversed(messages):
+        if m.role != "user":
+            continue
+        content = m.content
+        if isinstance(content, str):
+            return content
+        # list of ContentPart — only text parts are useful for retrieval embedding
+        text_chunks = []
+        for part in content:
+            if hasattr(part, "type") and part.type == "text" and getattr(part, "text", None):
+                text_chunks.append(part.text)
+        return "\n".join(text_chunks) or "(image-only query)"
+    return ""
+
+
+def _has_image(messages) -> bool:
+    for m in reversed(messages):
+        if m.role != "user":
+            continue
+        if isinstance(m.content, list):
+            return any(getattr(p, "type", None) == "image_url" for p in m.content)
+        return False
+    return False
+
+
 @router.post("/stream")
 async def chat_stream(req: ChatRequest) -> StreamingResponse:
-    user_text = next((m.content for m in reversed(req.messages) if m.role == "user"), "")
-    products = top_k(user_text, k=3)
+    user_text = _extract_user_text(req.messages)
+    embed_query = user_text if user_text else "拍照找货"
+    products = top_k(embed_query, k=3)
 
     provider = get_provider()
+    if _has_image(req.messages):
+        # Multimodal path: rebuild the prompt to keep the system text-only,
+        # then pass the user's original content (text + image parts) to the LLM.
+        # The vision-capable model receives both the image and the catalog context.
+        last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
+        system = _PROMPT.format(catalog=_build_catalog(products))
+        history = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": last_user.model_dump()["content"] if last_user else user_text},
+        ]
+        return StreamingResponse(
+            _stream_with_history(provider, history, products),
+            media_type="text/event-stream",
+        )
     return StreamingResponse(_stream(provider, user_text, products), media_type="text/event-stream")
+
+
+async def _stream_with_history(provider, history: list[dict], products: list[dict]) -> AsyncIterator[str]:
+    try:
+        async for delta in provider.stream_chat(history):
+            yield _sse({"type": "delta", "text": delta})
+    except Exception as e:  # noqa: BLE001
+        yield _sse({"type": "error", "message": str(e), "code": "UPSTREAM"})
+        return
+    for p in products:
+        yield _sse({
+            "type": "product_card",
+            "product": {
+                "product_id": p["product_id"],
+                "title": p.get("title"),
+                "brand": p.get("brand"),
+                "base_price": p.get("base_price"),
+                "image_url": _image_url(p["product_id"], p.get("image_path")),
+            },
+        })
+    yield _sse({"type": "done"})

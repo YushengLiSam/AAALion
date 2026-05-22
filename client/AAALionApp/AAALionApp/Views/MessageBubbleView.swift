@@ -7,6 +7,14 @@ struct MessageBubbleView: View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 6) {
+                if let data = message.imageData,
+                   let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: 200, maxHeight: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
                 if !message.text.isEmpty {
                     Text(message.text)
                         .padding(.horizontal, 12)

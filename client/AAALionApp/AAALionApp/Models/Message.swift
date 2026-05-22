@@ -11,18 +11,24 @@ struct Message: Identifiable, Hashable {
     var text: String
     var products: [ProductCard]
     var isStreaming: Bool
+    /// Optional JPEG bytes attached to a user message (拍照找货). Rendered
+    /// inline above the text bubble; sent to the backend as a base64
+    /// image_url part inside the OpenAI-style content array.
+    var imageData: Data?
 
     init(
         id: UUID = UUID(),
         role: Role,
         text: String = "",
         products: [ProductCard] = [],
-        isStreaming: Bool = false
+        isStreaming: Bool = false,
+        imageData: Data? = nil
     ) {
         self.id = id
         self.role = role
         self.text = text
         self.products = products
         self.isStreaming = isStreaming
+        self.imageData = imageData
     }
 }

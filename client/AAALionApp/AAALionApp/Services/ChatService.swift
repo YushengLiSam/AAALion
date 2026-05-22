@@ -5,9 +5,46 @@ struct ChatService {
     var backendURL: URL = Config.backendURL
 
     struct ChatRequest: Encodable {
+        // Wire shape: each message has role + content.
+        // Content is either a plain string (text-only, backward-compatible)
+        // or a list of OpenAI-style content parts (text + image_url) for
+        // multimodal sends.
+        struct TextPart: Encodable {
+            let type = "text"
+            let text: String
+        }
+        struct ImageURL: Encodable {
+            let url: String
+        }
+        struct ImagePart: Encodable {
+            let type = "image_url"
+            let image_url: ImageURL
+        }
+        enum ContentPart: Encodable {
+            case text(TextPart)
+            case image(ImagePart)
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.singleValueContainer()
+                switch self {
+                case .text(let t): try c.encode(t)
+                case .image(let i): try c.encode(i)
+                }
+            }
+        }
+        enum Content: Encodable {
+            case plain(String)
+            case parts([ContentPart])
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.singleValueContainer()
+                switch self {
+                case .plain(let s): try c.encode(s)
+                case .parts(let p): try c.encode(p)
+                }
+            }
+        }
         struct WireMessage: Encodable {
             let role: String
-            let content: String
+            let content: Content
         }
         struct Filters: Encodable {
             var category: String?
@@ -79,11 +116,26 @@ struct ChatService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         let wire = ChatRequest(
-            messages: messages.map { .init(role: $0.role.rawValue, content: $0.text) },
+            messages: messages.map { msg in
+                let content: ChatRequest.Content
+                if let imageData = msg.imageData {
+                    // Multimodal: text + base64 image part.
+                    let b64 = imageData.base64EncodedString()
+                    let dataURL = "data:image/jpeg;base64,\(b64)"
+                    var parts: [ChatRequest.ContentPart] = []
+                    if !msg.text.isEmpty {
+                        parts.append(.text(.init(text: msg.text)))
+                    }
+                    parts.append(.image(.init(image_url: .init(url: dataURL))))
+                    content = .parts(parts)
+                } else {
+                    content = .plain(msg.text)
+                }
+                return .init(role: msg.role.rawValue, content: content)
+            },
             filters: filters
         )
         request.httpBody = try JSONEncoder().encode(wire)
         return request
     }
-
 }
