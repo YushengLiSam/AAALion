@@ -49,8 +49,55 @@ Calendar reminder: every Sunday + the morning of any demo / defense day.
 
 Two possible causes:
 
-1. **Backend not running** or unreachable. Check `aaalion backend` is running on the Mac and `Config.swift`'s `PUBLIC_BACKEND_URL` points at it. For LAN testing with iPhone: set `PUBLIC_BACKEND_URL=http://<mac-lan-ip>:8000` in the Xcode scheme env vars (`ipconfig getifaddr en0` to get the IP).
+1. **Backend not running** or unreachable — see "无法连接服务器 / Cannot connect to server" below.
 2. **Stale SSE parser** (old branch). The fix landed in commit `6e8d7b9`. `git pull origin main` then `aaalion ios-device` again.
+
+### "无法连接服务器" / "Cannot connect to server" banner on iPhone
+
+This is the **single biggest gotcha** for LAN demos. Two independent things both have to be right:
+
+**Why this happens** (any one is enough to break it):
+
+1. The backend was started bound to `127.0.0.1` (loopback only). LAN clients including the iPhone can't reach it.
+2. `Config.swift` is using `http://localhost:8000` — which on the iPhone means the *iPhone itself*, not the Mac.
+3. iPhone and Mac aren't on the same Wi-Fi network.
+4. Mac's firewall blocks inbound TCP :8000.
+
+**Fix sequence**:
+
+```bash
+# 1. Backend on 0.0.0.0 (all interfaces), not 127.0.0.1
+pkill -f "uvicorn app.main"
+source .venv/bin/activate
+cd server && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/lionpick_server.log 2>&1 &
+
+# 2. Find your Mac's LAN IP
+ipconfig getifaddr en0     # → e.g. 10.76.138.67
+
+# 3. Self-test: curl that IP from the Mac itself (catches firewall problems)
+curl http://10.76.138.67:8000/health     # → {"status":"ok",…}
+
+# 4. Update Config.swift `defaultBackendURL` constant to that LAN IP:8000
+#    Open client/AAALionApp/AAALionApp/Config.swift, change the line:
+#    private static let defaultBackendURL = "http://<MAC-LAN-IP>:8000"
+
+# 5. Rebuild + reinstall
+aaalion ios-device
+
+# 6. On iPhone: open the 狮选 app. Should now work.
+```
+
+**Mac firewall**: usually off on dev macs (`/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate`). If on, allow Python:
+```bash
+SUDO_ASKPASS=$HOME/.config/lionpick/askpass sudo -A /usr/libexec/ApplicationFirewall/socketfilterfw --add /opt/homebrew/bin/python3.12
+SUDO_ASKPASS=$HOME/.config/lionpick/askpass sudo -A /usr/libexec/ApplicationFirewall/socketfilterfw --unblock /opt/homebrew/bin/python3.12
+```
+
+**Why we don't use Info.plist**: I tried `INFOPLIST_KEY_LionPickBackendURL` first — Xcode silently drops custom (non-Apple) `INFOPLIST_KEY_*` build settings, so the value never reaches Info.plist. The hardcoded-in-Config.swift approach is uglier but actually works.
+
+**Better long-term**: add a settings screen where the user types/scans the backend URL once and we persist in `UserDefaults`. Tracked in `docs/FUTURE_WORK.md`.
+
+**Same Wi-Fi required**: iPhone and Mac must be on the same network. Phone's "Personal Hotspot" or guest networks can be isolated. Check both show the same network name in their Wi-Fi settings.
 
 ---
 

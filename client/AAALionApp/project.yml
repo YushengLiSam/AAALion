@@ -46,6 +46,9 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "上传图片以搜索同款商品。"
         # Dev: allow HTTP to localhost / LAN backend
         INFOPLIST_KEY_NSAppTransportSecurity: "{NSAllowsArbitraryLoads = YES;}"
+        # Backend URL is hardcoded in client/AAALionApp/AAALionApp/Config.swift
+        # — change the `defaultBackendURL` constant there before each LAN
+        # demo session (run `ipconfig getifaddr en0` on the Mac to get the IP).
         # Signing: automatic (uses the Apple ID configured in Xcode → Settings → Accounts).
         # Simulator builds skip signing implicitly; device builds use the personal team.
         CODE_SIGN_STYLE: Automatic
