@@ -4,10 +4,12 @@ import UniformTypeIdentifiers
 
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
+    @State private var cart = CartStore.shared
     @State private var pickerItem: PhotosPickerItem?
     @State private var showCamera = false
     @State private var showFileImporter = false
     @State private var showSettings = false
+    @State private var showCart = false
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -29,16 +31,55 @@ struct ChatView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
+                    HStack(spacing: 14) {
+                        Button {
+                            showCart = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: "cart")
+                                if cart.totalQuantity > 0 {
+                                    Text("\(cart.totalQuantity)")
+                                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background(Color.appAccent)
+                                        .clipShape(Capsule())
+                                        .offset(x: 10, y: -8)
+                                }
+                            }
+                        }
+                        .accessibilityLabel("Cart")
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                        .accessibilityLabel("Settings")
                     }
-                    .accessibilityLabel("Settings")
                 }
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showCart) {
+                CartSheet(cart: cart)
+            }
+            .onChange(of: viewModel.cartIntent) { _, intent in
+                guard let intent else { return }
+                switch intent {
+                case "add":
+                    // Auto-add last assistant's product cards (if any).
+                    if let lastAssistant = viewModel.messages.reversed().first(where: { $0.role == .assistant }) {
+                        for p in lastAssistant.products {
+                            cart.add(p)
+                        }
+                    }
+                case "checkout":
+                    showCart = true
+                default: break
+                }
+                viewModel.cartIntent = nil
             }
             .sheet(isPresented: $showCamera) {
                 CameraPicker { data in

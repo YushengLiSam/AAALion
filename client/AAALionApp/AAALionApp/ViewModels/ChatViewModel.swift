@@ -12,6 +12,8 @@ final class ChatViewModel {
     var pendingImage: Data?
     /// True while the mic is active.
     var isRecording: Bool = false
+    /// Most recent cart intent emitted by the backend (consumed by ChatView).
+    var cartIntent: String? = nil
 
     private var streamTask: Task<Void, Never>?
     private let service: ChatService
@@ -79,6 +81,8 @@ final class ChatViewModel {
                         await MainActor.run { self.appendText(chunk, to: assistantId) }
                     case .product(let card):
                         await MainActor.run { self.appendProduct(card, to: assistantId) }
+                    case .cartIntent(let action):
+                        await MainActor.run { self.cartIntent = action }
                     case .error(let message):
                         await MainActor.run { self.errorMessage = message }
                     case .done:

@@ -1,25 +1,38 @@
 """Chat streaming endpoint.
 
-If DOUBAO_API_KEY is set in the environment, this hits the real model;
-otherwise it falls back to a fixture stream so iOS development can
-proceed without the key.
+Pipeline:
+  1. Extract last user text + optional image bytes.
+  2. Retrieve top candidates (CLIP if image; hybrid+rerank otherwise).
+  3. Build catalog block + system prompt; assemble messages.
+  4. Cache check (hash of system + messages + image sha) → replay if hit.
+  5. Stream from the LLM provider with retry/backoff on upstream errors.
+  6. Emit product cards + intent events; close with `done`.
+  7. Log structured timing (received → retrieval → first delta → done).
+
+Cancellation: if the client disconnects mid-stream, we stop calling the
+LLM and exit the generator so we don't burn quota.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import re
+import time
 from typing import AsyncIterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.schemas.chat import ChatMessage, ChatFilters
 from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
+from app.services.cache import cache, make_key, hash_image_bytes
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+log = logging.getLogger("chat")
 
 
 class ChatRequest(BaseModel):
@@ -31,10 +44,16 @@ def _sse(event: dict) -> str:
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
 
+# Tightened system prompt: commits on visual matches, structured filtering rule.
 _PROMPT = (
     "你是一名中文电商导购助手。仅基于下面的商品目录回答；目录中没有的商品、价格、优惠绝对不要编造。\n"
-    "如果用户提到否定条件（'不要含酒精'、'除了 X 之外'），请从候选集中剔除。\n"
-    "回复格式：先给一句话推荐，然后 2-4 条理由（每条 30 字以内）。\n"
+    "\n"
+    "规则：\n"
+    "1. 如果用户上传了图片，你的视觉识别（品牌+品类）若能匹配目录中的某款商品，"
+    "**直接确认这就是该商品**，不要含糊地说『目录中没有』。\n"
+    "2. 如果用户说『不要 X』『除了 X』『不含 X』，从候选集中**剔除**含 X 的商品。\n"
+    "3. 多商品对比：从『价格、关键成分、适用场景、优劣势』中选择 3-5 个维度，逐条列出。\n"
+    "4. 回复格式：先一句话推荐，再 2-4 条理由（每条 ≤ 30 字），最后可选一句替代建议。\n"
     "\n## 商品目录\n{catalog}\n"
 )
 
@@ -53,47 +72,44 @@ def _build_catalog(products: list[dict]) -> str:
 def _image_url(product_id: str, image_path: str | None) -> str | None:
     if not image_path:
         return None
-    # data/seed/<category>/images/<file>.jpg is mounted at /static/
     return f"/static/{image_path}"
 
 
-async def _stream(provider, user_text: str, products: list[dict]) -> AsyncIterator[str]:
-    system = _PROMPT.format(catalog=_build_catalog(products))
-    history = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user_text},
-    ]
-    try:
-        async for delta in provider.stream_chat(history):
-            yield _sse({"type": "delta", "text": delta})
-    except Exception as e:  # noqa: BLE001
-        yield _sse({"type": "error", "message": str(e), "code": "UPSTREAM"})
-        return
+def _product_card_event(p: dict) -> dict:
+    return {
+        "type": "product_card",
+        "product": {
+            "product_id": p["product_id"],
+            "title": p.get("title"),
+            "brand": p.get("brand"),
+            "base_price": p.get("base_price"),
+            "image_url": _image_url(p["product_id"], p.get("image_path")),
+        },
+    }
 
-    for p in products:
-        yield _sse({
-            "type": "product_card",
-            "product": {
-                "product_id": p["product_id"],
-                "title": p.get("title"),
-                "brand": p.get("brand"),
-                "base_price": p.get("base_price"),
-                "image_url": _image_url(p["product_id"], p.get("image_path")),
-            },
-        })
-    yield _sse({"type": "done"})
+
+# Intent detection for 4.1 cart flow.
+_ADD_TO_CART = re.compile(r"加入?购物?车|加购|加入车|放购物?车")
+_CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单")
+
+
+def _detect_cart_intent(text: str) -> dict | None:
+    if not text:
+        return None
+    if _CHECKOUT.search(text):
+        return {"type": "cart_intent", "action": "checkout"}
+    if _ADD_TO_CART.search(text):
+        return {"type": "cart_intent", "action": "add"}
+    return None
 
 
 def _extract_user_text(messages) -> str:
-    """Pull the text portion of the last user message regardless of shape.
-    Multimodal messages have a list of content parts; we concat the text parts."""
     for m in reversed(messages):
         if m.role != "user":
             continue
         content = m.content
         if isinstance(content, str):
             return content
-        # list of ContentPart — only text parts are useful for retrieval embedding
         text_chunks = []
         for part in content:
             if hasattr(part, "type") and part.type == "text" and getattr(part, "text", None):
@@ -113,8 +129,6 @@ def _has_image(messages) -> bool:
 
 
 def _extract_image_bytes(messages) -> bytes | None:
-    """Pull the JPEG bytes out of the last user message's first image_url part.
-    Returns the raw bytes from a data:image/...;base64,... URL, or None."""
     import base64
     for m in reversed(messages):
         if m.role != "user":
@@ -134,56 +148,135 @@ def _extract_image_bytes(messages) -> bytes | None:
     return None
 
 
+async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: int = 3):
+    """Async-iterate provider.stream_chat with exponential backoff on early errors."""
+    delay = 0.5
+    for attempt in range(1, max_attempts + 1):
+        try:
+            async for delta in provider.stream_chat(history):
+                yield delta
+            return
+        except Exception as e:  # noqa: BLE001
+            if attempt == max_attempts:
+                raise
+            log.warning(f"LLM upstream error (attempt {attempt}/{max_attempts}): {e}; backoff {delay}s")
+            await asyncio.sleep(delay)
+            delay *= 2
+
+
 @router.post("/stream")
-async def chat_stream(req: ChatRequest) -> StreamingResponse:
+async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
+    t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
     embed_query = user_text if user_text else "拍照找货"
 
-    # When the user sends an image, prefer CLIP-based visual retrieval —
-    # that's the "拍照找货" rubric path. Falls back to text retrieval if
-    # CLIP isn't wired (e.g. running without torch).
+    # Retrieval ----------------------------------------------------------------
     products: list[dict] = []
+    img_bytes: bytes | None = None
     if _has_image(req.messages):
         img_bytes = _extract_image_bytes(req.messages)
         if img_bytes:
             products = top_k_image(img_bytes, k=3)
     if not products:
-        products = top_k(embed_query, k=3)
+        products = top_k(embed_query, k=5)
+    t_retrieval = time.perf_counter()
 
-    provider = get_provider()
+    # Cart-intent detection ----------------------------------------------------
+    cart_event = _detect_cart_intent(user_text)
+
+    # Cache --------------------------------------------------------------------
+    cache_key = make_key(
+        system_prompt=_PROMPT[:128],
+        messages_json=req.model_dump_json(exclude={"filters"}),
+        image_sha=hash_image_bytes(img_bytes),
+    )
+    cached_events = cache.get(cache_key)
+
+    # Build messages + provider ------------------------------------------------
+    system = _PROMPT.format(catalog=_build_catalog(products))
     if _has_image(req.messages):
-        # Multimodal path: rebuild the prompt to keep the system text-only,
-        # then pass the user's original content (text + image parts) to the LLM.
-        # The vision-capable model receives both the image and the catalog context.
         last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
-        system = _PROMPT.format(catalog=_build_catalog(products))
         history = [
             {"role": "system", "content": system},
             {"role": "user", "content": last_user.model_dump()["content"] if last_user else user_text},
         ]
-        return StreamingResponse(
-            _stream_with_history(provider, history, products),
-            media_type="text/event-stream",
-        )
-    return StreamingResponse(_stream(provider, user_text, products), media_type="text/event-stream")
+    else:
+        history = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_text},
+        ]
+    provider = get_provider()
+
+    async def generator() -> AsyncIterator[str]:
+        nonlocal cart_event
+        events_to_cache: list[dict] = []
+        t_first_delta: float | None = None
+
+        # Cart intent comes first so iOS can update its UI immediately.
+        if cart_event:
+            yield _sse(cart_event)
+            events_to_cache.append(cart_event)
+
+        # Cache hit: replay quickly.
+        if cached_events:
+            for ev in cached_events:
+                if await request.is_disconnected():
+                    break
+                yield _sse(ev)
+                if ev.get("type") == "delta" and t_first_delta is None:
+                    t_first_delta = time.perf_counter()
+                if ev.get("type") == "delta":
+                    await asyncio.sleep(0.015)
+            t_done = time.perf_counter()
+            _log_timing(t_received, t_retrieval, t_first_delta, t_done, cache_hit=True, user_text=user_text)
+            return
+
+        # Cache miss: stream from LLM with retry/backoff.
+        try:
+            async for delta in _stream_chat_with_retry(provider, history):
+                if await request.is_disconnected():
+                    log.info("client disconnected mid-stream; cancelling")
+                    return
+                ev = {"type": "delta", "text": delta}
+                yield _sse(ev)
+                events_to_cache.append(ev)
+                if t_first_delta is None:
+                    t_first_delta = time.perf_counter()
+        except Exception as e:  # noqa: BLE001
+            err = {"type": "error", "message": str(e), "code": "UPSTREAM"}
+            yield _sse(err)
+            events_to_cache.append(err)
+
+        for p in products:
+            if await request.is_disconnected():
+                return
+            ev = _product_card_event(p)
+            yield _sse(ev)
+            events_to_cache.append(ev)
+
+        done = {"type": "done"}
+        yield _sse(done)
+        events_to_cache.append(done)
+
+        # Don't pollute the cache with error-only streams.
+        if any(e.get("type") == "delta" for e in events_to_cache):
+            cache.put(cache_key, events_to_cache)
+
+        t_done = time.perf_counter()
+        _log_timing(t_received, t_retrieval, t_first_delta, t_done, cache_hit=False, user_text=user_text)
+
+    return StreamingResponse(generator(), media_type="text/event-stream")
 
 
-async def _stream_with_history(provider, history: list[dict], products: list[dict]) -> AsyncIterator[str]:
-    try:
-        async for delta in provider.stream_chat(history):
-            yield _sse({"type": "delta", "text": delta})
-    except Exception as e:  # noqa: BLE001
-        yield _sse({"type": "error", "message": str(e), "code": "UPSTREAM"})
-        return
-    for p in products:
-        yield _sse({
-            "type": "product_card",
-            "product": {
-                "product_id": p["product_id"],
-                "title": p.get("title"),
-                "brand": p.get("brand"),
-                "base_price": p.get("base_price"),
-                "image_url": _image_url(p["product_id"], p.get("image_path")),
-            },
-        })
-    yield _sse({"type": "done"})
+def _log_timing(t_received: float, t_retrieval: float, t_first_delta: float | None, t_done: float, *, cache_hit: bool, user_text: str) -> None:
+    record = {
+        "event": "chat_stream",
+        "cache": "hit" if cache_hit else "miss",
+        "retrieval_ms": round((t_retrieval - t_received) * 1000),
+        "first_delta_ms": round((t_first_delta - t_received) * 1000) if t_first_delta else None,
+        "total_ms": round((t_done - t_received) * 1000),
+        "query_preview": user_text[:60],
+    }
+    # uvicorn doesn't pipe named-logger info to stdout by default; print
+    # so timing shows up next to the access logs without extra config.
+    print(json.dumps(record, ensure_ascii=False), flush=True)

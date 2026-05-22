@@ -3,6 +3,7 @@ import Foundation
 enum ChatDelta: Decodable {
     case text(String)
     case product(ProductCard)
+    case cartIntent(String)      // "add" | "checkout"
     case error(String)
     case done
 
@@ -10,6 +11,7 @@ enum ChatDelta: Decodable {
         case type
         case text
         case product
+        case action
         case message
     }
 
@@ -21,6 +23,9 @@ enum ChatDelta: Decodable {
             self = .text(try container.decode(String.self, forKey: .text))
         case "product_card":
             self = .product(try container.decode(ProductCard.self, forKey: .product))
+        case "cart_intent":
+            let action = (try? container.decode(String.self, forKey: .action)) ?? "add"
+            self = .cartIntent(action)
         case "error":
             self = .error(try container.decode(String.self, forKey: .message))
         case "done":

@@ -1,10 +1,31 @@
-{"query": "推荐一款适合油皮的洗面奶", "expected_product_ids": ["p_beauty_004"], "tags": ["basic", "intent"]}
-{"query": "200 元以下的蓝牙耳机有哪些？", "expected_product_ids": [], "tags": ["basic", "filter"]}
-{"query": "帮我推荐跑鞋，要轻量的，预算 500 以内", "expected_product_ids": [], "tags": ["advanced", "multi-turn"]}
-{"query": "A 和 B 这两款面霜哪个更保湿？", "expected_product_ids": [], "tags": ["advanced", "compare"]}
-{"query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌", "expected_product_ids": [], "tags": ["high", "negation"]}
-{"query": "下周去三亚度假，帮我搭配一套从防晒到穿搭的方案", "expected_product_ids": [], "tags": ["high", "compose"]}
-{"query": "把这款加到购物车", "expected_product_ids": [], "tags": ["high", "crud"]}
-{"query": "我想要同款外套", "expected_product_ids": [], "tags": ["high", "image"]}
-{"query": "雅诗兰黛小棕瓶 50ml 多少钱？", "expected_product_ids": ["p_beauty_001"], "tags": ["basic", "spec"]}
-{"query": "iPhone 17 Pro 宇宙橙 256GB 多少钱？", "expected_product_ids": ["p_digital_001"], "tags": ["basic", "spec"]}
+{"query": "推荐一款适合油皮的洗面奶", "expected_product_ids": ["p_beauty_004", "p_beauty_011"], "tags": ["basic", "intent"]}
+{"query": "适合敏感肌的洁面产品有什么", "expected_product_ids": ["p_beauty_011"], "tags": ["basic", "intent"]}
+{"query": "200元以下的蓝牙耳机有哪些", "expected_product_ids": [], "tags": ["basic", "filter", "no-match-expected"]}
+{"query": "性价比高的国产手机推荐", "expected_product_ids": ["p_digital_009"], "tags": ["basic", "filter"]}
+{"query": "iPhone 17 Pro 宇宙橙 256GB 多少钱", "expected_product_ids": ["p_digital_001"], "tags": ["basic", "spec"]}
+{"query": "Apple MacBook Air M5 16GB", "expected_product_ids": ["p_digital_020"], "tags": ["basic", "spec"]}
+{"query": "雅诗兰黛特润修护精华露 30ml", "expected_product_ids": ["p_beauty_001"], "tags": ["basic", "spec"]}
+{"query": "兰蔻小黑瓶 30ml 多少钱", "expected_product_ids": ["p_beauty_002"], "tags": ["basic", "spec"]}
+{"query": "适合熬夜的精华液", "expected_product_ids": ["p_beauty_001", "p_beauty_002"], "tags": ["intent"]}
+{"query": "请推荐一款轻量跑鞋", "expected_product_ids": [], "tags": ["intent", "no-match-expected"]}
+{"query": "雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜", "expected_product_ids": ["p_beauty_001", "p_beauty_002"], "tags": ["compare"]}
+{"query": "iPhone 17 Pro 和 iPhone 17 Pro Max 对比", "expected_product_ids": ["p_digital_001", "p_digital_003"], "tags": ["compare"]}
+{"query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好", "expected_product_ids": [], "tags": ["compare", "no-match-expected"]}
+{"query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌", "expected_product_ids": ["p_beauty_006"], "tags": ["negation"]}
+{"query": "推荐洁面产品，除了泡沫型的", "expected_product_ids": [], "tags": ["negation"]}
+{"query": "不要 Apple 的笔记本电脑推荐", "expected_product_ids": [], "tags": ["negation", "no-match-expected"]}
+{"query": "再便宜点的呢", "expected_product_ids": ["p_beauty_011"], "tags": ["multi-turn-followup"]}
+{"query": "贵的呢", "expected_product_ids": ["p_beauty_004"], "tags": ["multi-turn-followup"]}
+{"query": "便宜点的", "expected_product_ids": [], "tags": ["vague", "rewrite-target"]}
+{"query": "好用的", "expected_product_ids": [], "tags": ["vague", "rewrite-target"]}
+{"query": "送礼推荐", "expected_product_ids": [], "tags": ["vague", "rewrite-target"]}
+{"query": "iPhone 17 Pro 黑色 1TB 多少钱", "expected_product_ids": ["p_digital_001"], "tags": ["spec", "sku"]}
+{"query": "薇诺娜舒敏控油洁面乳", "expected_product_ids": ["p_beauty_011"], "tags": ["spec"]}
+{"query": "理肤泉特护清盈防晒乳 SPF50", "expected_product_ids": ["p_beauty_006"], "tags": ["spec"]}
+{"query": "适合干皮的乳液", "expected_product_ids": [], "tags": ["intent", "no-match-expected"]}
+{"query": "保湿面霜推荐", "expected_product_ids": [], "tags": ["intent", "no-match-expected"]}
+{"query": "无线耳机降噪", "expected_product_ids": ["p_digital_004", "p_digital_005"], "tags": ["intent"]}
+{"query": "Apple iPad Air 平板", "expected_product_ids": [], "tags": ["spec", "no-match-expected"]}
+{"query": "国产护肤平价好物", "expected_product_ids": ["p_beauty_009", "p_beauty_011"], "tags": ["intent", "rewrite-target"]}
+{"query": "新手适合的相机", "expected_product_ids": [], "tags": ["intent", "no-match-expected"]}
+{"query": "适合熬夜的护肤精华，要平价", "expected_product_ids": ["p_beauty_009"], "tags": ["compose", "intent"]}

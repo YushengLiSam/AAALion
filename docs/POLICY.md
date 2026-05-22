@@ -47,6 +47,14 @@ Operational rules until further notice:
 - Most of Shufeng's ongoing development happens on `shufeng` to protect `main` stability.
 - PRs are squash-merged into `main`.
 
+### From 2026-05-24 onwards (Round 5+)
+
+- All Shufeng's commits land on `shufeng` first.
+- Fast-forward merge `shufeng → main` only at the end of each iteration,
+  after the grader self-assessment (`docs/QUALITY_REVIEW.md`) is written
+  and the user has reviewed the diff.
+- `main` remains the always-deployable head; `shufeng` is in-flight work.
+
 ## Commit message format / 提交信息格式
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):

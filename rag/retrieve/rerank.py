@@ -1,22 +1,51 @@
-"""Optional reranking pass for the top-k retrieval.
+"""Cross-encoder reranker.
 
-Two strategies for v2:
-  - Cross-encoder reranker (e.g. BAAI/bge-reranker-base).
-  - LLM-as-judge prompt sent to Doubao (slow but cheap).
+Takes top-N candidates from hybrid retrieval, scores each with a Chinese-
+aware cross-encoder, returns top-k by reranker score. Cross-encoders are
+slower than dual-encoders but much more accurate for the final ranking pass.
 
-For now this is identity — keeps the interface so the backend can call
-it unconditionally.
+Model: BAAI/bge-reranker-base (~280 MB, CPU-friendly).
 """
 
 from __future__ import annotations
 
+import os
+from functools import lru_cache
 from typing import Sequence
 
-from .query import Hit
+
+_DEFAULT_MODEL = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-base")
 
 
-def rerank(query_text: str, hits: Sequence[Hit], top_k: int | None = None) -> list[Hit]:
-    out = list(hits)
-    if top_k is not None:
-        out = out[:top_k]
-    return out
+@lru_cache(maxsize=1)
+def _model():
+    from sentence_transformers import CrossEncoder
+    return CrossEncoder(_DEFAULT_MODEL, max_length=256)
+
+
+def rerank(query: str, candidates: Sequence[dict], top_k: int = 5) -> list[dict]:
+    """Rerank product dict candidates by cross-encoder score against the query.
+    Returns the top_k. On any failure (model not installed, etc.), falls
+    back to input order."""
+    if not query or len(candidates) <= 1:
+        return list(candidates)[:top_k]
+    try:
+        model = _model()
+    except Exception as e:
+        import sys
+        print(f"[rerank] cross-encoder unavailable: {e}", file=sys.stderr)
+        return list(candidates)[:top_k]
+
+    pairs: list[tuple[str, str]] = []
+    for p in candidates:
+        rag = p.get("rag_knowledge", {}) or {}
+        doc = " ".join([
+            p.get("title", ""),
+            p.get("brand", ""),
+            (rag.get("marketing_description") or "")[:240],
+        ])
+        pairs.append((query, doc))
+
+    scores = model.predict(pairs, batch_size=8, show_progress_bar=False)
+    ranked = sorted(zip(list(candidates), scores), key=lambda x: float(x[1]), reverse=True)
+    return [p for p, _ in ranked[:top_k]]

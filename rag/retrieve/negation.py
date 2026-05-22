@@ -1,0 +1,96 @@
+"""Negation / exclusion extraction.
+
+When a user says "不要日系品牌, 不要含酒精, 除了 iPhone", we need to lift
+those constraints out of the prose so we can apply them as filters on the
+catalog rather than relying on the LLM to obey them post-hoc.
+
+Returns a structured dict the retrieval layer can consume:
+
+```
+{
+    "exclude_brands": ["雅诗兰黛", ...],
+    "exclude_categories": ["美妆护肤", ...],
+    "exclude_keywords": ["酒精", "日本"]
+}
+```
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import urllib.request
+
+
+def extract_negation(text: str) -> dict:
+    """Best-effort extraction. Silent fallback to {} on any error
+    (the prompt still has a fallback rule, so behavior degrades gracefully)."""
+    if not text or not any(neg in text for neg in ("不要", "不含", "不带", "除了", "排除")):
+        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
+
+    key = os.getenv("TOKENROUTER_API_KEY")
+    if not key:
+        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
+
+    prompt = (
+        "用户在做电商查询。从下面这段话中**只提取**用户明确说不要的内容。\n"
+        "字段：exclude_brands（品牌名）、exclude_categories（类目，从 美妆护肤/数码电子/服饰运动/食品生活/母婴健康/家居家具 里选）、exclude_keywords（具体要排除的成分/属性/国别）。\n"
+        "返回 JSON 对象，仅 JSON，不要解释。\n\n"
+        f"用户说：{text}\n\n"
+        "示例：\n"
+        '输入：推荐防晒霜，不要含酒精的，也不要日系品牌\n'
+        '输出: {"exclude_brands":[],"exclude_categories":[],"exclude_keywords":["酒精","日本","日系"]}\n'
+    )
+    body = json.dumps({
+        "model": os.getenv("TOKENROUTER_MODEL", "claude-haiku-4-5"),
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 200,
+        "temperature": 0.1,
+    }).encode()
+    req = urllib.request.Request(
+        os.getenv("TOKENROUTER_BASE_URL", "https://api.tokenrouter.com/v1") + "/chat/completions",
+        data=body,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode())
+        content = data["choices"][0]["message"]["content"].strip()
+        content = re.sub(r"^```\w*\s*", "", content).rstrip("`").strip()
+        result = json.loads(content)
+        return {
+            "exclude_brands": [str(s).strip() for s in result.get("exclude_brands", []) if s],
+            "exclude_categories": [str(s).strip() for s in result.get("exclude_categories", []) if s],
+            "exclude_keywords": [str(s).strip() for s in result.get("exclude_keywords", []) if s],
+        }
+    except Exception:
+        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
+
+
+def apply_negation(products: list[dict], neg: dict) -> list[dict]:
+    """Filter the candidate list. Removes products whose brand / category
+    matches any excluded value, or whose title/marketing_description contains
+    any excluded keyword."""
+    if not neg or not (neg.get("exclude_brands") or neg.get("exclude_categories") or neg.get("exclude_keywords")):
+        return products
+
+    excl_brands = {b.lower() for b in neg.get("exclude_brands", [])}
+    excl_cats = {c for c in neg.get("exclude_categories", [])}
+    excl_kw = [k for k in neg.get("exclude_keywords", []) if k]
+
+    out: list[dict] = []
+    for p in products:
+        brand = (p.get("brand") or "").lower()
+        if any(b and b in brand for b in excl_brands):
+            continue
+        if p.get("category") in excl_cats:
+            continue
+        title = p.get("title", "")
+        desc = (p.get("rag_knowledge", {}) or {}).get("marketing_description", "")
+        haystack = f"{title}\n{desc}".lower()
+        if any(k.lower() in haystack for k in excl_kw):
+            continue
+        out.append(p)
+    return out
