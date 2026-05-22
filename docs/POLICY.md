@@ -17,7 +17,7 @@ When Shufeng says "store X in policy" in conversation with the project assistant
 | 中文名 | 英文名 / 昵称 | 模块 | 主要分支 |
 |---|---|---|---|
 | 陈澍枫 | Shufeng Chen | iOS 客户端 `client/` (+ fallback for everything) | `shufeng` |
-| 李雨晟 | Yusheng Li (Sam) | 后端 `server/` | `sam` |
+| 李雨晟 | Yusheng Li | 后端 `server/` | `sam` |
 | 管图杰 | Tujie Guan | RAG 检索 `rag/` | `tujie` |
 
 Cross-area changes require the affected owner's approval before merge.
@@ -28,6 +28,17 @@ Cross-area changes require the affected owner's approval before merge.
 
 - The Doubao API key is shared via the team's private channel only, dropped into `.env` locally. It is **never** committed, never pushed, never sent to the iOS client.
 - `.env` is in `.gitignore`; the example template lives at `.env.example`.
+
+### 2026-05-22: Doubao key leak incident (organizer announcement)
+
+The original Doubao API key printed in the competition PDF was leaked by another team via an open-source GitHub commit. The leaked key was abused by non-participants, blocking legitimate use, and the organizer **deactivated it**. New keys will be re-distributed.
+
+Operational rules until further notice:
+
+- The PDF-provided key returns HTTP 401 — do not bother using it.
+- **Never commit any API key**, ever, even momentarily. Use `.env` only. Pre-commit hooks (see [`tools/check-secrets.sh`](../tools/check-secrets.sh)) can help.
+- If you spot a leak in any team member's repo or branch, **rotate immediately** and notify the channel.
+- Until the new Doubao key arrives, use the Anthropic Claude provider (`LLM_PROVIDER=anthropic` in `.env`) — see [docs/API.md](API.md) and [server/README.md](../server/README.md).
 
 ## Branch model
 

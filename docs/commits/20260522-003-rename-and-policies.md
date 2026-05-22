@@ -54,7 +54,7 @@ Also: today's Doubao API test (`curl ... 401 AuthenticationError`) confirmed the
 ```
 # 1. Doubao live test
 curl https://ark.cn-beijing.volces.com/api/v3/chat/completions \
-  -H "Authorization: Bearer ark-2af51d30-..." -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <PDF-KEY-NOW-DEACTIVATED>" -H "Content-Type: application/json" \
   -d '{"model":"ep-20260514111645-lmgt2","messages":[{"role":"user","content":"你好"}]}'
 # → 401 AuthenticationError → key is not valid; flagged in SOLO_DEV_PLAN.md
 

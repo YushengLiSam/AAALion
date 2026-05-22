@@ -6,9 +6,9 @@ Read this before touching any code. It tells you the order of operations, how to
 
 ### Parallel-work-friendly order
 
-1. **管图杰 (Tujie / RAG)** brings up Qdrant + ingests `data/seed/` first. Output: a running Qdrant on `:6333` with two populated collections.
-2. **李雨晟 (Sam / backend)** wraps it with FastAPI, exposing `/chat/stream`. He can stub Tujie's retrieval initially by returning a fixed top-3 from a local JSON.
-3. **陈澍枫 (Shufeng / iOS)** builds the chat UI against the SSE endpoint. He can stub Sam's backend by running a tiny local SSE server (see `tools/mock_backend.py`).
+1. **管图杰 / RAG** brings up the vector index + ingests `data/seed/` first. Output: a populated Chroma collection (or Qdrant `:6333`).
+2. **李雨晟 / backend** wraps it with FastAPI, exposing `/chat/stream`. He can stub retrieval initially by returning a fixed top-3 from a local JSON.
+3. **陈澍枫 / iOS** builds the chat UI against the SSE endpoint. He can stub the backend by running `python tools/mock_backend.py` in another terminal.
 
 ### Stubs each role provides for the others
 

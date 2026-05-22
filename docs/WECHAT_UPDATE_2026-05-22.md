@@ -105,7 +105,7 @@ tools/     截屏助手 + ssh 助手 + mock 后端
 
 ## 我需要你们做的事（具体）
 
-1. **雨晟**：明早能不能问下组织方 Doubao 真实 API Key？PDF 上是 `ark-2af51d30-ed70-4061-a2cd-74f454ccc4e8-2282e`，401 unauthorized。
+1. **雨晟**：明早能不能问下组织方 Doubao 真实 API Key？PDF 上发的 Key 已确认被泄露作废（见群里 Shida 老师通知），等新 Key 下来。在等的期间后端已切到 Anthropic Claude 作为占位 provider，能正常出 SSE 流式回复。
 2. **图杰**：clone 下来跑一遍 `make ingest`（会用 fallback 跑通），熟悉 chunk 出来的内容，然后告诉我 Qdrant 起容器你这边要几天。
 3. **两位**：用你们的 AI 工具读一遍 `docs/EXECUTION_SUMMARY.md` 和 `docs/ARCHITECTURE.md`，反馈你们对架构 / 接口 / 流程的意见，越早越好。
 4. **两位**：我们什么时候开第一次同步会？我建议本周日（5/24）晚上 30 分钟视频，把架构 + Doubao Key + 数据来源三件事敲定。

@@ -16,8 +16,8 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 | 中文名 | 英文名 | 角色 / Role | 模块 / Module |
 |---|---|---|---|
-| 陈澍枫 | Shufeng Chen ("小淫猫") | 客户端 / iOS lead · 项目兜底 / project fallback | `client/` |
-| 李雨晟 | Yusheng Li (Sam) | 后端 / Backend | `server/` |
+| 陈澍枫 | Shufeng Chen | 客户端 / iOS lead · 项目兜底 / project fallback | `client/` |
+| 李雨晟 | Yusheng Li | 后端 / Backend | `server/` |
 | 管图杰 | Tujie Guan | 检索 / RAG | `rag/` |
 
 > 陈澍枫 同时兜底其他模块 — 如有进度风险，按 [SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md) 推进。

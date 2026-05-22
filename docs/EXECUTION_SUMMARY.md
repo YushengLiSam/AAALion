@@ -2,7 +2,7 @@
 
 > 产品名 / Product: **狮选 LionPick** · 团队名 / Team: **AAALion**
 >
-> **Audience / 受众**: 李雨晟 (Sam) and 管图杰 (Tujie). 陈澍枫 (Shufeng) did the initial bootstrap; this is what was done and what's open for you.
+> **Audience / 受众**: 李雨晟 and 管图杰. 陈澍枫 did the initial bootstrap; this is what was done and what's open for you.
 
 ## TL;DR
 
