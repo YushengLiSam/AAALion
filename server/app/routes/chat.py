@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from app.schemas.chat import ChatMessage, ChatFilters
 from app.services.llm_provider import get_provider
-from app.services.rag_client import top_k
+from app.services.rag_client import top_k, top_k_image
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -112,11 +112,43 @@ def _has_image(messages) -> bool:
     return False
 
 
+def _extract_image_bytes(messages) -> bytes | None:
+    """Pull the JPEG bytes out of the last user message's first image_url part.
+    Returns the raw bytes from a data:image/...;base64,... URL, or None."""
+    import base64
+    for m in reversed(messages):
+        if m.role != "user":
+            continue
+        if not isinstance(m.content, list):
+            return None
+        for part in m.content:
+            if getattr(part, "type", None) == "image_url":
+                url = getattr(getattr(part, "image_url", None), "url", "") or ""
+                if url.startswith("data:") and ";base64," in url:
+                    try:
+                        b64 = url.split(";base64,", 1)[1]
+                        return base64.b64decode(b64)
+                    except Exception:
+                        return None
+        return None
+    return None
+
+
 @router.post("/stream")
 async def chat_stream(req: ChatRequest) -> StreamingResponse:
     user_text = _extract_user_text(req.messages)
     embed_query = user_text if user_text else "拍照找货"
-    products = top_k(embed_query, k=3)
+
+    # When the user sends an image, prefer CLIP-based visual retrieval —
+    # that's the "拍照找货" rubric path. Falls back to text retrieval if
+    # CLIP isn't wired (e.g. running without torch).
+    products: list[dict] = []
+    if _has_image(req.messages):
+        img_bytes = _extract_image_bytes(req.messages)
+        if img_bytes:
+            products = top_k_image(img_bytes, k=3)
+    if not products:
+        products = top_k(embed_query, k=3)
 
     provider = get_provider()
     if _has_image(req.messages):

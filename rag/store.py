@@ -73,3 +73,22 @@ def collection_count() -> int:
     client = _chroma_client()
     col = client.get_or_create_collection(TEXT_COLLECTION)
     return col.count()
+
+
+def upsert_image(ids: Sequence[str], embeddings: Sequence[Sequence[float]], metadatas: Sequence[dict]) -> None:
+    client = _chroma_client()
+    col = client.get_or_create_collection(IMAGE_COLLECTION, metadata={"hnsw:space": "cosine"})
+    col.upsert(ids=list(ids), embeddings=[list(e) for e in embeddings], metadatas=list(metadatas))
+
+
+def query_image(embedding: Sequence[float], k: int = 5) -> list[Hit]:
+    """Top-k by CLIP image-vector similarity. Returns Hits keyed by product_id."""
+    client = _chroma_client()
+    col = client.get_or_create_collection(IMAGE_COLLECTION, metadata={"hnsw:space": "cosine"})
+    if col.count() == 0:
+        return []
+    result = col.query(query_embeddings=[list(embedding)], n_results=k)
+    ids = (result.get("ids") or [[]])[0]
+    metas = (result.get("metadatas") or [[]])[0]
+    dists = (result.get("distances") or [[]])[0]
+    return [Hit(id=i, score=1.0 - float(d), metadata=m or {}) for i, m, d in zip(ids, metas, dists)]

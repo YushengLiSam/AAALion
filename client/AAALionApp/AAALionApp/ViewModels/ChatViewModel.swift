@@ -8,8 +8,10 @@ final class ChatViewModel {
     var isStreaming: Bool = false
     var errorMessage: String?
     /// JPEG bytes of the image the user has staged for the next send.
-    /// Set by the PhotosPicker flow. Cleared after a send.
+    /// Set by the PhotosPicker / Camera / Files flows. Cleared after a send.
     var pendingImage: Data?
+    /// True while the mic is active.
+    var isRecording: Bool = false
 
     private var streamTask: Task<Void, Never>?
     private let service: ChatService
@@ -18,10 +20,8 @@ final class ChatViewModel {
         self.service = service
     }
 
-    /// Pre-fill and auto-send a query (and optionally an image) from launch args.
-    /// `-test-query "<text>"`       — pre-fill the input and send.
-    /// `-test-image-url <url>`      — fetch the image from URL, attach.
-    /// (`-test-image <path>` is rejected by the iOS sandbox; use -test-image-url.)
+    // MARK: - Scripted harness for simctl-driven demos.
+
     func runScriptedQueryIfAny() {
         let args = ProcessInfo.processInfo.arguments
         let queryIdx = args.firstIndex(of: "-test-query")
@@ -51,9 +51,10 @@ final class ChatViewModel {
         }
     }
 
+    // MARK: - Send / cancel.
+
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Allow image-only or text-only sends; not both empty.
         guard (!text.isEmpty || pendingImage != nil), !isStreaming else { return }
         draft = ""
         let imageData = pendingImage
@@ -98,6 +99,61 @@ final class ChatViewModel {
             finalize(messageId: lastId)
         }
     }
+
+    // MARK: - Edit last user message (ChatGPT/Claude-style).
+
+    /// Roll back history to just before the given user message and refill
+    /// the composer with its text. Discards any assistant reply that
+    /// followed.
+    func editMessage(id: UUID) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        let target = messages[index]
+        guard target.role == .user else { return }
+        draft = target.text
+        pendingImage = target.imageData
+        messages.removeSubrange(index..<messages.count)
+        cancel()
+    }
+
+    // MARK: - TTS.
+
+    func speakAssistant(text: String) {
+        guard !text.isEmpty else { return }
+        TTSService.shared.speak(text)
+    }
+
+    // MARK: - Voice input.
+
+    func startListening() {
+        Task { @MainActor in
+            let ok = await SpeechService.shared.requestAuthorization()
+            guard ok else {
+                self.errorMessage = "麦克风 / 语音权限未授权"
+                return
+            }
+            SpeechService.shared.onTranscript = { [weak self] text in
+                self?.draft = text
+            }
+            SpeechService.shared.onError = { [weak self] msg in
+                self?.errorMessage = msg
+            }
+            do {
+                try SpeechService.shared.start()
+                self.isRecording = true
+            } catch {
+                self.errorMessage = "无法启动语音识别: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func stopListening() {
+        Task { @MainActor in
+            SpeechService.shared.stop()
+            self.isRecording = false
+        }
+    }
+
+    // MARK: - Internal mutation.
 
     private func appendText(_ chunk: String, to id: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }

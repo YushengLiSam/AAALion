@@ -1,0 +1,44 @@
+{
+  "rationale": "LionPick needs warmth without losing premium restraint. A soft ivory canvas paired with a confident amber-gold accent evokes the lion mascot and curated shopping, while deep espresso text keeps things grounded and readable. Generous rounded geometry and SF Pro Rounded add the playful approachability of an AI companion, balanced by tight typographic hierarchy so streamed replies and product cards feel structured, not childish.",
+  "palette": {
+    "background": "#FBF7F1",
+    "surface": "#FFFFFF",
+    "surface_elevated": "#FFFDF8",
+    "text_primary": "#1F1A14",
+    "text_secondary": "#7A6E5F",
+    "accent": "#E89A3C",
+    "accent_muted": "#F6D8A8",
+    "user_bubble_bg": "#FCE4BE",
+    "assistant_bubble_bg": "#FFFFFF",
+    "border": "#ECE3D2"
+  },
+  "palette_dark": {
+    "background": "#161310",
+    "surface": "#1F1B16",
+    "surface_elevated": "#2A241D",
+    "text_primary": "#F5EFE3",
+    "text_secondary": "#A89C88",
+    "accent": "#F2B25C",
+    "accent_muted": "#5C4525",
+    "user_bubble_bg": "#3A2C18",
+    "assistant_bubble_bg": "#231E18",
+    "border": "#332C23"
+  },
+  "typography": {
+    "font_family": "SF Pro Rounded",
+    "title_size": 22,
+    "title_weight": "semibold",
+    "body_size": 16,
+    "body_weight": "regular",
+    "caption_size": 12,
+    "caption_weight": "medium"
+  },
+  "spacing": {
+    "bubble_corner_radius": 18,
+    "bubble_padding_x": 14,
+    "bubble_padding_y": 10,
+    "card_corner_radius": 20,
+    "card_padding": 14
+  },
+  "icon_prompt": "A 1024x1024 iOS app icon featuring a friendly stylized lion mascot head, geometric and modern with a soft rounded mane shaped subtly like overlapping shopping tags. Warm ivory background (#FBF7F1) with a confident amber-gold lion (#E89A3C) and lighter cream highlights (#F6D8A8). Deep espresso facial details (#1F1A14), gentle smile, single sparkle near the ear suggesting AI intelligence. Flat vector style with soft inner shadow, slight gradient depth, premium minimalist e-commerce feel, centered composition, generous padding, no text."
+}

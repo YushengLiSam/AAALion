@@ -44,6 +44,8 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSCameraUsageDescription: "拍照找货功能需要使用相机识别商品。"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "上传图片以搜索同款商品。"
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "语音输入功能需要使用麦克风。"
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "将你的语音转成文字以发送查询。"
         # Dev: allow HTTP to localhost / LAN backend
         INFOPLIST_KEY_NSAppTransportSecurity: "{NSAllowsArbitraryLoads = YES;}"
         # Backend URL is hardcoded in client/AAALionApp/AAALionApp/Config.swift

@@ -84,6 +84,31 @@ def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
     return sorted(seen.values(), key=lambda h: h.score, reverse=True)[:k]
 
 
+def query_image(image_bytes: bytes, k: int = 5) -> list[Hit]:
+    """Top-k visually similar products. Embeds the input image with OpenCLIP
+    and queries the `products_image` Chroma collection."""
+    try:
+        from rag.ingest.embed_image import embed_image_bytes
+        from rag.store import query_image as store_query_image
+    except ImportError:
+        return []
+    try:
+        vec = embed_image_bytes(image_bytes)
+        raw = store_query_image(vec, k=k)
+    except Exception as e:
+        import sys
+        print(f"[rag] query_image failed: {e}", file=sys.stderr)
+        return []
+
+    products = _product_index()
+    hits: list[Hit] = []
+    for raw_hit in raw:
+        pid = (raw_hit.metadata or {}).get("product_id") or raw_hit.id
+        if pid in products:
+            hits.append(Hit(product_id=pid, score=raw_hit.score, product=products[pid]))
+    return hits
+
+
 def _keyword_fallback(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
     products = list(_product_index().values())
     if f:

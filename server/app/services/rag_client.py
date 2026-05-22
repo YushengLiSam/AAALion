@@ -19,10 +19,19 @@ def top_k(text: str, k: int = 3) -> list[dict]:
         hits = query(text, k=k)
         return [h.product for h in hits]
     except Exception:
-        # Last-resort fallback so the route never 500s on RAG.
         from rag.retrieve.query import _keyword_fallback  # type: ignore
         return [h.product for h in _keyword_fallback(text, k=k)]
 
 
-# Backwards-compatible alias used by older callers.
+def top_k_image(image_bytes: bytes, k: int = 3) -> list[dict]:
+    """Visually similar top-k via CLIP. Empty list if CLIP isn't wired
+    on this host or the image index is empty."""
+    try:
+        from rag.retrieve.query import query_image
+        hits = query_image(image_bytes, k=k)
+        return [h.product for h in hits]
+    except Exception:
+        return []
+
+
 stub_top_k = top_k
