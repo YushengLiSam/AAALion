@@ -55,6 +55,16 @@
 
 ---
 
+## 故障排查 / 你们一定会遇到的坑
+
+我把今天踩过的所有坑（iOS 签名、Team ID vs Cert ID、Untrusted Developer、7 天过期、Backend env 不读、TokenRouter 激活、Doubao Key 作废、nvidia 驱动等等）整理到了一个文件：[`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md)。**部署前先扫一眼，遇到错误时直接搜关键词。**
+
+最常见的两个：
+1. **iPhone 装好 app 但点开提示 "Untrusted Developer"** → Settings → General → VPN & Device Management → Apple Development → Trust（5 步）。
+2. **`make` 报 "No rule to make target ..."** → 你不在 repo 目录里。装 `aaalion` 全局命令：`ln -sf <repo>/tools/aaalion ~/.local/bin/aaalion`，然后从哪都能 `aaalion ios-sim` / `aaalion backend` 等。
+
+3. **设备装好但点开 app 闪退/白屏** → 多半是 `PUBLIC_BACKEND_URL` 指错。手机和 Mac 同 Wi-Fi，Mac 上 `ipconfig getifaddr en0` 拿 IP，Xcode scheme env 里设 `PUBLIC_BACKEND_URL=http://<ip>:8000`，重装。
+
 ## 附：仓库重要路径速查
 
 - 主仓库：`https://github.com/YushengLiSam/AAALion-`
@@ -62,5 +72,6 @@
 - 6 个 demo：[`docs/demos/2026-05-22/`](demos/2026-05-22/)
 - 数据调研：[`docs/research/`](research/)
 - 部署指南：[`docs/DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md)
+- **故障排查 / FAQ**：[`docs/TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 - 当下问题诚实交底：[`docs/HONEST_ANSWERS.md`](HONEST_ANSWERS.md)
 - 我的兜底执行计划：[`docs/SOLO_DEV_PLAN.md`](SOLO_DEV_PLAN.md)
