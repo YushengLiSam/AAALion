@@ -8,7 +8,11 @@ from pathlib import Path
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+    # server/app/config.py → parents[1] = server/ ; the canonical .env lives there.
+    # Also load repo-root .env if present (legacy / convenience).
+    _server_root = Path(__file__).resolve().parents[1]
+    load_dotenv(_server_root / ".env")
+    load_dotenv(_server_root.parent / ".env")
 except ImportError:
     pass
 

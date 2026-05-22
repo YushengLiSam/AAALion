@@ -38,18 +38,26 @@ struct ChatService {
                             userInfo: [NSLocalizedDescriptionKey: "Unexpected status from backend"]
                         )
                     }
-                    var buffer = ""
+                    // Each event arrives as a single `data: …` line on this
+                    // platform; `URLSession.bytes(_:).lines` is observed to
+                    // elide blank separator lines on iOS 17/18, so we decode
+                    // line-by-line rather than relying on the SSE empty-line
+                    // boundary.
+                    let decoder = JSONDecoder()
                     for try await line in bytes.lines {
                         if Task.isCancelled { break }
-                        if line.isEmpty {
-                            // event terminator
-                            if let event = try decodeEvent(buffer: buffer) {
-                                continuation.yield(event)
-                                if case .done = event { break }
-                            }
-                            buffer = ""
+                        let payload: String
+                        if line.hasPrefix("data: ") {
+                            payload = String(line.dropFirst(6))
+                        } else if line.hasPrefix("data:") {
+                            payload = String(line.dropFirst(5))
                         } else {
-                            buffer += line + "\n"
+                            continue
+                        }
+                        guard let data = payload.data(using: .utf8) else { continue }
+                        if let event = try? decoder.decode(ChatDelta.self, from: data) {
+                            continuation.yield(event)
+                            if case .done = event { break }
                         }
                     }
                     continuation.finish()
@@ -78,16 +86,4 @@ struct ChatService {
         return request
     }
 
-    private func decodeEvent(buffer: String) throws -> ChatDelta? {
-        var payload: String?
-        for line in buffer.split(separator: "\n") {
-            if line.hasPrefix("data: ") {
-                payload = String(line.dropFirst(6))
-            } else if line.hasPrefix("data:") {
-                payload = String(line.dropFirst(5))
-            }
-        }
-        guard let payload, let data = payload.data(using: .utf8) else { return nil }
-        return try JSONDecoder().decode(ChatDelta.self, from: data)
-    }
 }
