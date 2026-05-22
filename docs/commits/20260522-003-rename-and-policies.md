@@ -1,7 +1,7 @@
 # chore(repo): rename product to 狮选 LionPick, add commit-format and major-record policies, solo-dev plan, automation
 
 **Date**: 2026-05-22
-**SHA**: (fill in after commit)
+**SHA**: `8266853`
 **Author**: 陈澍枫 (Shufeng)
 
 ## Why
