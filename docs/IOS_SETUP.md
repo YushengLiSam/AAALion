@@ -42,6 +42,48 @@ The `xcodebuild ... -destination 'platform=iOS,id=<uuid>'` build itself succeeds
 
 LAN testing: backend on the MacBook (`aaalion backend`), iPhone on the same Wi-Fi. Find MacBook IP with `ipconfig getifaddr en0`. Set `PUBLIC_BACKEND_URL=http://<ip>:8000` in Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables.
 
+## Free-tier signing — what expires when
+
+Personal Teams (free Apple Developer accounts) issue **development certificates and provisioning profiles that expire ~7 days after issue**. The IPA installed on your iPhone stops launching after that.
+
+Workarounds for this project:
+
+| Strategy | When to use | How |
+|---|---|---|
+| **Re-sign weekly** (recommended) | During dev + defense | `aaalion resign` once a week (or before any demo). Re-signs and re-installs in <60 sec. |
+| **Pay $99/yr Apple Developer Program** | If you want 1-year certs | Requires real-name DUNS + a few business days approval; not worth it for a college competition. |
+| **Demo on simulator** | If the iPhone defense slot is off the table | No signing needed — `aaalion ios-sim` always works. |
+
+A calendar reminder for `next Sunday` and `the morning of 2026-06-11` (defense day) covers it.
+
+## Gotcha: Team ID ≠ Certificate ID
+
+The 10-char string Xcode shows in parentheses after the certificate name (e.g. `Apple Development: foo@bar.com (XXXXXXXXXX)`) is a **certificate identifier**, NOT the Team ID. They are typically different for Personal Teams.
+
+To find the **actual** Team ID to put in `DEVELOPMENT_TEAM`:
+
+```bash
+# After you've done the Xcode GUI Signing step at least once:
+ls ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/   # find the .mobileprovision
+security cms -D -i <profile.mobileprovision> | grep -A1 TeamIdentifier
+# The first <string>...</string> is your Team ID.
+```
+
+For Shufeng on this Mac (2026-05-22): cert ID `7TQ694CBJV`, Team ID `V8KDBHKA3P`. Project.yml uses the Team ID.
+
+## Verified working (2026-05-22 05:26)
+
+```
+$ xcodebuild -project AAALionApp.xcodeproj -scheme AAALionApp \
+    -destination 'platform=iOS,id=7310469E-...' -allowProvisioningUpdates build
+    ** BUILD SUCCEEDED **
+$ xcrun devicectl device install app --device 7310469E-... \
+    /tmp/lionpick-derived-device/Build/Products/Debug-iphoneos/狮选.app
+    App installed: bundleID: com.aaalion.lionpick ✓
+```
+
+App **deployed to physical iPhone 13 Pro**. First launch needs the cert to be trusted: iPhone → Settings → General → VPN & Device Management → Apple Development: alexcsf01725@gmail.com → Trust. After that, the app icon (`狮选`) launches normally and connects to the LAN backend.
+
 ## Verified working (2026-05-22 03:50)
 
 ```

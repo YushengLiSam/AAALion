@@ -23,7 +23,7 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 | Multi-product comparison (bonus 4.3) | ✅ | [`05-comparison.md`](docs/demos/2026-05-22/05-comparison.md) |
 | Photo-to-product (bonus 4.2, vision LLM) | ✅ | [`06-photo-upload.md`](docs/demos/2026-05-22/06-photo-upload.md) |
 | Simulator (iPhone 17 Pro) | ✅ | `aaalion ios-sim` |
-| Physical iPhone 13 Pro deploy | ⏳ pending Team ID | [`docs/IOS_SETUP.md`](docs/IOS_SETUP.md) |
+| Physical iPhone 13 Pro deploy | ✅ installed + signed | [`docs/IOS_SETUP.md`](docs/IOS_SETUP.md) — re-sign weekly via `aaalion resign` (free-tier cert) |
 | A100 OpenCLIP indexer (bonus 4.2 depth) | ⏳ Round 3 | [`docs/HARDWARE.md`](docs/HARDWARE.md) |
 | Real product data | ⏳ AI-gen seed + manual curation in progress | [`docs/research/`](docs/research/) |
 

@@ -11,7 +11,17 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
-    DEVELOPMENT_TEAM: ""
+    # Apple Developer Team ID. Defaults to Shufeng's Personal Team so
+    # `aaalion ios-device` builds out of the box on his Mac. Teammates
+    # should override locally with their own Personal Team's 10-char ID
+    # before deploying to their own iPhones (see docs/DEPLOY_GUIDE.md §4).
+    #
+    # NOTE on Personal Teams: the 10-char string shown in Xcode after your
+    # email (e.g. "Apple Development: foo@bar.com (XXXXXXXXXX)") is a
+    # *certificate* identifier, NOT the team identifier. The real team ID
+    # is in the provisioning profile's TeamIdentifier field — read it with
+    # `security cms -D -i <profile.mobileprovision> | grep -A1 TeamIdentifier`.
+    DEVELOPMENT_TEAM: "V8KDBHKA3P"
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:

@@ -98,12 +98,18 @@ In Xcode (one-time setup):
 2. `aaalion ios` to regenerate `.xcodeproj`, then `open client/AAALionApp/AAALionApp.xcodeproj`.
 3. Click **AAALionApp** target in the left sidebar → **Signing & Capabilities** tab.
 4. Set **Team** to **"<your name> (Personal Team)"**.
-5. Note the 10-character Team ID shown next to your name.
-6. Edit `client/AAALionApp/project.yml`, find `targets.AAALionApp.settings.base`, and set:
-   ```yaml
-   DEVELOPMENT_TEAM: ABC123DEF4   # your 10-char team ID
+5. Let Xcode generate the certificate and profile (5-10 sec; the yellow warning disappears).
+6. **Find your real Team ID** (the 10-char string Xcode shows after your email in the cert name is a CERT ID, not the Team ID):
+   ```bash
+   ls ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/   # find the new .mobileprovision
+   security cms -D -i <profile.mobileprovision> | grep -A1 TeamIdentifier
+   # → the <string>...</string> is your 10-char Team ID
    ```
-   This bakes it in so future `aaalion ios` regenerations preserve it.
+7. Edit `settings.base.DEVELOPMENT_TEAM` in `client/AAALionApp/project.yml`:
+   ```yaml
+   DEVELOPMENT_TEAM: "ABC123DEF4"   # your 10-char team ID from step 6
+   ```
+   This bakes it in so future `aaalion ios` regenerations preserve it. Keep this as a local-only edit if you don't want to push your Team ID; it's not secret but it's identifying.
 
 Now you can build and install via CLI:
 
@@ -116,6 +122,8 @@ xcrun devicectl device install app --device <YOUR_DEVICE_UUID> \
 ```
 
 First install on the iPhone: tap **Settings → General → VPN & Device Management → Apple Development: <your-apple-id>@... → Trust**. After that, every `aaalion ios-device` works without prompts.
+
+> ⚠️ **Free Apple ID certs expire in 7 days.** Run `aaalion resign` once a week (or before any demo) to refresh. Schedule a calendar reminder. There's no way around this on the free tier; the $99/year Apple Developer Program would give 1-year certs but isn't worth it for this competition.
 
 Connect the iPhone to your Mac's LAN backend:
 ```bash
@@ -130,6 +138,8 @@ In Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Enviro
 | `make: *** No rule to make target 'ios'` | You're not in the repo dir | Use `aaalion ios` (works anywhere). Or `cd AAALion-` first. |
 | `Signing for "AAALionApp" requires a development team` | `DEVELOPMENT_TEAM` is empty | Do §4 step 3-6 above. |
 | `xcrun devicectl ... No code signature found` | Building without signing | Make sure `CODE_SIGN_STYLE: Automatic` is in project.yml (it is, by default). |
+| `No Account for Team "XXXXXXXXXX"` | `DEVELOPMENT_TEAM` is the certificate ID, not the Team ID | Use the gotcha workaround in §4 step 6 to find the real Team ID and put THAT in project.yml |
+| App launched yesterday but won't open today | 7-day Personal Team cert expired | `aaalion resign` |
 | `Internal Server Error` from `/chat/stream` | `server/.env` not loaded | Confirm `server/.env` exists with `LLM_PROVIDER` set. Restart `aaalion backend`. |
 | iOS shows user message but no reply | SSE parser hang | Fixed in commit `6e8d7b9`. If you see this on an old branch, pull main. |
 | `该令牌状态不可用` from TokenRouter | Key inactive | Activate in https://www.tokenrouter.com/console/token. |
