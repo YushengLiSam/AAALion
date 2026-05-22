@@ -87,6 +87,7 @@ tools/     aaalion + screenshot + check-secrets
 | Document | Purpose |
 |---|---|
 | [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) | Full step-by-step for a teammate's MacBook + iPhone ≥13 |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | All gotchas we've hit + fixes (iPhone, Xcode, backend, A100, git) |
 | [docs/demos/2026-05-22/](docs/demos/2026-05-22/) | Six end-to-end demo screenshots + verdicts |
 | [docs/research/](docs/research/) | Data-availability research (no usable real dataset; manual curation plan) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | End-to-end system design |
