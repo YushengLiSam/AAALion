@@ -5,7 +5,7 @@
   "category": "食品生活",
   "sub_category": "进口饮料",
   "base_price": 21.99,
-  "image_path": null,
+  "image_path": "4_食品生活/images/p_4_intl_03.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/61pCNGyzcXL._SL1500_.jpg",
   "provenance": {
     "origin_country": "JP",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "CALPICO White Peach Non-Carbonated Beverage (16.9 fl oz, Pack of 6)"
+  "title_en": "CALPICO White Peach Non-Carbonated Beverage (16.9 fl oz, Pack of 6)",
+  "image_source": "ai-gen-placeholder"
 }

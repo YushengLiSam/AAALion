@@ -5,7 +5,7 @@
   "category": "美妆护肤",
   "sub_category": "面霜/敏感肌",
   "base_price": 268.0,
-  "image_path": null,
+  "image_path": "1_美妆护肤/images/p_1_real_03.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/winona_tehu.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "敏感肌用户反馈泛红刺痛在一周内显著缓解、过敏期当作救急霜使用。质地清爽不油腻吸收快，孕期换季也敢用。包装严密日期新鲜。京东自营顺丰发货迅速。多人将其作为常备屏障修护备货，与小红瓶搭配使用效果更佳。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

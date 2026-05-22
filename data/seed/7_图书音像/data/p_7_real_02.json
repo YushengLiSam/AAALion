@@ -5,7 +5,7 @@
   "category": "图书音像",
   "sub_category": "中文小说/经典",
   "base_price": 39.0,
-  "image_path": null,
+  "image_path": "7_图书音像/images/p_7_real_02.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/12614877775.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "读者评价文字朴素却字字带血，福贵的故事让人在通勤路上偷偷流泪。25周年版排版舒适、装帧厚重适合收藏。短小好读但回味很长，适合反复翻阅。京东图书发货迅速无折损。多次作为礼物送给学生晚辈，启发对生命意义的思考。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

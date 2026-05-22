@@ -5,7 +5,7 @@
   "category": "图书音像",
   "sub_category": "中文小说/经典",
   "base_price": 108.0,
-  "image_path": null,
+  "image_path": "7_图书音像/images/p_7_real_03.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10924046.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "读者表示三册一口气读完仿佛重走改革开放初年的黄土高原。少平孙少安的奋斗让无数年轻人备受激励。装帧朴素厚实价格亲民，特别适合年轻人和学生阅读。京东物流速度快塑封包装无破损。多人称'人生迷茫时翻一翻立刻有方向'。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

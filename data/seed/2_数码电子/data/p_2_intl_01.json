@@ -5,7 +5,7 @@
   "category": "数码电子",
   "sub_category": "无线降噪耳机",
   "base_price": 398.0,
-  "image_path": null,
+  "image_path": "2_数码电子/images/p_2_intl_01.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/61+btoESuwL._AC_SL1500_.jpg",
   "provenance": {
     "origin_country": "JP",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "Sony WH-1000XM5 Wireless Industry Leading Noise Canceling Headphones (Black)"
+  "title_en": "Sony WH-1000XM5 Wireless Industry Leading Noise Canceling Headphones (Black)",
+  "image_source": "ai-gen-placeholder"
 }

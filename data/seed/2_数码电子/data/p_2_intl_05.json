@@ -5,7 +5,7 @@
   "category": "数码电子",
   "sub_category": "口袋摄像机",
   "base_price": 519.0,
-  "image_path": null,
+  "image_path": "2_数码电子/images/p_2_intl_05.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/41Z2HwY3NlL._AC_SL1500_.jpg",
   "provenance": {
     "origin_country": "US",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "DJI Osmo Pocket 3 Vlogging Camera (Standard)"
+  "title_en": "DJI Osmo Pocket 3 Vlogging Camera (Standard)",
+  "image_source": "ai-gen-placeholder"
 }

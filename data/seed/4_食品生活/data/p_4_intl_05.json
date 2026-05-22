@@ -5,7 +5,7 @@
   "category": "食品生活",
   "sub_category": "进口酱料调味",
   "base_price": 26.95,
-  "image_path": null,
+  "image_path": "4_食品生活/images/p_4_intl_05.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/81rxBzc5XML._SL1500_.jpg",
   "provenance": {
     "origin_country": "JP",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "Kewpie Mayonnaise (Japan Import, 17.64 oz, Pack of 3)"
+  "title_en": "Kewpie Mayonnaise (Japan Import, 17.64 oz, Pack of 3)",
+  "image_source": "ai-gen-placeholder"
 }

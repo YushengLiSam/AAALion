@@ -5,7 +5,7 @@
   "category": "服饰运动",
   "sub_category": "抓绒外套",
   "base_price": 169.0,
-  "image_path": null,
+  "image_path": "3_服饰运动/images/p_3_intl_03.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/71L1Q-vSh+L._AC_SY741_.jpg",
   "provenance": {
     "origin_country": "US",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "Patagonia Men's Better Sweater Fleece Jacket"
+  "title_en": "Patagonia Men's Better Sweater Fleece Jacket",
+  "image_source": "ai-gen-placeholder"
 }

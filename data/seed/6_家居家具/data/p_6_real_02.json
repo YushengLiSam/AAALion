@@ -5,7 +5,7 @@
   "category": "家居家具",
   "sub_category": "床上用品",
   "base_price": 599.0,
-  "image_path": null,
+  "image_path": "6_家居家具/images/p_6_real_02.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/40623608618.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "网易严选 新疆长绒棉 60支纯棉贡缎四件套 1.8m床（适用2.2m*2.4m被芯）"
+  "title_en": "网易严选 新疆长绒棉 60支纯棉贡缎四件套 1.8m床（适用2.2m*2.4m被芯）",
+  "image_source": "ai-gen-placeholder"
 }

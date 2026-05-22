@@ -5,7 +5,7 @@
   "category": "美妆护肤",
   "sub_category": "爽肤水/化妆水",
   "base_price": 680.0,
-  "image_path": null,
+  "image_path": "1_美妆护肤/images/p_1_real_04.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/877716.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "用户反馈水质渗透快、上脸即吸收无黏腻。坚持使用一个月肤色明显均匀通透，痘印淡化。淡雅韩方草本味闻着舒缓。京东韩国直邮包装严密附中文标。瓶身大气作为生日礼物送朋友很有面子。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

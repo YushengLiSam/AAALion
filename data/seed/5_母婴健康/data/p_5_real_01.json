@@ -5,7 +5,7 @@
   "category": "母婴健康",
   "sub_category": "婴幼儿奶粉",
   "base_price": 358.0,
-  "image_path": null,
+  "image_path": "5_母婴健康/images/p_5_real_01.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/100017319885.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "宝妈反馈奶粉冲调溶解性好、几乎无泡沫，宝宝接受度高换粉不抗拒。多位用户表示喝完不上火、便便正常，体重稳步增长。国货品牌包装严密日期新鲜，京东物流速度快，育儿补贴力度可观，性价比高。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

@@ -5,7 +5,7 @@
   "category": "母婴健康",
   "sub_category": "婴儿辅食",
   "base_price": 79.0,
-  "image_path": null,
+  "image_path": "5_母婴健康/images/p_5_real_05.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/255797.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "妈妈们普遍反映米粉细腻好冲不结块，宝宝接受度高吃了不便秘。原味适合作为辅食首选，便于观察过敏反应。日期新鲜罐装密封性好。少数用户希望出更大克数装更划算，整体口碑稳定多次回购。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

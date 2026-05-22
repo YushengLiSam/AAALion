@@ -5,7 +5,7 @@
   "category": "美妆护肤",
   "sub_category": "精华水",
   "base_price": 1990.0,
-  "image_path": null,
+  "image_path": "1_美妆护肤/images/p_1_real_05.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/2574048.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "用户反馈神仙水持续使用一个月肤质明显变好、毛孔细致、整体透亮。微酸气味需要适应但效果让人惊喜。瓶身大气适合送女友妈妈节日礼物。京东自营保税仓直发附小样。价格略高但作为肌底水拍打长期使用值得。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

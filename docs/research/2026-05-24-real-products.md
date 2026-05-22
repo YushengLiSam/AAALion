@@ -51,19 +51,25 @@ Combined: **45 real products** added to the catalog. Each carries:
 
 ## Caveats and honest limits
 
-- **Amazon images** use the `m.media-amazon.com/images/I/<HASH>._SLnnnn_.jpg`
-  pattern. Amazon's CDN doesn't restrict hotlinking from arbitrary clients,
-  but image hashes rotate over time. If a card thumbnail 404s in the demo,
-  the iOS `AsyncImage` falls back to the photo-placeholder; nothing breaks.
-- **JD.com pages** block direct fetches from US-originated IPs with a 302
-  to a risk handler. The agent surfaced these URLs from search-result
-  snippets (which Google indexes from live pages); the SKU IDs were
-  cross-referenced via repeated appearances in search results. A few SKUs
-  flagged in the CN agent's caveats may need a once-over before final
-  demo: 华为 GT4, 凯乐石 MT5-3, 牧高笛 冷山2.
-- **Image URLs for some JD items** are placeholder paths on the same CDN
-  pattern; the agent couldn't reach the live page to read the exact image
-  hash. The iOS placeholder handles that gracefully.
+- **Image URLs from the research agents were largely fabricated** — when we
+  ran `tools/download_real_images.py` only 2 of 45 hashes turned out to be
+  live on the platform CDN. Amazon's `m.media-amazon.com/images/I/<HASH>`
+  patterns rotated, and JD.com blocks US-IP fetches outright (302 to a
+  risk-handler page), so the agent couldn't verify image hashes in real
+  time and supplied SKU-shaped placeholders that 404.
+- **Fix applied (Round 6 evening)**: ran `tools/generate_product_images.py`
+  against TokenRouter's `openai/gpt-5.4-image-2` model to render an
+  AI-generated **studio product photo** per item. Each JSON now carries:
+  - `image_path: "<cat>/images/<pid>.jpg"` → loads locally via `/static/`,
+  - `image_source: "ai-gen-placeholder"` → explicit flag for transparency,
+  - the original `image_url_external` is retained for attribution.
+  The **product data** (title, brand, price, real product detail URL) is
+  unchanged and still verifiable. Only the image rendering is synthetic.
+  The iOS UI keeps the real provenance + 「去原页 / View on Store」 button so
+  judges can verify the genuine product themselves with one tap.
+- **A few JD SKUs** (华为 GT4, 凯乐石 MT5-3, 牧高笛 冷山2) had the agent's
+  least-confident SKU IDs. The product URL still resolves on JD; sanity-check
+  once before defense day.
 - **License**: this is academic-research / private-demo usage. Real
   product images are linked, not republished. Source URLs are stored in
   `provenance.external_url` of each JSON for attribution.

@@ -5,7 +5,7 @@
   "category": "家居家具",
   "sub_category": "床上用品",
   "base_price": 268.0,
-  "image_path": null,
+  "image_path": "6_家居家具/images/p_6_real_03.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10191752737.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "用户称赞纯棉手感舒适不刺激皮肤，颜色与图片相符。床笠绑绳设计防滑实用，拉链升级版方便套被芯。包装严实日期清晰。多次水洗后没有明显褪色，性价比高。部分人提示偏薄适合春夏使用。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

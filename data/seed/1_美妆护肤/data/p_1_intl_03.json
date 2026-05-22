@@ -5,7 +5,7 @@
   "category": "美妆护肤",
   "sub_category": "化妆水/精华水",
   "base_price": 235.0,
-  "image_path": null,
+  "image_path": "1_美妆护肤/images/p_1_intl_03.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/51eyZ8wHM6L._SL1500_.jpg",
   "provenance": {
     "origin_country": "JP",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "SK-II Facial Treatment Essence 230 ml"
+  "title_en": "SK-II Facial Treatment Essence 230 ml",
+  "image_source": "ai-gen-placeholder"
 }

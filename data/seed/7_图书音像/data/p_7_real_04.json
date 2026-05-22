@@ -5,7 +5,7 @@
   "category": "图书音像",
   "sub_category": "工具书",
   "base_price": 32.0,
-  "image_path": null,
+  "image_path": "7_图书音像/images/p_7_real_04.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/12795881.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "家长们称这是孩子开学必备的标配工具书。第12版收录新词与时俱进，双色印刷重点突出查阅方便。装帧结实耐翻多年不易散页。京东自营定价稳定不需要担心买到盗版。少数用户希望出更小开本便于携带。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

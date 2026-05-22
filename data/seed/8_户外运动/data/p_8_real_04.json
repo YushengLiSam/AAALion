@@ -5,7 +5,7 @@
   "category": "户外运动",
   "sub_category": "帐篷",
   "base_price": 699.0,
-  "image_path": null,
+  "image_path": "8_户外运动/images/p_8_real_04.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/mobigarden_lengshan2.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "驴友们反馈帐篷防风防水真心强，山顶大风暴雨没渗水。内外帐分离透气性好、夏天不闷热。两人加装备空间宽裕。铝杆轻量收纳后体积小适合背包党。包装含地钉地席风绳齐全。少量用户认为前庭再大点装备就更舒展。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

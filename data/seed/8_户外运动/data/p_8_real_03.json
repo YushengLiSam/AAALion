@@ -5,7 +5,7 @@
   "category": "户外运动",
   "sub_category": "登山徒步鞋",
   "base_price": 1099.0,
-  "image_path": null,
+  "image_path": "8_户外运动/images/p_8_real_03.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/kailas_mt5_gtx.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "用户实测穿越雨林雪山均干燥保暖，GTX防水可靠。Vibram大底抓地强、湿滑岩石不打滑。中帮支撑足踝缓震到位、负重徒步两天脚不疲惫。版型偏窄宽脚用户建议大半码。京东附小样鞋油保养实用。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

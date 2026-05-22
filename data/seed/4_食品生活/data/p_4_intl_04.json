@@ -5,7 +5,7 @@
   "category": "食品生活",
   "sub_category": "进口调味料",
   "base_price": 6.9,
-  "image_path": null,
+  "image_path": "4_食品生活/images/p_4_intl_04.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/71fz5lYx1AL._SL1500_.jpg",
   "provenance": {
     "origin_country": "US",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "Trader Joe's Everything But The Bagel Sesame Seasoning Blend (2.3 oz)"
+  "title_en": "Trader Joe's Everything But The Bagel Sesame Seasoning Blend (2.3 oz)",
+  "image_source": "ai-gen-placeholder"
 }

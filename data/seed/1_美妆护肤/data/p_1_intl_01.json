@@ -5,7 +5,7 @@
   "category": "美妆护肤",
   "sub_category": "面霜",
   "base_price": 72.0,
-  "image_path": null,
+  "image_path": "1_美妆护肤/images/p_1_intl_01.jpg",
   "image_url_external": "https://m.media-amazon.com/images/I/61WjVMVUgVL._SL1500_.jpg",
   "provenance": {
     "origin_country": "JP",
@@ -34,5 +34,6 @@
       }
     ]
   },
-  "title_en": "TATCHA The Water Cream Moisturizer (1.7 oz / 50 ml)"
+  "title_en": "TATCHA The Water Cream Moisturizer (1.7 oz / 50 ml)",
+  "image_source": "ai-gen-placeholder"
 }

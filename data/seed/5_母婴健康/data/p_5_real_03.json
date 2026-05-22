@@ -5,7 +5,7 @@
   "category": "母婴健康",
   "sub_category": "蛋白粉",
   "base_price": 458.0,
-  "image_path": null,
+  "image_path": "5_母婴健康/images/p_5_real_03.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/1164028120.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "用户表示坚持服用后感觉精力提升、感冒次数减少。蛋白粉粉质细腻溶解快、冲调无腥味易入口。礼盒包装大气送长辈很有面子，配送速度快保质期新鲜。部分用户提到味道偏淡可搭配牛奶或燕麦食用更佳。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }

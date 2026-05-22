@@ -5,7 +5,7 @@
   "category": "美妆护肤",
   "sub_category": "面霜",
   "base_price": 880.0,
-  "image_path": null,
+  "image_path": "1_美妆护肤/images/p_1_real_01.jpg",
   "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/100012923994.jpg",
   "provenance": {
     "origin_country": "CN",
@@ -33,5 +33,6 @@
         "content": "用户反馈使用一周肌肤紧致度可见提升、法令纹有改善。霜体丝滑不油腻易吸收，敏感肌也未出现刺激。香气淡雅瓶身高级适合送礼。京东自营附小样到货迅速。部分用户认为价格偏高建议大促囤货性价比更高。"
       }
     ]
-  }
+  },
+  "image_source": "ai-gen-placeholder"
 }
