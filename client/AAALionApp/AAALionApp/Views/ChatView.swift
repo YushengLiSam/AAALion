@@ -6,11 +6,23 @@ struct ChatView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if let err = viewModel.errorMessage {
+                    Text("⚠️ \(err)")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.red.opacity(0.08))
+                }
                 messageList
                 composer
             }
             .navigationTitle("智能导购")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                viewModel.runScriptedQueryIfAny()
+            }
         }
     }
 

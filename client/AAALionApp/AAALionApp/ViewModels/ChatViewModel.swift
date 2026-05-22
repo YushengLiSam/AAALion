@@ -15,6 +15,20 @@ final class ChatViewModel {
         self.service = service
     }
 
+    /// Pre-fill and auto-send a query from a launch argument or URL scheme.
+    /// Used by the simulator-driving harness; safe no-op when not provided.
+    func runScriptedQueryIfAny() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let idx = args.firstIndex(of: "-test-query"), idx + 1 < args.count else { return }
+        let query = args[idx + 1]
+        guard !query.isEmpty else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            guard let self else { return }
+            self.draft = query
+            self.send()
+        }
+    }
+
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isStreaming else { return }

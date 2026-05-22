@@ -1,33 +1,15 @@
-# iOS Setup — honest state and what to do
+# iOS Setup — current state and what to do
 
-> Audit on 2026-05-22 (Shufeng's MacBook): full Xcode is **NOT installed**, only Command Line Tools at `/Library/Developer/CommandLineTools`. All Swift source files parse cleanly with `swift -frontend -parse`, so the code is well-formed; it just can't be built into an app yet.
+> Audit refreshed on 2026-05-22 (Shufeng's MacBook): **Xcode 26.5 is installed** at `/Applications/Xcode.app`, license accepted, runFirstLaunch done. iPhone 17 Pro simulator build + install + launch verified. Physical iPhone 13 Pro paired (devicectl sees it `connected`). Apple ID signed in to Xcode → Settings → Accounts. **Remaining one-time step**: assign the Personal Team to the project in Xcode → Signing & Capabilities (see "Deploying to your iPhone 13 Pro" below).
 
 ## What you have (verified)
 
-- `swift` compiler frontend (from Command Line Tools) — enough to parse and type-check Swift source.
-- `xcodegen` installed (`brew install xcodegen` already done).
-- `tools/aaalion` global helper that wraps `make` and finds the repo from anywhere.
-
-## What's missing
-
-- **Xcode.app** — required to build any iOS app, run a simulator, or deploy to a physical device. Not present in `/Applications/`.
-- **`xcodebuild`, `xcrun xctrace`, `xcrun devicectl`** — these ship with full Xcode.
-- **`ios-deploy` / `libimobiledevice`** — no third-party USB deploy tools either.
-
-## Install Xcode (one-time, ~30 minutes)
-
-```bash
-# 1) Open the Mac App Store. Search "Xcode". Click Install. (~10 GB.)
-#    OR: brew install --cask xcodes && open -a Xcodes  (manages multiple Xcode versions)
-
-# 2) After install:
-sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-sudo xcodebuild -license accept
-sudo xcodebuild -runFirstLaunch
-
-# 3) Verify:
-xcodebuild -version              # should print "Xcode 15.x" or "16.x"
-xcrun simctl list devices        # should list iPhone 15, iPhone 13 etc. simulators
+- **Xcode 26.5** (Build 17F42) + iOS 26.5 SDK + Predictive Code Completion Model.
+- `swift` / `xcodebuild` / `xcrun simctl` / `xcrun devicectl` all working.
+- `xcodegen` installed.
+- `tools/aaalion` global helper installed at `~/.local/bin/aaalion` — works from any directory.
+- Apple ID `alexcsf01725@gmail.com` signed in to Xcode (per user 2026-05-22 evening).
+- iPhone 13 Pro paired (`Shufeng's iPhone`, UUID `7310469E-E396-5197-9408-FF1AD58D4CF2`).
 ```
 
 There is no Apple-supported way to build an iOS app without Xcode. (Yes, some communities maintain `theos` / `cross-compile` setups, but they're brittle and not worth your time for a 20-day sprint.)

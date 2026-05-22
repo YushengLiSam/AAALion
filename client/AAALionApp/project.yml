@@ -36,7 +36,6 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "上传图片以搜索同款商品。"
         # Dev: allow HTTP to localhost / LAN backend
         INFOPLIST_KEY_NSAppTransportSecurity: "{NSAllowsArbitraryLoads = YES;}"
-        # Dev: skip code signing for simulator builds (we'll sign for device separately)
-        CODE_SIGN_IDENTITY: ""
-        CODE_SIGNING_REQUIRED: NO
-        CODE_SIGNING_ALLOWED: NO
+        # Signing: automatic (uses the Apple ID configured in Xcode → Settings → Accounts).
+        # Simulator builds skip signing implicitly; device builds use the personal team.
+        CODE_SIGN_STYLE: Automatic
