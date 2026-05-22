@@ -72,17 +72,23 @@ def _build_catalog(products: list[dict]) -> str:
 def _image_url(p: dict) -> str | None:
     """Resolve image URL for a product.
 
-    Real products (curated from Amazon/Tmall/JD) may carry an absolute
-    `image_url_external` we serve as-is. Seed/AI-gen products use a relative
-    `image_path` that the iOS client resolves against the backend URL.
+    Priority:
+      1. Local `image_path` under data/seed/<cat>/images/ — most reliable,
+         served via /static/ by FastAPI. Used by AI-gen seed AND by
+         real-product entries that have an AI-rendered placeholder image
+         (see tools/generate_product_images.py).
+      2. Absolute `image_url_external` (Amazon/JD CDN) — only used when no
+         local image exists. Often 404s for real products because the
+         research agents inferred image hashes that couldn't be verified
+         against live pages.
     """
+    image_path = p.get("image_path")
+    if image_path:
+        return f"/static/{image_path}"
     ext = p.get("image_url_external")
     if ext and isinstance(ext, str) and ext.startswith(("http://", "https://")):
         return ext
-    image_path = p.get("image_path")
-    if not image_path:
-        return None
-    return f"/static/{image_path}"
+    return None
 
 
 # Sensible default provenance for AI-gen seed products that have no explicit
