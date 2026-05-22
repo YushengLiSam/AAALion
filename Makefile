@@ -1,7 +1,7 @@
 # 狮选 LionPick — common dev tasks
 # Usage: make <target>
 
-.PHONY: help dev backend ingest eval ios mock test sync-a100 fmt clean install-cli check-secrets
+.PHONY: help dev backend ingest eval ios ios-sim ios-device mock test sync-a100 fmt clean install-cli check-secrets
 
 help:
 	@echo "狮选 LionPick — make targets"
@@ -11,6 +11,8 @@ help:
 	@echo "  make ingest      one-time RAG ingest of data/seed/"
 	@echo "  make eval        run the golden eval set; report recall@5"
 	@echo "  make ios         regenerate AAALionApp.xcodeproj (needs xcodegen)"
+	@echo "  make ios-sim     build + run on iPhone 17 Pro simulator"
+	@echo "  make ios-device  build for a paired iPhone (signing must be set up in Xcode GUI once)"
 	@echo "  make sync-a100   rsync project to uc:~/shufeng/AAALion-/"
 	@echo "  make fmt         format Python with ruff (and swiftformat if installed)"
 	@echo "  make clean       remove .venv, __pycache__, DerivedData"
@@ -31,6 +33,27 @@ eval:
 
 ios:
 	cd client/AAALionApp && xcodegen
+
+ios-sim:
+	@cd client/AAALionApp && xcodegen
+	@xcodebuild -project client/AAALionApp/AAALionApp.xcodeproj -scheme AAALionApp \
+	  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+	  -derivedDataPath /tmp/lionpick-derived build
+	@xcrun simctl boot "iPhone 17 Pro" 2>/dev/null; true
+	@xcrun simctl install booted /tmp/lionpick-derived/Build/Products/Debug-iphonesimulator/狮选.app
+	@xcrun simctl launch booted com.aaalion.lionpick
+	@open -a Simulator
+
+ios-device:
+	@cd client/AAALionApp && xcodegen
+	@xcodebuild -project client/AAALionApp/AAALionApp.xcodeproj -scheme AAALionApp \
+	  -destination 'generic/platform=iOS' \
+	  -derivedDataPath /tmp/lionpick-derived-device \
+	  -allowProvisioningUpdates build
+	@echo ""
+	@echo "Build done. To install on the iPhone:"
+	@echo "  xcrun devicectl device install app --device <UUID> /tmp/lionpick-derived-device/Build/Products/Debug-iphoneos/狮选.app"
+	@echo "Get the UUID with: xcrun devicectl list devices"
 
 sync-a100:
 	rsync -az --exclude=.venv --exclude=.git --exclude=screenshots \

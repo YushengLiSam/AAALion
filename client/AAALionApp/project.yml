@@ -25,6 +25,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.aaalion.lionpick
         PRODUCT_NAME: 狮选
         TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: 狮选
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.shopping
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
@@ -35,3 +36,7 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "上传图片以搜索同款商品。"
         # Dev: allow HTTP to localhost / LAN backend
         INFOPLIST_KEY_NSAppTransportSecurity: "{NSAllowsArbitraryLoads = YES;}"
+        # Dev: skip code signing for simulator builds (we'll sign for device separately)
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
