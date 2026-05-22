@@ -1,0 +1,38 @@
+{
+  "product_id": "p_2_intl_03",
+  "title": "任天堂 Switch OLED 白色款主机",
+  "brand": "Nintendo",
+  "category": "数码电子",
+  "sub_category": "游戏主机",
+  "base_price": 349.99,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61-PblYntsL._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Nintendo-Switch-OLED-Model-White-Joy/dp/B098RKWHHZ",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_2_intl_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 349.99
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "任天堂 Switch OLED 升级版,搭载 7 英寸 OLED 触控屏,色彩饱和度与对比度较 LCD 版大幅提升,掌机模式画面观感更通透。内建 64GB 存储、宽幅可调支架、加强版扬声器以及带有线网口的底座,适合家庭联机。可三种模式切换 (掌机 / 桌面 / TV),搭配《塞尔达传说:王国之泪》《马力欧赛车 8》《动森》等独占大作,送礼自用都合适。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "玩家最常提到 OLED 屏在《塞尔达》和《异度神剑 3》中的视觉提升,色彩对比度令场景更具沉浸感。底座以太网口在线上对战中表现稳定;白色 Joy-Con 颜值在线。部分评论指 Joy-Con 漂移问题长期未根治,需任天堂保修;整体仍认为是家用便携两全的最佳选择。"
+      }
+    ]
+  },
+  "title_en": "Nintendo Switch - OLED Model with White Joy-Con"
+}

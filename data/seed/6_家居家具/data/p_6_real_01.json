@@ -1,0 +1,37 @@
+{
+  "product_id": "p_6_real_01",
+  "title": "公牛（BULL）魔方智能USB插座 GN-U303U 白色 全长1.5米",
+  "brand": "公牛（BULL）",
+  "category": "家居家具",
+  "sub_category": "插线板",
+  "base_price": 99.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/2601926.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/2601926.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_6_real_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 99.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "公牛魔方智能USB插座GN-U303U，独创立体魔方造型，4面共3个新国标五孔插孔+3个USB充电口。USB输出5V/3.1A智能识别快充，多设备同时充电不挤插头。一体化无缝外壳阻燃PC材质、内置过载保护与儿童保护门，1.5米线长适合家居桌面、办公及差旅。送礼自用两相宜，京东自营当日送达。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户称赞魔方造型节省桌面空间，多面插孔互不干扰，充电与插头可并用很方便。USB充电速度满意，多设备同时充也不发烫。线材柔软质量稳固，公牛大品牌用着放心。少数用户希望线再长点或加type-C口。"
+      }
+    ]
+  }
+}

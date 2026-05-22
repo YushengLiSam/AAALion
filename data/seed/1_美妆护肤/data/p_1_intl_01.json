@@ -1,0 +1,38 @@
+{
+  "product_id": "p_1_intl_01",
+  "title": "Tatcha 御寒水感霜 50ml",
+  "brand": "Tatcha",
+  "category": "美妆护肤",
+  "sub_category": "面霜",
+  "base_price": 72.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61WjVMVUgVL._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Oil-Free-Optimal-Hydration-Moisturizer-Poreless/dp/B072NNC2LR",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_intl_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 72.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "Tatcha 御寒水感霜灵感源自日本京都艺伎护肤哲学,主打 23 种京都野生草本与日本野蔷薇精萃。质地为独特的水珠包裹技术,接触皮肤瞬间释放水分,清爽不油不闷。适合油性、混合性、毛孔粗大肤质,使用后毛孔显细致、肤色透亮。无香精、无矿物油、皮肤科测试,通过 EWG 评估,孕妇敏感肌均可使用。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "美妆博主与混油皮用户高度评价它春夏季的清爽控油表现,水珠破裂时的护肤仪式感被多次提及;持续使用 1-2 个月毛孔有明显改善反馈。干皮用户则觉得保湿力对秋冬不够,需叠加精华或乳液。性价比方面定位高端,但小样体验体面。"
+      }
+    ]
+  },
+  "title_en": "TATCHA The Water Cream Moisturizer (1.7 oz / 50 ml)"
+}

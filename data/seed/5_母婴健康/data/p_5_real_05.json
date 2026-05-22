@@ -1,0 +1,37 @@
+{
+  "product_id": "p_5_real_05",
+  "title": "嘉宝(Gerber)米粉 婴儿辅食 原味高铁米粉 250g(辅食添加初期)",
+  "brand": "嘉宝（Gerber）",
+  "category": "母婴健康",
+  "sub_category": "婴儿辅食",
+  "base_price": 79.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/255797.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/255797.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_5_real_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 79.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "嘉宝1段原味高铁米粉250g盒装，专为辅食添加初期6月龄+宝宝设计。每15g米粉含铁约6mg，搭配维生素C帮助铁吸收。米粉口感细腻溶解快易冲调，原味无添加蔗糖盐及人工香精，适合初尝辅食的宝宝。雀巢旗下国际品牌严选优质大米，京东自营从源头到家全程把控。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "妈妈们普遍反映米粉细腻好冲不结块，宝宝接受度高吃了不便秘。原味适合作为辅食首选，便于观察过敏反应。日期新鲜罐装密封性好。少数用户希望出更大克数装更划算，整体口碑稳定多次回购。"
+      }
+    ]
+  }
+}

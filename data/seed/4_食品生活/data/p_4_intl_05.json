@@ -1,0 +1,38 @@
+{
+  "product_id": "p_4_intl_05",
+  "title": "丘比日本进口蛋黄酱 3 瓶装",
+  "brand": "Kewpie",
+  "category": "食品生活",
+  "sub_category": "进口酱料调味",
+  "base_price": 26.95,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/81rxBzc5XML._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Japanese-Kewpie-Mayonnaise-17-64-Pack/dp/B00279RYEM",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_4_intl_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 26.95
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "1925 年创立的日本丘比 Kewpie 蛋黄酱,仅使用蛋黄 (而非全蛋) 与日式米醋苹果醋混合,口感比欧美蛋黄酱更绵密、酸度更柔和。500g x 3 瓶装,瓶口红色十字开孔可挤出细密花纹,是日式章鱼烧、御好烧、蛋包饭、土豆沙拉的灵魂调味料。冷藏可长期保存,日料爱好者厨房必备。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "好评聚焦在比美国 Hellmann's 更醇厚、 自带鲜味,十字瓶口设计便于装饰菜品。少数评论吐槽含油量较高、热量不低,需克制使用;开瓶后建议尽快冷藏。家庭聚餐做日式料理时三瓶组合性价比明显。"
+      }
+    ]
+  },
+  "title_en": "Kewpie Mayonnaise (Japan Import, 17.64 oz, Pack of 3)"
+}

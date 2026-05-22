@@ -6,6 +6,7 @@ struct ProductCard: Codable, Hashable, Identifiable {
     let brand: String
     let basePrice: Double
     let imageURL: URL?
+    let provenance: Provenance
 
     var id: String { productId }
 
@@ -15,6 +16,7 @@ struct ProductCard: Codable, Hashable, Identifiable {
         case brand
         case basePrice = "base_price"
         case imageURL = "image_url"
+        case provenance
     }
 
     init(from decoder: Decoder) throws {
@@ -37,13 +39,121 @@ struct ProductCard: Codable, Hashable, Identifiable {
         } else {
             imageURL = nil
         }
+
+        // Provenance defaults to AI-gen marker so legacy products keep working.
+        provenance = (try? c.decode(Provenance.self, forKey: .provenance)) ?? .demo
     }
 
-    init(productId: String, title: String, brand: String, basePrice: Double, imageURL: URL?) {
+    init(productId: String, title: String, brand: String, basePrice: Double, imageURL: URL?, provenance: Provenance = .demo) {
         self.productId = productId
         self.title = title
         self.brand = brand
         self.basePrice = basePrice
         self.imageURL = imageURL
+        self.provenance = provenance
+    }
+}
+
+/// Where this product comes from — origin, platform, currency, shipping.
+/// Drives the flag badge + currency-aware price + brand-line in the UI.
+struct Provenance: Codable, Hashable {
+    let originCountry: String        // "CN", "US", "JP", "DE", "FR"...
+    let sourcePlatform: String       // "Tmall", "JD", "Amazon US", "Amazon JP", "AI-gen (demo)"
+    let currency: String             // "CNY", "USD", "JPY", "EUR"
+    let externalURL: URL?            // real product page when known
+    let shippingNote: String?        // "国内现货", "海外直邮", "美亚转运", nil
+
+    enum CodingKeys: String, CodingKey {
+        case originCountry = "origin_country"
+        case sourcePlatform = "source_platform"
+        case currency
+        case externalURL = "external_url"
+        case shippingNote = "shipping_note"
+    }
+
+    init(originCountry: String, sourcePlatform: String, currency: String, externalURL: URL?, shippingNote: String?) {
+        self.originCountry = originCountry
+        self.sourcePlatform = sourcePlatform
+        self.currency = currency
+        self.externalURL = externalURL
+        self.shippingNote = shippingNote
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        originCountry = (try? c.decode(String.self, forKey: .originCountry)) ?? "CN"
+        sourcePlatform = (try? c.decode(String.self, forKey: .sourcePlatform)) ?? "AI-gen (demo)"
+        currency = (try? c.decode(String.self, forKey: .currency)) ?? "CNY"
+        if let raw = try c.decodeIfPresent(String.self, forKey: .externalURL) {
+            externalURL = URL(string: raw)
+        } else {
+            externalURL = nil
+        }
+        shippingNote = try c.decodeIfPresent(String.self, forKey: .shippingNote)
+    }
+
+    /// Default for legacy/AI-generated products.
+    static let demo = Provenance(
+        originCountry: "CN",
+        sourcePlatform: "AI-gen (demo)",
+        currency: "CNY",
+        externalURL: nil,
+        shippingNote: nil
+    )
+
+    // MARK: - UI helpers.
+
+    /// Flag emoji from ISO 2-letter country code. Falls back to 🏷 for
+    /// demo / unknown codes. Built from Unicode regional indicator scalars
+    /// (e.g. "US" → 🇺🇸 = U+1F1FA + U+1F1F8).
+    var flag: String {
+        if sourcePlatform == "AI-gen (demo)" { return "🏷" }
+        let code = originCountry.uppercased()
+        guard code.count == 2 else { return "🏷" }
+        let base: UInt32 = 0x1F1E6
+        var result = ""
+        for scalar in code.unicodeScalars {
+            let v = scalar.value
+            guard v >= 0x41, v <= 0x5A,
+                  let regional = UnicodeScalar(base + (v - 0x41)) else { return "🏷" }
+            result.unicodeScalars.append(regional)
+        }
+        return result.unicodeScalars.count == 2 ? result : "🏷"
+    }
+
+    /// Currency symbol. JPY-CNY collision is disambiguated below.
+    var currencySymbol: String {
+        switch currency.uppercased() {
+        case "CNY": return "¥"
+        case "USD": return "$"
+        case "JPY": return "¥"
+        case "EUR": return "€"
+        case "GBP": return "£"
+        default:    return currency
+        }
+    }
+
+    /// Localized currency hint ("(美元)" / "(日元)") for non-CNY items, so the
+    /// `$` / `¥` symbol isn't misread when the app's primary language is Chinese.
+    var currencyHint: String? {
+        switch currency.uppercased() {
+        case "CNY": return nil
+        case "USD": return "美元"
+        case "JPY": return "日元"
+        case "EUR": return "欧元"
+        case "GBP": return "英镑"
+        default: return currency
+        }
+    }
+
+    /// True for products with no real source URL — the "AI-gen (demo)" badge
+    /// is rendered in the UI so judges aren't misled.
+    var isDemo: Bool { sourcePlatform == "AI-gen (demo)" }
+
+    /// Brand-line prefix shown above the price in card / detail views.
+    /// e.g. "Tmall · 雅诗兰黛", "Amazon US · Apple", "演示数据".
+    func brandLine(brand: String) -> String {
+        if isDemo { return "演示 · \(brand)" }
+        return "\(sourcePlatform) · \(brand)"
     }
 }

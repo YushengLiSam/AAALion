@@ -1,0 +1,38 @@
+{
+  "product_id": "p_2_intl_05",
+  "title": "大疆 Osmo Pocket 3 口袋云台相机",
+  "brand": "DJI",
+  "category": "数码电子",
+  "sub_category": "口袋摄像机",
+  "base_price": 519.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/41Z2HwY3NlL._AC_SL1500_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/DJI-Stabilization-Rotatable-Touchscreen-Photography/dp/B0CG19QXWD",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_2_intl_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 519.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "大疆 Pocket 3 一英寸 CMOS 口袋云台相机,4K/120fps 高规格视频与三轴机械增稳,2 英寸可旋转触控屏在横竖屏 Vlog 之间切换无压力。ActiveTrack 6.0 实现人物自动追焦,内建多场景智能模式与 D-Log M 色彩配置,后期空间充足。轻量便携、单手即可操作,旅行 Vlog、街拍、亲子记录、直播一机搞定。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "Vlog 用户重点称赞画质和稳定性几乎是同价位旗舰水准,1 英寸底在弱光环境下表现远胜手机;横竖屏快速切换深受短视频创作者好评。配套 DJI Mic 2 协同录音方便。部分用户反馈续航偏短,搭配电池手柄使用更安心。"
+      }
+    ]
+  },
+  "title_en": "DJI Osmo Pocket 3 Vlogging Camera (Standard)"
+}

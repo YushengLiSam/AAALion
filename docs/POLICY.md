@@ -112,6 +112,30 @@ The summary line stays under 70 chars when possible. Bullets in the body, not in
 - The bundled `data/seed/` is AI-generated (confirmed by recruiters). It serves as a smoke-test set.
 - The demo and eval must use **real** product data. See `docs/DATA.md` for sourcing.
 
+### From 2026-05-24 onwards (Round 6) — real-product expansion
+
+- Round 6 added 45 hand-curated real products (20 intl from Amazon US/JP +
+  25 from JD/Tmall). Each is committed under `data/seed/<cat>/data/p_*_*.json`
+  with `provenance.external_url` pointing to the real product detail page.
+- **Image-license caveat**: real product images are *linked*, not republished.
+  The catalog JSON stores the source `image_url_external`; iOS `AsyncImage`
+  fetches directly from the platform's CDN. We do not redistribute images.
+  This is academic-research / private-demo usage; commercial republish
+  would require explicit licensing.
+- AI-gen products keep `provenance.source_platform = "AI-gen (demo)"` and
+  surface in the UI with a `演示` badge so judges aren't misled about
+  which products are real.
+
+## Provenance and currency
+
+- Every product JSON carries a `provenance` block: `origin_country`,
+  `source_platform`, `currency`, `external_url`, `shipping_note`.
+- The iOS app renders:
+  - flag emoji from `origin_country` (🇨🇳/🇺🇸/🇯🇵/🇩🇪/🇫🇷),
+  - currency-aware price (`¥` for CNY, `$` for USD with `(美元)` hint),
+  - source-platform-prefixed brand line ("Amazon US · Sony"),
+  - per-currency cart totals (no FX conversion — honest about cross-border).
+
 ## Documentation discipline
 
 - Every doc in `docs/` is written assuming the reader is a cold-start teammate.

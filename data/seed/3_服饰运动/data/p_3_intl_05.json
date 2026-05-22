@@ -1,0 +1,38 @@
+{
+  "product_id": "p_3_intl_05",
+  "title": "阿迪达斯 Samba OG 复古板鞋",
+  "brand": "adidas",
+  "category": "服饰运动",
+  "sub_category": "运动休闲鞋",
+  "base_price": 100.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61H3Z2XJ4lL._AC_SY695_.jpg",
+  "provenance": {
+    "origin_country": "DE",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Adidas-Originals-SAMBA-Sneakers-Granite/dp/B0CM63LQDG",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_3_intl_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 100.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "起源于 1950 年代的 Samba 系列原本为室内足球训练而生,如今成为时尚街头的常青树。柔软真皮鞋面搭配 T-toe 麂皮包覆与三道经典条纹,Gum 橡胶大底抓地耐磨;低帮鞋型搭配牛仔、阔腿裤、连衣裙皆百搭。Cloud White、Core Black、Collegiate Green 等配色稳坐潮流榜单前列,是 2024-2025 年最具代表性的复古鞋款。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论高频出现 性价比高、 显腿长 等关键词,皮面质感与做工被认为优于同价位竞品。亚洲脚型建议小半码,鞋楦偏窄、初穿磨脚需配薄棉袜过渡。日常穿着耐脏耐穿,但白色款长时间使用边缘易发黄需注意保养。"
+      }
+    ]
+  },
+  "title_en": "adidas Originals Samba OG Sneaker (Cloud White/Core Black)"
+}

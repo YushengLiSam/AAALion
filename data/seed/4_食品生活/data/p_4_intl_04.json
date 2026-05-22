@@ -1,0 +1,38 @@
+{
+  "product_id": "p_4_intl_04",
+  "title": "缺德舅万用百吉饼调味料",
+  "brand": "Trader Joe's",
+  "category": "食品生活",
+  "sub_category": "进口调味料",
+  "base_price": 6.9,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/71fz5lYx1AL._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Trader-Joes-Everything-Sesame-Seasoning/dp/B06W9N8X9H",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_4_intl_04_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 6.9
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "美国国民超市 Trader Joe's (绰号缺德舅) 出品的爆款调味料,黑白芝麻、罂粟籽、海盐片、干蒜片与洋葱片均匀混合。万用百搭:撒在鸡蛋、牛油果吐司、爆米花、烤土豆、披萨、沙拉上瞬间提升风味层次。无添加味精,纯天然原料;原产美国本土,亚马逊代购价虽高于实体店但仍是海外华人厨房常备。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论一致认为这瓶调料是 一撒就香 的厨房神器,牛油果吐司、煎蛋、烤蔬菜都能用。盐量适中、风味平衡。部分用户提到代购价偏贵 (实体店约 $2),但便利性值回票价;偶有评论吐槽瓶口出料孔太小,撒大菜略慢。"
+      }
+    ]
+  },
+  "title_en": "Trader Joe's Everything But The Bagel Sesame Seasoning Blend (2.3 oz)"
+}

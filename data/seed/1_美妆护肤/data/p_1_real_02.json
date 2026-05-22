@@ -1,0 +1,37 @@
+{
+  "product_id": "p_1_real_02",
+  "title": "珀莱雅（PROYA）双抗精华2.0 30ml 早C晚A 抗糖抗氧化 虾青素",
+  "brand": "珀莱雅（PROYA）",
+  "category": "美妆护肤",
+  "sub_category": "精华液",
+  "base_price": 269.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/100012655872.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/100012655872.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_real_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 269.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "珀莱雅双抗精华2.0升级版30ml，国货护肤经典抗氧抗糖精华。核心成分包括虾青素、EUK-134抗氧组合及麦角硫因，对抗自由基与糖化反应、提亮暗沉、紧致初老纹路。轻盈水润质地易吸收无黏腻，搭配红宝石面霜组成'早C晚A'网红早晚组合。京东自营国货旗舰店发货。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "国货党称赞这是国货之光、性价比无敌。使用两周肤色明显提亮、暗沉改善。质地清爽不黏可叠加防晒不搓泥。瓶身精致适合送礼。京东自营到货快附小样。少数用户希望出更大容量装。"
+      }
+    ]
+  }
+}

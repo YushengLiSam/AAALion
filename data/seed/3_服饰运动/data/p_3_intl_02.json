@@ -1,0 +1,38 @@
+{
+  "product_id": "p_3_intl_02",
+  "title": "耐克 Air Max 90 复古运动鞋",
+  "brand": "Nike",
+  "category": "服饰运动",
+  "sub_category": "运动休闲鞋",
+  "base_price": 129.99,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/71m6m4PrtmL._AC_SY695_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Nike-Mens-Air-Max-Shoes/dp/B08B3P8K59",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_3_intl_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 129.99
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "诞生于 1990 年的 Nike Air Max 90,凭借可视化大 Air 气垫和分层拼接鞋面成为街头潮流符号。皮革与网眼面料拼接,鞋型挺括有支撑;Waffle 华夫格大底耐磨防滑,日常通勤、轻运动、街拍穿搭都合适。多种经典配色如 Triple White、Infrared 红、Black/Hyper Crimson 等长期回归货架,是收藏与日穿兼顾的入门级 Air Max。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论多聚焦在版型经典、回头率高;舒适度方面初穿略硬,磨合一两周后明显改善。亚洲用户建议比脚长大半码,鞋楦偏窄。气垫弹性表现稳定,适合作为城市步行鞋。少数评论吐槽鞋帮做工细节不如 30 年前的工艺扎实。"
+      }
+    ]
+  },
+  "title_en": "Nike Men's Air Max 90 Sneaker"
+}

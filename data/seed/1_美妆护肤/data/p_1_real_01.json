@@ -1,0 +1,37 @@
+{
+  "product_id": "p_1_real_01",
+  "title": "雅诗兰黛（Estee Lauder）多效智妍精华面霜 75ml 弹嫩保湿补水抗皱",
+  "brand": "雅诗兰黛（Estee Lauder）",
+  "category": "美妆护肤",
+  "sub_category": "面霜",
+  "base_price": 880.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/100012923994.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/100012923994.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_real_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 880.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "雅诗兰黛多效智妍精华霜75ml，专柜直供胶原霜质地。蕴含Sirtuin长寿酶科技与橘玫瑰复合精萃，强韧肌肤紧致饱满轮廓、改善法令纹与松弛。乳霜质地丝滑易推开吸收快无负担，秋冬干性肌妆前打底、夜间深度滋养皆适用。30+轻熟龄抗初老首选，京东自营保税正品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户反馈使用一周肌肤紧致度可见提升、法令纹有改善。霜体丝滑不油腻易吸收，敏感肌也未出现刺激。香气淡雅瓶身高级适合送礼。京东自营附小样到货迅速。部分用户认为价格偏高建议大促囤货性价比更高。"
+      }
+    ]
+  }
+}

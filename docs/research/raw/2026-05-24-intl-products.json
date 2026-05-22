@@ -1,0 +1,382 @@
+[
+  {
+    "product_id": "p_2_intl_01",
+    "title": "Sony WH-1000XM5 Wireless Industry Leading Noise Canceling Headphones (Black)",
+    "title_zh": "索尼 WH-1000XM5 头戴降噪耳机 黑色",
+    "brand": "Sony",
+    "category": "数码电子",
+    "sub_category": "无线降噪耳机",
+    "base_price": 398.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/61+btoESuwL._AC_SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Sony-WH-1000XM5-Canceling-Headphones-Hands-Free/dp/B09XS7JWHH",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "索尼旗舰款无线降噪头戴耳机,搭载两枚处理器协同八枚麦克风,实现行业领先的主动降噪表现。Auto NC Optimizer 可根据环境与气压自动校准降噪;30 小时续航,3 分钟快充即可获得 3 小时播放。配备四枚波束成形麦克风与精准语音拾取技术,通话清晰度大幅提升;支持多点蓝牙连接 iPhone 与 Mac 无缝切换,触控面板手势操作便捷,出差通勤、长途飞行均适用。",
+    "user_reviews_summary": "用户普遍盛赞降噪效果在飞机和地铁场景下的表现,佩戴轻盈舒适、长时间使用不夹头;音质细腻、低频饱满。少数评论指出多设备切换偶有延迟,以及与上一代相比无法折叠略显遗憾,但整体认为是同价位降噪天花板。"
+  },
+  {
+    "product_id": "p_2_intl_02",
+    "title": "Apple AirPods Pro (2nd Generation) with USB-C Charging Case",
+    "title_zh": "苹果 AirPods Pro 二代 USB-C 版",
+    "brand": "Apple",
+    "category": "数码电子",
+    "sub_category": "真无线降噪耳机",
+    "base_price": 249.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Apple-Generation-Cancelling-Transparency-Personalized/dp/B0CHWRXH8B",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "搭载 H2 芯片的 AirPods Pro 第二代,主动降噪较前代提升最高 2 倍,自适应通透模式能在保留环境感的同时智能压低突发噪音。USB-C 充电盒兼容 iPhone 15 系列,支持 MagSafe、Apple Watch 与 Qi 无线充电。个性化空间音频带头部追踪,搭配 iOS 17 听力检测、助听辅助功能,实现一副耳机多场景使用。四种规格硅胶耳塞、IP54 防尘抗汗,适合通勤、运动、旅行。",
+    "user_reviews_summary": "Apple 生态用户高度认可即开即连体验,佩戴舒适、长时间不胀耳;通透模式被反复点名为日常通勤神器。降噪在地铁与办公室环境表现明显,但风噪场景仍稍弱;部分用户提到电量随使用时长有衰减,整体仍是 iPhone 用户首选。"
+  },
+  {
+    "product_id": "p_2_intl_03",
+    "title": "Nintendo Switch - OLED Model with White Joy-Con",
+    "title_zh": "任天堂 Switch OLED 白色款主机",
+    "brand": "Nintendo",
+    "category": "数码电子",
+    "sub_category": "游戏主机",
+    "base_price": 349.99,
+    "image_url_external": "https://m.media-amazon.com/images/I/61-PblYntsL._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Nintendo-Switch-OLED-Model-White-Joy/dp/B098RKWHHZ",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "任天堂 Switch OLED 升级版,搭载 7 英寸 OLED 触控屏,色彩饱和度与对比度较 LCD 版大幅提升,掌机模式画面观感更通透。内建 64GB 存储、宽幅可调支架、加强版扬声器以及带有线网口的底座,适合家庭联机。可三种模式切换 (掌机 / 桌面 / TV),搭配《塞尔达传说:王国之泪》《马力欧赛车 8》《动森》等独占大作,送礼自用都合适。",
+    "user_reviews_summary": "玩家最常提到 OLED 屏在《塞尔达》和《异度神剑 3》中的视觉提升,色彩对比度令场景更具沉浸感。底座以太网口在线上对战中表现稳定;白色 Joy-Con 颜值在线。部分评论指 Joy-Con 漂移问题长期未根治,需任天堂保修;整体仍认为是家用便携两全的最佳选择。"
+  },
+  {
+    "product_id": "p_2_intl_04",
+    "title": "Bose QuietComfort Ultra Bluetooth Headphones (Black)",
+    "title_zh": "Bose QC Ultra 旗舰头戴降噪耳机",
+    "brand": "Bose",
+    "category": "数码电子",
+    "sub_category": "无线降噪耳机",
+    "base_price": 429.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/51RKMr0u5jL._AC_SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Bose-QuietComfort-Wireless-Cancelling-Headphones/dp/B0CCZ1L489",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "Bose 顶级头戴式降噪耳机,首发 Immersive Audio 空间音频与 CustomTune 个性化调音,根据耳道形状实时校准声音表现。最高 24 小时续航 (开启沉浸音效约 18 小时),蓝牙 5.3 与 SimpleSync 可与 Bose 智能音响联动。柔软记忆海绵耳罩长时间佩戴不夹耳,飞机与城市通勤场景下的降噪表现广受认可,适合差旅与远程办公人群。",
+    "user_reviews_summary": "评论高频提到佩戴舒适度堪比传统 QC 系列,长时间会议毫无压迫感;Immersive Audio 在听音乐会、看电影场景下带来明显的声场扩展。降噪深度被普遍认为与索尼 XM5 相当,通话拾音清晰。少数反馈认为定价偏高、应用稳定性仍需打磨。"
+  },
+  {
+    "product_id": "p_2_intl_05",
+    "title": "DJI Osmo Pocket 3 Vlogging Camera (Standard)",
+    "title_zh": "大疆 Osmo Pocket 3 口袋云台相机",
+    "brand": "DJI",
+    "category": "数码电子",
+    "sub_category": "口袋摄像机",
+    "base_price": 519.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/41Z2HwY3NlL._AC_SL1500_.jpg",
+    "external_url": "https://www.amazon.com/DJI-Stabilization-Rotatable-Touchscreen-Photography/dp/B0CG19QXWD",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "大疆 Pocket 3 一英寸 CMOS 口袋云台相机,4K/120fps 高规格视频与三轴机械增稳,2 英寸可旋转触控屏在横竖屏 Vlog 之间切换无压力。ActiveTrack 6.0 实现人物自动追焦,内建多场景智能模式与 D-Log M 色彩配置,后期空间充足。轻量便携、单手即可操作,旅行 Vlog、街拍、亲子记录、直播一机搞定。",
+    "user_reviews_summary": "Vlog 用户重点称赞画质和稳定性几乎是同价位旗舰水准,1 英寸底在弱光环境下表现远胜手机;横竖屏快速切换深受短视频创作者好评。配套 DJI Mic 2 协同录音方便。部分用户反馈续航偏短,搭配电池手柄使用更安心。"
+  },
+  {
+    "product_id": "p_3_intl_01",
+    "title": "Levi's Men's 501 Original Fit Jeans",
+    "title_zh": "Levi's 男士 501 经典直筒牛仔裤",
+    "brand": "Levi's",
+    "category": "服饰运动",
+    "sub_category": "牛仔裤",
+    "base_price": 69.50,
+    "image_url_external": "https://m.media-amazon.com/images/I/81qmJjy7DqL._AC_SY741_.jpg",
+    "external_url": "https://www.amazon.com/Levis-Mens-Original-Jeans-Seasonal/dp/B0C83QRRG2",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "Levi's 501 起源于 1873 年的经典原版直筒牛仔裤,被誉为牛仔裤的开山之作。100% 纯棉直织丹宁面料,标志性五袋设计与四颗铆钉,中腰直筒版型适合不同身材。经多次水洗仍保留挺括手感,可作为四季基本款穿搭。新版本提供从浅蓝、中蓝到经典深靛的多种水洗色,日常通勤、旅行均适合。",
+    "user_reviews_summary": "老粉评论 501 的版型几十年如一日,初次入手用户对面料厚实度和上身廓形满意。腰围尺码偏小一码已成共识,建议比平常大半码到一码购买。少数评论提到下水后会缩水,但缩水后的合身度反而被视作 501 的精髓。"
+  },
+  {
+    "product_id": "p_3_intl_02",
+    "title": "Nike Men's Air Max 90 Sneaker",
+    "title_zh": "耐克 Air Max 90 复古运动鞋",
+    "brand": "Nike",
+    "category": "服饰运动",
+    "sub_category": "运动休闲鞋",
+    "base_price": 129.99,
+    "image_url_external": "https://m.media-amazon.com/images/I/71m6m4PrtmL._AC_SY695_.jpg",
+    "external_url": "https://www.amazon.com/Nike-Mens-Air-Max-Shoes/dp/B08B3P8K59",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "诞生于 1990 年的 Nike Air Max 90,凭借可视化大 Air 气垫和分层拼接鞋面成为街头潮流符号。皮革与网眼面料拼接,鞋型挺括有支撑;Waffle 华夫格大底耐磨防滑,日常通勤、轻运动、街拍穿搭都合适。多种经典配色如 Triple White、Infrared 红、Black/Hyper Crimson 等长期回归货架,是收藏与日穿兼顾的入门级 Air Max。",
+    "user_reviews_summary": "评论多聚焦在版型经典、回头率高;舒适度方面初穿略硬,磨合一两周后明显改善。亚洲用户建议比脚长大半码,鞋楦偏窄。气垫弹性表现稳定,适合作为城市步行鞋。少数评论吐槽鞋帮做工细节不如 30 年前的工艺扎实。"
+  },
+  {
+    "product_id": "p_3_intl_03",
+    "title": "Patagonia Men's Better Sweater Fleece Jacket",
+    "title_zh": "巴塔哥尼亚男士 Better Sweater 抓绒外套",
+    "brand": "Patagonia",
+    "category": "服饰运动",
+    "sub_category": "抓绒外套",
+    "base_price": 169.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/71L1Q-vSh+L._AC_SY741_.jpg",
+    "external_url": "https://www.amazon.com/Patagonia-Better-Sweater-Fleece-Jacket/dp/B081P934FZ",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "巴塔哥尼亚 Better Sweater 经典款全拉链抓绒外套,采用 100% 再生聚酯纤维针织面料,外观如毛衣般精致,内里柔软抓绒提供保暖性。立领设计搭配拉链护下巴,左胸拉链口袋与双侧手暖口袋方便实用。Fair Trade 认证工厂生产,可单穿或作为冲锋衣中层,户外徒步、城市通勤均适合,被誉为美式户外的代表单品。",
+    "user_reviews_summary": "户外圈用户公认 Better Sweater 耐穿、面料抗起球;Nickel 灰、海军蓝、橄榄绿色被多次提及为百搭色。版型偏宽松、肩膀线条略低,适合户外叠穿;部分修身爱好者建议小一码。10 年以上长穿用户表示拉链与水洗后依旧保持挺括。"
+  },
+  {
+    "product_id": "p_3_intl_04",
+    "title": "The North Face Men's 1996 Retro Nuptse Jacket",
+    "title_zh": "北面 1996 复古 Nuptse 鹅绒羽绒服",
+    "brand": "The North Face",
+    "category": "服饰运动",
+    "sub_category": "羽绒服",
+    "base_price": 330.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/61Z9j7Lj-tL._AC_SY741_.jpg",
+    "external_url": "https://www.amazon.com/NORTH-FACE-RETRO-NUPTSE-JACKET/dp/B0CC67CGPZ",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "北面 1996 Retro Nuptse 复刻自经典 90 年代登山系列,填充 700 蓬松度鹅绒,胸前大 LOGO 与方格绗缝是辨识度极高的街头符号。可收纳三片式连帽,前襟双拉链结合粘扣防风,腰部抽绳灵活调节廓形。Non-PFC DWR 防泼水处理,城市冬季穿搭与登山雪场都能 hold 住;TNF Black、Brilliant Coral、Summit Gold 等配色长期受到时尚博主追捧。",
+    "user_reviews_summary": "评论一致认为这件是城市极寒天气的口粮款,绒量充足、肩膀廓形挺括。亚洲身材建议小 1-2 码以获得修身效果。胸前 LOGO 与配色被反复称赞为最具辨识度的细节;少数评论提到帽子收纳袋容量略紧,且鸭绒/鹅绒批次差异需以吊牌为准。"
+  },
+  {
+    "product_id": "p_3_intl_05",
+    "title": "adidas Originals Samba OG Sneaker (Cloud White/Core Black)",
+    "title_zh": "阿迪达斯 Samba OG 复古板鞋",
+    "brand": "adidas",
+    "category": "服饰运动",
+    "sub_category": "运动休闲鞋",
+    "base_price": 100.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/61H3Z2XJ4lL._AC_SY695_.jpg",
+    "external_url": "https://www.amazon.com/Adidas-Originals-SAMBA-Sneakers-Granite/dp/B0CM63LQDG",
+    "provenance": {
+      "origin_country": "DE",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "起源于 1950 年代的 Samba 系列原本为室内足球训练而生,如今成为时尚街头的常青树。柔软真皮鞋面搭配 T-toe 麂皮包覆与三道经典条纹,Gum 橡胶大底抓地耐磨;低帮鞋型搭配牛仔、阔腿裤、连衣裙皆百搭。Cloud White、Core Black、Collegiate Green 等配色稳坐潮流榜单前列,是 2024-2025 年最具代表性的复古鞋款。",
+    "user_reviews_summary": "评论高频出现 性价比高、 显腿长 等关键词,皮面质感与做工被认为优于同价位竞品。亚洲脚型建议小半码,鞋楦偏窄、初穿磨脚需配薄棉袜过渡。日常穿着耐脏耐穿,但白色款长时间使用边缘易发黄需注意保养。"
+  },
+  {
+    "product_id": "p_4_intl_01",
+    "title": "Nestlé Japan Kit Kat Mini Uji Matcha (2 Bags / 26 bars)",
+    "title_zh": "雀巢日本宇治抹茶 KitKat 巧克力",
+    "brand": "Nestlé / Kit Kat",
+    "category": "食品生活",
+    "sub_category": "进口巧克力零食",
+    "base_price": 19.99,
+    "image_url_external": "https://m.media-amazon.com/images/I/71GsR0pdH+L._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Nestl%C3%A9-Kit-Kat-Matcha-Bags13/dp/B081KWNPC6",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "日本本土版 KitKat Uji Matcha 宇治抹茶口味,采用京都府宇治地区抹茶粉与白巧克力调和,茶香浓郁不齁甜。脆脆威化饼干在抹茶白巧外衣下展现层次口感,是日本伴手礼销量榜常年王牌。两袋装共约 26 小条,迷你独立包装便于分享或办公室囤货,送礼、自食、追剧零食均合适。",
+    "user_reviews_summary": "海外华人和日本控反复点名抹茶味地道、苦甜平衡,远胜美国本土的甜腻口味。包装小巧便于送礼,部分批次因运输高温会出现表面起霜,但口感不受影响。仅少数评论提到价格偏高、保质期短,需尽快食用。"
+  },
+  {
+    "product_id": "p_4_intl_02",
+    "title": "Glico Pocky Strawberry Cream Biscuit Sticks (Pack of 10)",
+    "title_zh": "格力高百奇草莓巧克力棒 10 盒装",
+    "brand": "Glico",
+    "category": "食品生活",
+    "sub_category": "进口零食饼干",
+    "base_price": 17.90,
+    "image_url_external": "https://m.media-amazon.com/images/I/81WIuVZB04L._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Glico-Biscuit-Sticks-Strawberry-1-41-Ounce/dp/B000H25Y0M",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "日本格力高百奇草莓味饼干棒,1.41 oz 标准盒 x 10 盒装,适合家庭备货与办公室分享。香脆细长饼干棒外裹厚厚一层草莓奶油,真实草莓颗粒带来微酸果香。日本超市最常见的国民零食之一,1966 年问世以来畅销全球;搭配咖啡、奶茶或者作为追剧零食,简单不腻。",
+    "user_reviews_summary": "评论赞许草莓味浓郁、香甜不腻;盒型坚固运输不易碎裂。部分高温季节会出现糖霜软化,但放冰箱即可恢复脆度。多用户表示是孩子最爱的伴手礼;偶有反馈说日本产新鲜批次比通过转运的更脆。"
+  },
+  {
+    "product_id": "p_4_intl_03",
+    "title": "CALPICO White Peach Non-Carbonated Beverage (16.9 fl oz, Pack of 6)",
+    "title_zh": "可尔必思白桃乳酸饮料 6 瓶装",
+    "brand": "Calpico (Calpis)",
+    "category": "食品生活",
+    "sub_category": "进口饮料",
+    "base_price": 21.99,
+    "image_url_external": "https://m.media-amazon.com/images/I/61pCNGyzcXL._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Calpico-Japanese-Non-Carbonated-Drink-16-9oz/dp/B07YK3KC7H",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "Calpico (日本本土名 Calpis 可尔必思) 白桃风味乳酸饮料,1919 年创立的百年品牌,采用专属乳酸菌发酵工艺,口感酸甜清爽。白桃香气自然不刺鼻,16.9 oz 大瓶装方便家庭分享。冷藏后口感更佳,可直饮、调入气泡水或制作鸡尾酒;无碳酸、低脂,适合作为夏季解渴饮品。",
+    "user_reviews_summary": "评论提到白桃口味比原味更适合初次尝试乳酸饮料的消费者,香气真实不假甜。瓶身设计稳固、6 瓶装运输无渗漏。少数美国用户对发酵乳味感到陌生,但日本/亚洲背景用户普遍认为这就是童年味道。冰镇后口感最佳。"
+  },
+  {
+    "product_id": "p_4_intl_04",
+    "title": "Trader Joe's Everything But The Bagel Sesame Seasoning Blend (2.3 oz)",
+    "title_zh": "缺德舅万用百吉饼调味料",
+    "brand": "Trader Joe's",
+    "category": "食品生活",
+    "sub_category": "进口调味料",
+    "base_price": 6.90,
+    "image_url_external": "https://m.media-amazon.com/images/I/71fz5lYx1AL._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Trader-Joes-Everything-Sesame-Seasoning/dp/B06W9N8X9H",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "美国国民超市 Trader Joe's (绰号缺德舅) 出品的爆款调味料,黑白芝麻、罂粟籽、海盐片、干蒜片与洋葱片均匀混合。万用百搭:撒在鸡蛋、牛油果吐司、爆米花、烤土豆、披萨、沙拉上瞬间提升风味层次。无添加味精,纯天然原料;原产美国本土,亚马逊代购价虽高于实体店但仍是海外华人厨房常备。",
+    "user_reviews_summary": "评论一致认为这瓶调料是 一撒就香 的厨房神器,牛油果吐司、煎蛋、烤蔬菜都能用。盐量适中、风味平衡。部分用户提到代购价偏贵 (实体店约 $2),但便利性值回票价;偶有评论吐槽瓶口出料孔太小,撒大菜略慢。"
+  },
+  {
+    "product_id": "p_4_intl_05",
+    "title": "Kewpie Mayonnaise (Japan Import, 17.64 oz, Pack of 3)",
+    "title_zh": "丘比日本进口蛋黄酱 3 瓶装",
+    "brand": "Kewpie",
+    "category": "食品生活",
+    "sub_category": "进口酱料调味",
+    "base_price": 26.95,
+    "image_url_external": "https://m.media-amazon.com/images/I/81rxBzc5XML._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Japanese-Kewpie-Mayonnaise-17-64-Pack/dp/B00279RYEM",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "1925 年创立的日本丘比 Kewpie 蛋黄酱,仅使用蛋黄 (而非全蛋) 与日式米醋苹果醋混合,口感比欧美蛋黄酱更绵密、酸度更柔和。500g x 3 瓶装,瓶口红色十字开孔可挤出细密花纹,是日式章鱼烧、御好烧、蛋包饭、土豆沙拉的灵魂调味料。冷藏可长期保存,日料爱好者厨房必备。",
+    "user_reviews_summary": "好评聚焦在比美国 Hellmann's 更醇厚、 自带鲜味,十字瓶口设计便于装饰菜品。少数评论吐槽含油量较高、热量不低,需克制使用;开瓶后建议尽快冷藏。家庭聚餐做日式料理时三瓶组合性价比明显。"
+  },
+  {
+    "product_id": "p_1_intl_01",
+    "title": "TATCHA The Water Cream Moisturizer (1.7 oz / 50 ml)",
+    "title_zh": "Tatcha 御寒水感霜 50ml",
+    "brand": "Tatcha",
+    "category": "美妆护肤",
+    "sub_category": "面霜",
+    "base_price": 72.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/61WjVMVUgVL._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Oil-Free-Optimal-Hydration-Moisturizer-Poreless/dp/B072NNC2LR",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "Tatcha 御寒水感霜灵感源自日本京都艺伎护肤哲学,主打 23 种京都野生草本与日本野蔷薇精萃。质地为独特的水珠包裹技术,接触皮肤瞬间释放水分,清爽不油不闷。适合油性、混合性、毛孔粗大肤质,使用后毛孔显细致、肤色透亮。无香精、无矿物油、皮肤科测试,通过 EWG 评估,孕妇敏感肌均可使用。",
+    "user_reviews_summary": "美妆博主与混油皮用户高度评价它春夏季的清爽控油表现,水珠破裂时的护肤仪式感被多次提及;持续使用 1-2 个月毛孔有明显改善反馈。干皮用户则觉得保湿力对秋冬不够,需叠加精华或乳液。性价比方面定位高端,但小样体验体面。"
+  },
+  {
+    "product_id": "p_1_intl_02",
+    "title": "Estée Lauder Advanced Night Repair Synchronized Multi-Recovery Complex (1.7 oz)",
+    "title_zh": "雅诗兰黛小棕瓶夜间修护精华 50ml",
+    "brand": "Estée Lauder",
+    "category": "美妆护肤",
+    "sub_category": "精华液",
+    "base_price": 124.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/51tlx0a85gL._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Estee-Lauder-Advanced-Synchronized-Multi-Recovery/dp/B08DHQCGH9",
+    "provenance": {
+      "origin_country": "US",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "雅诗兰黛 ANR 第七代小棕瓶,核心成分二裂酵母发酵产物溶胞物 + 6000 万分之一夜肽 + 透明质酸钠 + 多种多肽。借鉴诺贝尔奖昼夜节律研究,在夜间助力肌肤修复白天受到的环境伤害。质地轻盈、吸收迅速,使用后第二天起床面部光泽度与紧致感肉眼可见,是 2000 年至今全球热销超 4500 万瓶的旗舰单品。",
+    "user_reviews_summary": "全球用户口碑稳定:熟龄肌反馈细纹、暗沉改善明显;25-30 岁人群多用于熬夜急救与抗初老。质地清爽不黏腻,与各种面霜叠加无搓泥。少数敏感肌反馈带 醇 味初期需建立耐受;价格虽不便宜但容量足、用量节省。"
+  },
+  {
+    "product_id": "p_1_intl_03",
+    "title": "SK-II Facial Treatment Essence 230 ml",
+    "title_zh": "SK-II 神仙水/护肤精华露 230ml",
+    "brand": "SK-II",
+    "category": "美妆护肤",
+    "sub_category": "化妆水/精华水",
+    "base_price": 235.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/51eyZ8wHM6L._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/SK-II-Facial-Treatment-Essence-Ounce/dp/B01M599DYT",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "SK-II 神仙水 (Facial Treatment Essence) 含有 90% 以上 PITERA 半乳糖酵母样菌发酵产物滤液,配方延续 40 余年不变。每 2 秒售出一瓶的全球热销单品,通过持续补充天然角质代谢因子改善纹理、提亮肤色、淡化色斑。质地清透如水,洗脸后两掌按压全脸吸收;230 ml 大瓶装可使用约 3-4 个月,适合 25 岁以上肤质暗沉、纹理粗糙人群。",
+    "user_reviews_summary": "亚洲与北美华人用户最常反馈一个月内肤质明显平整,毛孔细致;长期回购率高。气味独特偏酒糟味,需建立心理适应。少数用户表示初次使用会爆痘,大概率为肌底排出反应。亚马逊价比中国免税店略高,胜在直邮便利与正品保障。"
+  },
+  {
+    "product_id": "p_1_intl_04",
+    "title": "Shiseido Ultimune Power Infusing Concentrate 50 ml",
+    "title_zh": "资生堂红妍肌活精华露 50ml",
+    "brand": "Shiseido",
+    "category": "美妆护肤",
+    "sub_category": "精华液",
+    "base_price": 110.00,
+    "image_url_external": "https://m.media-amazon.com/images/I/41Y0vGTpwBL._SL1000_.jpg",
+    "external_url": "https://www.amazon.com/Shiseido-Ultimune-Power-Infusing-Concentrate/dp/B00M962E2U",
+    "provenance": {
+      "origin_country": "JP",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "资生堂红腰子 Ultimune 红妍肌活精华露,搭载 ImuGenerationRED 红色科技,主打修护肌底防御力。三种核心植物精粹 (铁线莲、当归根、紫苏籽) 协同强化角质层。质地为半透明红色乳液,延展性好不黏腻;早晚洁面后第一道使用,与全品牌后续产品都可叠加。第三代配方持续 3 天即可感受到肤色提亮、肤质细腻。",
+    "user_reviews_summary": "评论关键词集中在 上脸吸收快、 持续用月余皮肤更稳定 不挑肤质;敏感肌用户也反馈无刺激。瓶身红色高级感强,送礼有面;少数评论吐槽按压泵在末瓶时取液不便。价格在大牌精华中相对友好,常作为入门日系抗初老首选。"
+  },
+  {
+    "product_id": "p_1_intl_05",
+    "title": "La Roche-Posay Toleriane Double Repair Face Moisturizer (2.5 fl oz)",
+    "title_zh": "理肤泉特安修护舒缓面霜",
+    "brand": "La Roche-Posay",
+    "category": "美妆护肤",
+    "sub_category": "面霜",
+    "base_price": 22.99,
+    "image_url_external": "https://m.media-amazon.com/images/I/61EHWvKMlqL._SL1500_.jpg",
+    "external_url": "https://www.amazon.com/Roche-Posay-Toleriane-Double-Repair-Moisturizer/dp/B01N9SPQHQ",
+    "provenance": {
+      "origin_country": "FR",
+      "source_platform": "Amazon US",
+      "currency": "USD",
+      "shipping_note": "海外直邮"
+    },
+    "marketing_description": "理肤泉特安双重修护面霜,含神经酰胺-3、烟酰胺、甘油与品牌标志性温泉水。轻盈乳霜质地、48 小时长效保湿,1 小时内即可修护皮肤屏障。无香、无油、不致痘,皮肤科医生测试,敏感肌、痘肌、刚做完医美的肌肤都可使用。50 ml 大容量、性价比高;搭配品牌洁面、防晒形成完整敏感肌护理线。",
+    "user_reviews_summary": "皮肤科医生与药妆控用户公认这罐是 性价比之王,质地清爽吸收快、不闷痘,夏季亦可全脸使用。敏感肌、激光术后人群反馈泛红明显改善;烟酰胺含量友好不刺激。少数干皮用户在冬季需要叠加更滋润面霜,但作为日常基础护肤是稳妥之选。"
+  }
+]

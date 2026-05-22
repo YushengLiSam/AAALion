@@ -1,0 +1,37 @@
+{
+  "product_id": "p_5_real_03",
+  "title": "汤臣倍健蛋白粉 600g 礼盒装 成人中老年人增强免疫力",
+  "brand": "汤臣倍健（BY-HEALTH）",
+  "category": "母婴健康",
+  "sub_category": "蛋白粉",
+  "base_price": 458.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/1164028120.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/1164028120.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_5_real_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 458.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "汤臣倍健蛋白粉600g礼盒装，每100g含80g蛋白质。采用大豆分离蛋白+浓缩乳清蛋白双蛋白配方，氨基酸种类齐全比例均衡，与人体所需高度匹配。无糖无胆固醇、富含大豆磷脂，适合需增强免疫力的成人、孕产妇、中老年人及术后恢复人群。蓝帽认证保健食品，京东自营品质保障，节日送礼自用两相宜。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户表示坚持服用后感觉精力提升、感冒次数减少。蛋白粉粉质细腻溶解快、冲调无腥味易入口。礼盒包装大气送长辈很有面子，配送速度快保质期新鲜。部分用户提到味道偏淡可搭配牛奶或燕麦食用更佳。"
+      }
+    ]
+  }
+}

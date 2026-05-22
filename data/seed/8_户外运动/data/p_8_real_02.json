@@ -1,0 +1,37 @@
+{
+  "product_id": "p_8_real_02",
+  "title": "迪卡侬（DECATHLON）KIPRUN FAST 公路跑步鞋 缓震回弹 男女款",
+  "brand": "迪卡侬（DECATHLON）",
+  "category": "户外运动",
+  "sub_category": "跑步鞋",
+  "base_price": 449.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10053786962664.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/10053786962664.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_8_real_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 449.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "迪卡侬KIPRUN FAST公路跑步鞋采用K-RING专利缓震回弹中底科技，前掌Up'bar弹性片提供推进感。轻量化网面鞋身仅220g(单只)、透气快干。适合5K-10K日常训练及半马入门跑者，缓震回弹兼顾性价比成为新手跑者口碑首选。多色男女款齐全，京东自营当日达。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "跑友反馈鞋子轻量穿着舒适，跑10公里脚不酸。缓震到位回弹明显比同价位国货更出色。透气网面夏季穿不闷脚。颜色与图片一致包装完整。多次回购作为通勤跑步用。少数人提示偏小半码建议大半码购买。"
+      }
+    ]
+  }
+}

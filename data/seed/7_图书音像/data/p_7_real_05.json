@@ -1,0 +1,37 @@
+{
+  "product_id": "p_7_real_05",
+  "title": "哆啦A梦漫画书全套45册 珍藏版礼盒套装 藤子·F·不二雄著",
+  "brand": "吉林美术出版社",
+  "category": "图书音像",
+  "sub_category": "漫画",
+  "base_price": 459.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/12004103833.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/12004103833.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_7_real_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 459.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "哆啦A梦漫画书全套45册珍藏版礼盒装，藤子·F·不二雄经典之作。完整收录大雄、静香、胖虎、小夫与机器猫之间令人捧腹又温暖的45卷短篇故事。彩色封面+黑白漫画内页，开本适合儿童阅读。陪伴几代中国孩子成长的国民级漫画IP，适合7岁以上小学生独立阅读，也是80、90后的童年记忆收藏首选。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "买家表示45本厚实礼盒看着就很有诚意，孩子拆箱时眼睛都亮了。纸质印刷清晰彩封漂亮，黑白漫画内页阅读不刺眼。送给小朋友生日礼物超级合适。包装严密无破损。部分家长提醒小学低年级孩子需要陪读引导词汇。"
+      }
+    ]
+  }
+}

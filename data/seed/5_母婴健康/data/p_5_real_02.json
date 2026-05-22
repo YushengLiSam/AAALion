@@ -1,0 +1,37 @@
+{
+  "product_id": "p_5_real_02",
+  "title": "帮宝适一级帮纸尿裤 M144片(6-11kg) 超薄透气尿不湿",
+  "brand": "帮宝适（Pampers）",
+  "category": "母婴健康",
+  "sub_category": "纸尿裤",
+  "base_price": 298.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/5283012.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/5283012.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_5_real_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 298.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "帮宝适一级帮纸尿裤M码144片箱装，适合体重6-11kg的3-11月龄宝宝。采用日本工艺超薄设计仅2.5mm，3D微孔透气表层有效降低红屁屁风险。云柔丝触感腰围、宝宝肚脐凹位剪裁、12小时持久干爽吸收，让宝宝整夜安睡。日本帮宝适针对亚洲宝宝体型优化，京东自营正品保障。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "妈妈们一致好评尿裤超薄不闷热，宝宝穿一晚不漏尿不红屁屁。腰围弹性贴合不勒肚子，吸水后不结块。日期新鲜不漏货，箱装实惠适合囤货。少数家长反映大码偏紧建议按宝宝实际胖瘦选码。"
+      }
+    ]
+  }
+}

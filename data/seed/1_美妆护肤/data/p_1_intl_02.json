@@ -1,0 +1,38 @@
+{
+  "product_id": "p_1_intl_02",
+  "title": "雅诗兰黛小棕瓶夜间修护精华 50ml",
+  "brand": "Estée Lauder",
+  "category": "美妆护肤",
+  "sub_category": "精华液",
+  "base_price": 124.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/51tlx0a85gL._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Estee-Lauder-Advanced-Synchronized-Multi-Recovery/dp/B08DHQCGH9",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_intl_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 124.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "雅诗兰黛 ANR 第七代小棕瓶,核心成分二裂酵母发酵产物溶胞物 + 6000 万分之一夜肽 + 透明质酸钠 + 多种多肽。借鉴诺贝尔奖昼夜节律研究,在夜间助力肌肤修复白天受到的环境伤害。质地轻盈、吸收迅速,使用后第二天起床面部光泽度与紧致感肉眼可见,是 2000 年至今全球热销超 4500 万瓶的旗舰单品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "全球用户口碑稳定:熟龄肌反馈细纹、暗沉改善明显;25-30 岁人群多用于熬夜急救与抗初老。质地清爽不黏腻,与各种面霜叠加无搓泥。少数敏感肌反馈带 醇 味初期需建立耐受;价格虽不便宜但容量足、用量节省。"
+      }
+    ]
+  },
+  "title_en": "Estée Lauder Advanced Night Repair Synchronized Multi-Recovery Complex (1.7 oz)"
+}

@@ -69,10 +69,45 @@ def _build_catalog(products: list[dict]) -> str:
     return "\n".join(lines) if lines else "(空)"
 
 
-def _image_url(product_id: str, image_path: str | None) -> str | None:
+def _image_url(p: dict) -> str | None:
+    """Resolve image URL for a product.
+
+    Real products (curated from Amazon/Tmall/JD) may carry an absolute
+    `image_url_external` we serve as-is. Seed/AI-gen products use a relative
+    `image_path` that the iOS client resolves against the backend URL.
+    """
+    ext = p.get("image_url_external")
+    if ext and isinstance(ext, str) and ext.startswith(("http://", "https://")):
+        return ext
+    image_path = p.get("image_path")
     if not image_path:
         return None
     return f"/static/{image_path}"
+
+
+# Sensible default provenance for AI-gen seed products that have no explicit
+# `provenance` block. Surfaced to iOS so the card renders a "演示" badge.
+_DEMO_PROVENANCE = {
+    "origin_country": "CN",
+    "source_platform": "AI-gen (demo)",
+    "currency": "CNY",
+    "external_url": None,
+    "shipping_note": None,
+}
+
+
+def _provenance(p: dict) -> dict:
+    """Read provenance from the product JSON; fall back to AI-gen marker."""
+    raw = p.get("provenance")
+    if not isinstance(raw, dict):
+        return _DEMO_PROVENANCE
+    return {
+        "origin_country": raw.get("origin_country", "CN"),
+        "source_platform": raw.get("source_platform", "AI-gen (demo)"),
+        "currency": raw.get("currency", "CNY"),
+        "external_url": raw.get("external_url"),
+        "shipping_note": raw.get("shipping_note"),
+    }
 
 
 def _product_card_event(p: dict) -> dict:
@@ -83,7 +118,8 @@ def _product_card_event(p: dict) -> dict:
             "title": p.get("title"),
             "brand": p.get("brand"),
             "base_price": p.get("base_price"),
-            "image_url": _image_url(p["product_id"], p.get("image_path")),
+            "image_url": _image_url(p),
+            "provenance": _provenance(p),
         },
     }
 

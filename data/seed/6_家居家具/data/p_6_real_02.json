@@ -1,0 +1,38 @@
+{
+  "product_id": "p_6_real_02",
+  "title": "网易严选 新疆长绒棉 60支纯棉贡缎四件套 1.8m床",
+  "brand": "网易严选",
+  "category": "家居家具",
+  "sub_category": "床上用品",
+  "base_price": 599.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/40623608618.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/40623608618.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_6_real_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 599.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "网易严选60支新疆长绒棉贡缎四件套，含被套1件+床单1件+枕套2只，1.8m床尺寸。精选新疆阿瓦提长绒棉，60支高支高密贡缎工艺，活性印染达A类婴儿级安全标准。亲肤柔光质感细腻顺滑、四季可裸睡、不易起球褪色。多色简约设计百搭卧室，与水星家纺同源代工，性价比突出，京东自营7天无理由退换。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "买家表示面料柔软亲肤、触感像丝绸，洗后不起球不褪色。色泽与图片基本一致、包边走线细密。60支高支密度睡上去贴肤不冰凉。多次回购送朋友新房。少数用户提示首次使用建议清洗去浮色。"
+      }
+    ]
+  },
+  "title_en": "网易严选 新疆长绒棉 60支纯棉贡缎四件套 1.8m床（适用2.2m*2.4m被芯）"
+}

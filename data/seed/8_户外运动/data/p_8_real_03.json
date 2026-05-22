@@ -1,0 +1,37 @@
+{
+  "product_id": "p_8_real_03",
+  "title": "凯乐石（KAILAS）MT5-3 GTX MID 中帮防水登山徒步鞋",
+  "brand": "凯乐石（KAILAS）",
+  "category": "户外运动",
+  "sub_category": "登山徒步鞋",
+  "base_price": 1099.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/kailas_mt5_gtx.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/100012913849.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_8_real_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 1099.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "凯乐石MT5-3 GTX MID中帮防水登山徒步鞋，搭载GORE-TEX防水透气膜与Vibram Megagrip抗滑大底。中帮设计提供脚踝保护、TPU托盘增强稳定性，适合多日重装徒步、海拔3000m级雪山徒步与雨雪复杂路面。国货登山品牌中端旗舰款，京东自营顺丰发货。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户实测穿越雨林雪山均干燥保暖，GTX防水可靠。Vibram大底抓地强、湿滑岩石不打滑。中帮支撑足踝缓震到位、负重徒步两天脚不疲惫。版型偏窄宽脚用户建议大半码。京东附小样鞋油保养实用。"
+      }
+    ]
+  }
+}

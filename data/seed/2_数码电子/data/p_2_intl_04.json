@@ -1,0 +1,38 @@
+{
+  "product_id": "p_2_intl_04",
+  "title": "Bose QC Ultra 旗舰头戴降噪耳机",
+  "brand": "Bose",
+  "category": "数码电子",
+  "sub_category": "无线降噪耳机",
+  "base_price": 429.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/51RKMr0u5jL._AC_SL1500_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Bose-QuietComfort-Wireless-Cancelling-Headphones/dp/B0CCZ1L489",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_2_intl_04_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 429.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "Bose 顶级头戴式降噪耳机,首发 Immersive Audio 空间音频与 CustomTune 个性化调音,根据耳道形状实时校准声音表现。最高 24 小时续航 (开启沉浸音效约 18 小时),蓝牙 5.3 与 SimpleSync 可与 Bose 智能音响联动。柔软记忆海绵耳罩长时间佩戴不夹耳,飞机与城市通勤场景下的降噪表现广受认可,适合差旅与远程办公人群。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论高频提到佩戴舒适度堪比传统 QC 系列,长时间会议毫无压迫感;Immersive Audio 在听音乐会、看电影场景下带来明显的声场扩展。降噪深度被普遍认为与索尼 XM5 相当,通话拾音清晰。少数反馈认为定价偏高、应用稳定性仍需打磨。"
+      }
+    ]
+  },
+  "title_en": "Bose QuietComfort Ultra Bluetooth Headphones (Black)"
+}

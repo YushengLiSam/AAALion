@@ -1,0 +1,38 @@
+{
+  "product_id": "p_3_intl_03",
+  "title": "巴塔哥尼亚男士 Better Sweater 抓绒外套",
+  "brand": "Patagonia",
+  "category": "服饰运动",
+  "sub_category": "抓绒外套",
+  "base_price": 169.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/71L1Q-vSh+L._AC_SY741_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Patagonia-Better-Sweater-Fleece-Jacket/dp/B081P934FZ",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_3_intl_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 169.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "巴塔哥尼亚 Better Sweater 经典款全拉链抓绒外套,采用 100% 再生聚酯纤维针织面料,外观如毛衣般精致,内里柔软抓绒提供保暖性。立领设计搭配拉链护下巴,左胸拉链口袋与双侧手暖口袋方便实用。Fair Trade 认证工厂生产,可单穿或作为冲锋衣中层,户外徒步、城市通勤均适合,被誉为美式户外的代表单品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "户外圈用户公认 Better Sweater 耐穿、面料抗起球;Nickel 灰、海军蓝、橄榄绿色被多次提及为百搭色。版型偏宽松、肩膀线条略低,适合户外叠穿;部分修身爱好者建议小一码。10 年以上长穿用户表示拉链与水洗后依旧保持挺括。"
+      }
+    ]
+  },
+  "title_en": "Patagonia Men's Better Sweater Fleece Jacket"
+}

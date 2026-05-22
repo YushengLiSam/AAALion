@@ -1,0 +1,38 @@
+{
+  "product_id": "p_3_intl_01",
+  "title": "Levi's 男士 501 经典直筒牛仔裤",
+  "brand": "Levi's",
+  "category": "服饰运动",
+  "sub_category": "牛仔裤",
+  "base_price": 69.5,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/81qmJjy7DqL._AC_SY741_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Levis-Mens-Original-Jeans-Seasonal/dp/B0C83QRRG2",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_3_intl_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 69.5
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "Levi's 501 起源于 1873 年的经典原版直筒牛仔裤,被誉为牛仔裤的开山之作。100% 纯棉直织丹宁面料,标志性五袋设计与四颗铆钉,中腰直筒版型适合不同身材。经多次水洗仍保留挺括手感,可作为四季基本款穿搭。新版本提供从浅蓝、中蓝到经典深靛的多种水洗色,日常通勤、旅行均适合。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "老粉评论 501 的版型几十年如一日,初次入手用户对面料厚实度和上身廓形满意。腰围尺码偏小一码已成共识,建议比平常大半码到一码购买。少数评论提到下水后会缩水,但缩水后的合身度反而被视作 501 的精髓。"
+      }
+    ]
+  },
+  "title_en": "Levi's Men's 501 Original Fit Jeans"
+}

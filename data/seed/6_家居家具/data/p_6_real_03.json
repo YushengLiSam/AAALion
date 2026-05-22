@@ -1,0 +1,37 @@
+{
+  "product_id": "p_6_real_03",
+  "title": "雅芳婷全棉纯棉四件套 1.5m(5英尺)床 现代简约床上用品",
+  "brand": "雅芳婷",
+  "category": "家居家具",
+  "sub_category": "床上用品",
+  "base_price": 268.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10191752737.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/10191752737.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_6_real_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 268.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "雅芳婷全棉四件套P312D，1.5m床尺寸含被袋床笠绑绳+拉链升级版。100%纯棉斜纹工艺、密度高于普通床品，亲肤透气吸湿排汗。田园风韩式印花清新简约，多色可选搭配各种家居风格。床笠绑绳设计防滑、床单不卷边，洗后不易缩水。HJC原品牌，京东超市自营保障正品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户称赞纯棉手感舒适不刺激皮肤，颜色与图片相符。床笠绑绳设计防滑实用，拉链升级版方便套被芯。包装严实日期清晰。多次水洗后没有明显褪色，性价比高。部分人提示偏薄适合春夏使用。"
+      }
+    ]
+  }
+}

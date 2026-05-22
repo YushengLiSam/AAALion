@@ -1,0 +1,38 @@
+{
+  "product_id": "p_2_intl_01",
+  "title": "索尼 WH-1000XM5 头戴降噪耳机 黑色",
+  "brand": "Sony",
+  "category": "数码电子",
+  "sub_category": "无线降噪耳机",
+  "base_price": 398.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61+btoESuwL._AC_SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Sony-WH-1000XM5-Canceling-Headphones-Hands-Free/dp/B09XS7JWHH",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_2_intl_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 398.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "索尼旗舰款无线降噪头戴耳机,搭载两枚处理器协同八枚麦克风,实现行业领先的主动降噪表现。Auto NC Optimizer 可根据环境与气压自动校准降噪;30 小时续航,3 分钟快充即可获得 3 小时播放。配备四枚波束成形麦克风与精准语音拾取技术,通话清晰度大幅提升;支持多点蓝牙连接 iPhone 与 Mac 无缝切换,触控面板手势操作便捷,出差通勤、长途飞行均适用。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户普遍盛赞降噪效果在飞机和地铁场景下的表现,佩戴轻盈舒适、长时间使用不夹头;音质细腻、低频饱满。少数评论指出多设备切换偶有延迟,以及与上一代相比无法折叠略显遗憾,但整体认为是同价位降噪天花板。"
+      }
+    ]
+  },
+  "title_en": "Sony WH-1000XM5 Wireless Industry Leading Noise Canceling Headphones (Black)"
+}

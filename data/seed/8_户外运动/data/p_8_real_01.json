@@ -1,0 +1,37 @@
+{
+  "product_id": "p_8_real_01",
+  "title": "HUAWEI 华为 WATCH GT4 智能手表 46mm 黑色氟橡胶表带",
+  "brand": "华为（HUAWEI）",
+  "category": "户外运动",
+  "sub_category": "运动手表",
+  "base_price": 1488.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/huawei_gt4_46mm.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/100061410632.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_8_real_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 1488.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "华为WATCH GT4智能手表46mm版采用1.43英寸AMOLED高清屏与航空级不锈钢机身八角形外观。升级TruSeen 5.5+八通道心率监测、TruSleep 3.0睡眠分析、血氧检测、女性经期管理3.0、心律失常提示。100+运动模式专业户外GPS双频五星定位，46mm版续航长达14天。轻薄9.8mm，登山跑步骑行游泳通勤皆宜。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "运动用户反馈GPS定位精准跑步轨迹完整，心率与配速数据可靠。续航惊艳出差一周不充电。表盘外观商务户外皆百搭、八角形辨识度高。系统流畅与手机通讯顺畅、可独立播放音乐。部分人希望支持更多第三方App。"
+      }
+    ]
+  }
+}

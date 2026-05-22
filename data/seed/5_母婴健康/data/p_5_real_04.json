@@ -1,0 +1,37 @@
+{
+  "product_id": "p_5_real_04",
+  "title": "斯利安 SCRIANEN 孕妇DHA藻油凝胶糖果 无糖型 60粒",
+  "brand": "斯利安（SCRIANEN）",
+  "category": "母婴健康",
+  "sub_category": "孕妇营养品",
+  "base_price": 188.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/1153706129.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/1153706129.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_5_real_04_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 188.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "斯利安孕妇DHA藻油凝胶糖果60粒装无糖型，植物来源DHA直接从微藻中提取，纯净度高无重金属污染风险。每粒含DHA藻油≥200mg，孕妇、哺乳期妈妈每日1粒满足关键期所需。柠檬味软胶囊无腥味易吞服，添加木糖醇无糖配方更适合孕期人群。三十年中国孕妇营养品牌，蓝帽认证国食健字号。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "孕妈反馈胶囊小巧无鱼腥味、吞服无负担，孕吐期也能接受。包装严密日期新鲜，京东自营到货快。多位用户从孕中期吃到哺乳期，宝宝出生后反应灵敏。价格相比海淘款实惠，搭配钙片叶酸一起买更划算。"
+      }
+    ]
+  }
+}

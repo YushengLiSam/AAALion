@@ -1,0 +1,37 @@
+{
+  "product_id": "p_1_real_03",
+  "title": "薇诺娜（WINONA）舒敏保湿特护霜 50g 敏感肌护肤面霜",
+  "brand": "薇诺娜（WINONA）",
+  "category": "美妆护肤",
+  "sub_category": "面霜/敏感肌",
+  "base_price": 268.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/winona_tehu.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://winona.jd.com/",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_real_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 268.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "薇诺娜舒敏保湿特护霜50g，敏感肌修护明星产品。核心成分马齿苋提取物+青刺果油，舒缓泛红、修护角质层屏障、强化肌肤耐受力。无香精无酒精无色素，孕产妇及术后修复期可用。云南云大携手昆明医科大学研发的医学护肤品牌，京东自营官方旗舰店发货保障正品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "敏感肌用户反馈泛红刺痛在一周内显著缓解、过敏期当作救急霜使用。质地清爽不油腻吸收快，孕期换季也敢用。包装严密日期新鲜。京东自营顺丰发货迅速。多人将其作为常备屏障修护备货，与小红瓶搭配使用效果更佳。"
+      }
+    ]
+  }
+}

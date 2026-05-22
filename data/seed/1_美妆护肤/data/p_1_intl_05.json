@@ -1,0 +1,38 @@
+{
+  "product_id": "p_1_intl_05",
+  "title": "理肤泉特安修护舒缓面霜",
+  "brand": "La Roche-Posay",
+  "category": "美妆护肤",
+  "sub_category": "面霜",
+  "base_price": 22.99,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61EHWvKMlqL._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "FR",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Roche-Posay-Toleriane-Double-Repair-Moisturizer/dp/B01N9SPQHQ",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_intl_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 22.99
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "理肤泉特安双重修护面霜,含神经酰胺-3、烟酰胺、甘油与品牌标志性温泉水。轻盈乳霜质地、48 小时长效保湿,1 小时内即可修护皮肤屏障。无香、无油、不致痘,皮肤科医生测试,敏感肌、痘肌、刚做完医美的肌肤都可使用。50 ml 大容量、性价比高;搭配品牌洁面、防晒形成完整敏感肌护理线。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "皮肤科医生与药妆控用户公认这罐是 性价比之王,质地清爽吸收快、不闷痘,夏季亦可全脸使用。敏感肌、激光术后人群反馈泛红明显改善;烟酰胺含量友好不刺激。少数干皮用户在冬季需要叠加更滋润面霜,但作为日常基础护肤是稳妥之选。"
+      }
+    ]
+  },
+  "title_en": "La Roche-Posay Toleriane Double Repair Face Moisturizer (2.5 fl oz)"
+}

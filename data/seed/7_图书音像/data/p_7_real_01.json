@@ -1,0 +1,37 @@
+{
+  "product_id": "p_7_real_01",
+  "title": "中国科幻基石丛书：三体全集（套装1-3全册）刘慈欣著",
+  "brand": "重庆出版社",
+  "category": "图书音像",
+  "sub_category": "中文小说/科幻",
+  "base_price": 92.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/11757834.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/11757834.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_7_real_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 92.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "《三体全集》套装1-3全册，刘慈欣著，重庆出版社出版。包含《三体》《三体II：黑暗森林》《三体III：死神永生》三部曲，雨果奖最佳长篇得主作品。从文革背景下的天体物理学家叶文洁、到面对外星文明降临的人类反应、再到宇宙终极尺度的命运叩问。被译介至全球三十余种语言、销量过千万、Netflix同名美剧原著。中国科幻文学里程碑作品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "读者称这是中国科幻巅峰之作，三本一气读完非常震撼。'黑暗森林法则''面壁计划'等概念回味无穷。京东图书包装结实、配送快有塑封。书页纸质适中阅读舒适。少数人建议先看第一部入门，第二部精彩程度直线上升。强烈推荐。"
+      }
+    ]
+  }
+}

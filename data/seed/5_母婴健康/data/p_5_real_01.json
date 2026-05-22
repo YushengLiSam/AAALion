@@ -1,0 +1,37 @@
+{
+  "product_id": "p_5_real_01",
+  "title": "飞鹤星飞帆卓睿 婴儿配方奶粉 1段(0-6个月婴幼儿适用) 750g 1罐装",
+  "brand": "飞鹤（FIRMUS）",
+  "category": "母婴健康",
+  "sub_category": "婴幼儿奶粉",
+  "base_price": 358.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/100017319885.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/100017319885.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_5_real_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 358.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "飞鹤星飞帆卓睿1段是为0-6个月新生儿设计的婴幼儿配方奶粉，750g罐装。采用生牛乳一次成粉湿法工艺，添加6重HMOs母乳低聚糖、OPO结构脂、乳铁蛋白、CPP酪蛋白磷酸肽和DHA:ARA=1:1.7黄金比例配方。富含5大脑磷脂群和15种活性脑营养元素，源自北纬47度黄金奶源带，贴合中国宝宝吸收需求，全程可追溯，京东自营冷链直发。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "宝妈反馈奶粉冲调溶解性好、几乎无泡沫，宝宝接受度高换粉不抗拒。多位用户表示喝完不上火、便便正常，体重稳步增长。国货品牌包装严密日期新鲜，京东物流速度快，育儿补贴力度可观，性价比高。"
+      }
+    ]
+  }
+}

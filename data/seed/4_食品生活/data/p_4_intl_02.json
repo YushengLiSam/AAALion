@@ -1,0 +1,38 @@
+{
+  "product_id": "p_4_intl_02",
+  "title": "格力高百奇草莓巧克力棒 10 盒装",
+  "brand": "Glico",
+  "category": "食品生活",
+  "sub_category": "进口零食饼干",
+  "base_price": 17.9,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/81WIuVZB04L._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Glico-Biscuit-Sticks-Strawberry-1-41-Ounce/dp/B000H25Y0M",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_4_intl_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 17.9
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "日本格力高百奇草莓味饼干棒,1.41 oz 标准盒 x 10 盒装,适合家庭备货与办公室分享。香脆细长饼干棒外裹厚厚一层草莓奶油,真实草莓颗粒带来微酸果香。日本超市最常见的国民零食之一,1966 年问世以来畅销全球;搭配咖啡、奶茶或者作为追剧零食,简单不腻。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论赞许草莓味浓郁、香甜不腻;盒型坚固运输不易碎裂。部分高温季节会出现糖霜软化,但放冰箱即可恢复脆度。多用户表示是孩子最爱的伴手礼;偶有反馈说日本产新鲜批次比通过转运的更脆。"
+      }
+    ]
+  },
+  "title_en": "Glico Pocky Strawberry Cream Biscuit Sticks (Pack of 10)"
+}

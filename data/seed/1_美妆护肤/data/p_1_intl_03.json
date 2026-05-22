@@ -1,0 +1,38 @@
+{
+  "product_id": "p_1_intl_03",
+  "title": "SK-II 神仙水/护肤精华露 230ml",
+  "brand": "SK-II",
+  "category": "美妆护肤",
+  "sub_category": "化妆水/精华水",
+  "base_price": 235.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/51eyZ8wHM6L._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/SK-II-Facial-Treatment-Essence-Ounce/dp/B01M599DYT",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_intl_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 235.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "SK-II 神仙水 (Facial Treatment Essence) 含有 90% 以上 PITERA 半乳糖酵母样菌发酵产物滤液,配方延续 40 余年不变。每 2 秒售出一瓶的全球热销单品,通过持续补充天然角质代谢因子改善纹理、提亮肤色、淡化色斑。质地清透如水,洗脸后两掌按压全脸吸收;230 ml 大瓶装可使用约 3-4 个月,适合 25 岁以上肤质暗沉、纹理粗糙人群。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "亚洲与北美华人用户最常反馈一个月内肤质明显平整,毛孔细致;长期回购率高。气味独特偏酒糟味,需建立心理适应。少数用户表示初次使用会爆痘,大概率为肌底排出反应。亚马逊价比中国免税店略高,胜在直邮便利与正品保障。"
+      }
+    ]
+  },
+  "title_en": "SK-II Facial Treatment Essence 230 ml"
+}

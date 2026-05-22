@@ -6,6 +6,8 @@ struct MessageBubbleView: View {
     var onCopy: (() -> Void)? = nil
     var onSpeak: (() -> Void)? = nil
 
+    @State private var tappedProduct: ProductCard?
+
     var body: some View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
@@ -47,12 +49,25 @@ struct MessageBubbleView: View {
                                 }
                             }
                         }
+                } else if message.role == .assistant && message.isStreaming {
+                    // Empty placeholder bubble + funny waiting sentence.
+                    LoadingSentence()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.gray.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
                 if !message.products.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(message.products) { product in
-                                NavigationLink(value: product) {
+                                // Use a plain Button (not NavigationLink) so the
+                                // inline + pill inside ProductCardView can have
+                                // its own tap target without SwiftUI's stacked
+                                // hit-test eating it.
+                                Button {
+                                    tappedProduct = product
+                                } label: {
                                     ProductCardView(product: product)
                                 }
                                 .buttonStyle(.plain)
@@ -63,7 +78,7 @@ struct MessageBubbleView: View {
             }
             if message.role != .user { Spacer(minLength: 40) }
         }
-        .navigationDestination(for: ProductCard.self) { product in
+        .navigationDestination(item: $tappedProduct) { product in
             ProductDetailView(product: product)
         }
     }

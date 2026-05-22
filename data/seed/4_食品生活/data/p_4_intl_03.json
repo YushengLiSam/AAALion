@@ -1,0 +1,38 @@
+{
+  "product_id": "p_4_intl_03",
+  "title": "可尔必思白桃乳酸饮料 6 瓶装",
+  "brand": "Calpico (Calpis)",
+  "category": "食品生活",
+  "sub_category": "进口饮料",
+  "base_price": 21.99,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61pCNGyzcXL._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Calpico-Japanese-Non-Carbonated-Drink-16-9oz/dp/B07YK3KC7H",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_4_intl_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 21.99
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "Calpico (日本本土名 Calpis 可尔必思) 白桃风味乳酸饮料,1919 年创立的百年品牌,采用专属乳酸菌发酵工艺,口感酸甜清爽。白桃香气自然不刺鼻,16.9 oz 大瓶装方便家庭分享。冷藏后口感更佳,可直饮、调入气泡水或制作鸡尾酒;无碳酸、低脂,适合作为夏季解渴饮品。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论提到白桃口味比原味更适合初次尝试乳酸饮料的消费者,香气真实不假甜。瓶身设计稳固、6 瓶装运输无渗漏。少数美国用户对发酵乳味感到陌生,但日本/亚洲背景用户普遍认为这就是童年味道。冰镇后口感最佳。"
+      }
+    ]
+  },
+  "title_en": "CALPICO White Peach Non-Carbonated Beverage (16.9 fl oz, Pack of 6)"
+}

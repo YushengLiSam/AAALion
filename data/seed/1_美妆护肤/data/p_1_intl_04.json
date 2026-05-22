@@ -1,0 +1,38 @@
+{
+  "product_id": "p_1_intl_04",
+  "title": "资生堂红妍肌活精华露 50ml",
+  "brand": "Shiseido",
+  "category": "美妆护肤",
+  "sub_category": "精华液",
+  "base_price": 110.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/41Y0vGTpwBL._SL1000_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Shiseido-Ultimune-Power-Infusing-Concentrate/dp/B00M962E2U",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_intl_04_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 110.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "资生堂红腰子 Ultimune 红妍肌活精华露,搭载 ImuGenerationRED 红色科技,主打修护肌底防御力。三种核心植物精粹 (铁线莲、当归根、紫苏籽) 协同强化角质层。质地为半透明红色乳液,延展性好不黏腻;早晚洁面后第一道使用,与全品牌后续产品都可叠加。第三代配方持续 3 天即可感受到肤色提亮、肤质细腻。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论关键词集中在 上脸吸收快、 持续用月余皮肤更稳定 不挑肤质;敏感肌用户也反馈无刺激。瓶身红色高级感强,送礼有面;少数评论吐槽按压泵在末瓶时取液不便。价格在大牌精华中相对友好,常作为入门日系抗初老首选。"
+      }
+    ]
+  },
+  "title_en": "Shiseido Ultimune Power Infusing Concentrate 50 ml"
+}

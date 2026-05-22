@@ -1,0 +1,37 @@
+{
+  "product_id": "p_6_real_05",
+  "title": "海尔 Haier 5L升医用制氧机 ZY-5TW 雾化套装 家用氧气机",
+  "brand": "海尔（Haier）",
+  "category": "家居家具",
+  "sub_category": "家用健康家电",
+  "base_price": 2599.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10882655300.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/10882655300.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_6_real_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 2599.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "海尔5L医用级家用制氧机，搭配雾化器套装。直流变频、507W低功耗运行，运行噪音<50dB卧室使用不扰睡眠。1-5L流量可调适合老人保健、孕妇吸氧及高原缺氧人群。一键开关大屏数显，配雾化喷头可双重使用。海尔大品牌、医疗器械二类资质，京东自营专业售后上门安装。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "家有老人的买家反馈机器运行平稳安静、吸氧后老人精神状态明显好转。雾化功能附带很实用应对换季咳嗽。海尔售后专业可上门讲解。配件齐全、操作面板大字清晰长辈也会用。部分用户希望体积再小一点便于收纳。"
+      }
+    ]
+  }
+}

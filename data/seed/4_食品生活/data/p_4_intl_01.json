@@ -1,0 +1,38 @@
+{
+  "product_id": "p_4_intl_01",
+  "title": "雀巢日本宇治抹茶 KitKat 巧克力",
+  "brand": "Nestlé / Kit Kat",
+  "category": "食品生活",
+  "sub_category": "进口巧克力零食",
+  "base_price": 19.99,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/71GsR0pdH+L._SL1500_.jpg",
+  "provenance": {
+    "origin_country": "JP",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Nestl%C3%A9-Kit-Kat-Matcha-Bags13/dp/B081KWNPC6",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_4_intl_01_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 19.99
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "日本本土版 KitKat Uji Matcha 宇治抹茶口味,采用京都府宇治地区抹茶粉与白巧克力调和,茶香浓郁不齁甜。脆脆威化饼干在抹茶白巧外衣下展现层次口感,是日本伴手礼销量榜常年王牌。两袋装共约 26 小条,迷你独立包装便于分享或办公室囤货,送礼、自食、追剧零食均合适。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "海外华人和日本控反复点名抹茶味地道、苦甜平衡,远胜美国本土的甜腻口味。包装小巧便于送礼,部分批次因运输高温会出现表面起霜,但口感不受影响。仅少数评论提到价格偏高、保质期短,需尽快食用。"
+      }
+    ]
+  },
+  "title_en": "Nestlé Japan Kit Kat Mini Uji Matcha (2 Bags / 26 bars)"
+}

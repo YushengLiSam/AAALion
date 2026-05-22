@@ -1,0 +1,38 @@
+{
+  "product_id": "p_3_intl_04",
+  "title": "北面 1996 复古 Nuptse 鹅绒羽绒服",
+  "brand": "The North Face",
+  "category": "服饰运动",
+  "sub_category": "羽绒服",
+  "base_price": 330.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61Z9j7Lj-tL._AC_SY741_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/NORTH-FACE-RETRO-NUPTSE-JACKET/dp/B0CC67CGPZ",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_3_intl_04_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 330.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "北面 1996 Retro Nuptse 复刻自经典 90 年代登山系列,填充 700 蓬松度鹅绒,胸前大 LOGO 与方格绗缝是辨识度极高的街头符号。可收纳三片式连帽,前襟双拉链结合粘扣防风,腰部抽绳灵活调节廓形。Non-PFC DWR 防泼水处理,城市冬季穿搭与登山雪场都能 hold 住;TNF Black、Brilliant Coral、Summit Gold 等配色长期受到时尚博主追捧。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "评论一致认为这件是城市极寒天气的口粮款,绒量充足、肩膀廓形挺括。亚洲身材建议小 1-2 码以获得修身效果。胸前 LOGO 与配色被反复称赞为最具辨识度的细节;少数评论提到帽子收纳袋容量略紧,且鸭绒/鹅绒批次差异需以吊牌为准。"
+      }
+    ]
+  },
+  "title_en": "The North Face Men's 1996 Retro Nuptse Jacket"
+}

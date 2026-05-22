@@ -4,6 +4,7 @@ struct ProductDetailView: View {
     let product: ProductCard
     @State private var cart = CartStore.shared
     @State private var addedToast = false
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ScrollView {
@@ -32,29 +33,17 @@ struct ProductDetailView: View {
                 Text(product.brand)
                     .font(.appBody)
                     .foregroundStyle(Color.appTextSecondary)
-                Text("¥\(String(format: "%.0f", product.basePrice))")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.appAccent)
 
-                Button {
-                    cart.add(product)
-                    withAnimation { addedToast = true }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                        withAnimation { addedToast = false }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "cart.badge.plus")
-                        Text("加入购物车 / Add to Cart")
-                    }
-                    .font(.appBody.bold())
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.appAccent)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                priceBlock
+                provenanceCard
+
+                addToCartButton
+
+                if let url = product.provenance.externalURL {
+                    storeLinkButton(url: url)
+                } else {
+                    disabledStoreLink
                 }
-                .padding(.top, 4)
 
                 if addedToast {
                     Label("已加入购物车 / Added to cart", systemImage: "checkmark.circle.fill")
@@ -68,5 +57,122 @@ struct ProductDetailView: View {
         .background(Color.appBackground.ignoresSafeArea())
         .navigationTitle(product.brand)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var priceBlock: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 6) {
+            Text("\(product.provenance.currencySymbol)\(String(format: "%.0f", product.basePrice))")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.appAccent)
+            if let hint = product.provenance.currencyHint {
+                Text("(\(hint))")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextSecondary)
+            }
+        }
+    }
+
+    /// Grouped section: origin / platform / currency / shipping. Hidden for demo items.
+    private var provenanceCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(product.provenance.flag)
+                Text("来源 / Source")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextSecondary)
+            }
+            .padding(.bottom, 2)
+            row("origin",  "产地",        product.provenance.originCountry)
+            row("storefront",  "平台",     product.provenance.sourcePlatform)
+            row("creditcard.fill",  "币种", "\(product.provenance.currency) (\(product.provenance.currencySymbol))")
+            if let ship = product.provenance.shippingNote {
+                row("shippingbox.fill", "配送", ship)
+            }
+            if product.provenance.isDemo {
+                Text("⚠️ 此商品为演示数据。外部链接为商品标题搜索。")
+                    .font(.appCaption)
+                    .foregroundStyle(.orange)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.appBorder, lineWidth: 0.5)
+        )
+    }
+
+    private func row(_ icon: String, _ label: String, _ value: String) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundStyle(Color.appTextSecondary)
+                .frame(width: 18)
+            Text(label)
+                .font(.appCaption)
+                .foregroundStyle(Color.appTextSecondary)
+                .frame(width: 60, alignment: .leading)
+            Text(value)
+                .font(.appCaption)
+                .foregroundStyle(Color.appTextPrimary)
+            Spacer()
+        }
+    }
+
+    private var addToCartButton: some View {
+        Button {
+            cart.add(product)
+            let gen = UINotificationFeedbackGenerator()
+            gen.notificationOccurred(.success)
+            withAnimation { addedToast = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation { addedToast = false }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "cart.badge.plus")
+                Text("加入购物车 / Add to Cart")
+            }
+            .font(.appBody.bold())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.appAccent)
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    private func storeLinkButton(url: URL) -> some View {
+        Button {
+            openURL(url)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up.right.square")
+                Text("去原页 / View on \(product.provenance.sourcePlatform)")
+            }
+            .font(.appBody.bold())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.appAccent, lineWidth: 1.5)
+            )
+            .foregroundStyle(Color.appAccent)
+        }
+    }
+
+    private var disabledStoreLink: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "link.badge.plus")
+            Text("演示商品 · 无原页链接")
+        }
+        .font(.appCaption)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Color.appAccentMuted.opacity(0.3))
+        .foregroundStyle(Color.appTextSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

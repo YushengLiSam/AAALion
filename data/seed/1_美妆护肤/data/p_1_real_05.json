@@ -1,0 +1,37 @@
+{
+  "product_id": "p_1_real_05",
+  "title": "SK-II 护肤精华露 神仙水 230ml SK2精华液 爽肤水",
+  "brand": "SK-II",
+  "category": "美妆护肤",
+  "sub_category": "精华水",
+  "base_price": 1990.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/2574048.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/2574048.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_1_real_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 1990.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "SK-II 神仙水（PITERA精华露）230ml经典款，蕴含90%以上Pitera天然酵母精华。改善暗沉、毛孔、细纹、痘印五大初老问题，使肌肤水润透亮如剥壳鸡蛋。日本进口经典明星单品，京东自营SK-II官方旗舰店正品保障。秋冬干燥换季稳定肌肤屏障必备神仙水。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户反馈神仙水持续使用一个月肤质明显变好、毛孔细致、整体透亮。微酸气味需要适应但效果让人惊喜。瓶身大气适合送女友妈妈节日礼物。京东自营保税仓直发附小样。价格略高但作为肌底水拍打长期使用值得。"
+      }
+    ]
+  }
+}

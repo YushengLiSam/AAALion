@@ -1,0 +1,38 @@
+{
+  "product_id": "p_2_intl_02",
+  "title": "苹果 AirPods Pro 二代 USB-C 版",
+  "brand": "Apple",
+  "category": "数码电子",
+  "sub_category": "真无线降噪耳机",
+  "base_price": 249.0,
+  "image_path": null,
+  "image_url_external": "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
+  "provenance": {
+    "origin_country": "US",
+    "source_platform": "Amazon US",
+    "currency": "USD",
+    "external_url": "https://www.amazon.com/Apple-Generation-Cancelling-Transparency-Personalized/dp/B0CHWRXH8B",
+    "shipping_note": "海外直邮"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_2_intl_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 249.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "搭载 H2 芯片的 AirPods Pro 第二代,主动降噪较前代提升最高 2 倍,自适应通透模式能在保留环境感的同时智能压低突发噪音。USB-C 充电盒兼容 iPhone 15 系列,支持 MagSafe、Apple Watch 与 Qi 无线充电。个性化空间音频带头部追踪,搭配 iOS 17 听力检测、助听辅助功能,实现一副耳机多场景使用。四种规格硅胶耳塞、IP54 防尘抗汗,适合通勤、运动、旅行。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "Apple 生态用户高度认可即开即连体验,佩戴舒适、长时间不胀耳;通透模式被反复点名为日常通勤神器。降噪在地铁与办公室环境表现明显,但风噪场景仍稍弱;部分用户提到电量随使用时长有衰减,整体仍是 iPhone 用户首选。"
+      }
+    ]
+  },
+  "title_en": "Apple AirPods Pro (2nd Generation) with USB-C Charging Case"
+}

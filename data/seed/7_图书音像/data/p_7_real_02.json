@@ -1,0 +1,37 @@
+{
+  "product_id": "p_7_real_02",
+  "title": "活着 余华著 25周年特别修订版 北京十月文艺出版社",
+  "brand": "北京十月文艺出版社",
+  "category": "图书音像",
+  "sub_category": "中文小说/经典",
+  "base_price": 39.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/12614877775.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/12614877775.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_7_real_02_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 39.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "《活着》余华代表作品，25周年特别修订版，北京十月文艺出版社出版。讲述福贵从地主少爷历经战乱、饥荒、动乱、亲人相继离去的一生，以平静笔触写尽中国半个多世纪的苦难与生命韧性。同名电影由张艺谋执导、葛优主演获戛纳国际电影节评审团大奖。已被译为英、法、德、意、日、韩等三十余种语言，国内累计销量超2000万册。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "读者评价文字朴素却字字带血，福贵的故事让人在通勤路上偷偷流泪。25周年版排版舒适、装帧厚重适合收藏。短小好读但回味很长，适合反复翻阅。京东图书发货迅速无折损。多次作为礼物送给学生晚辈，启发对生命意义的思考。"
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "product_id": "p_8_real_04",
+  "title": "牧高笛 冷山2 双层铝杆双人户外露营徒步登山防风雨帐篷",
+  "brand": "牧高笛（MOBIGARDEN）",
+  "category": "户外运动",
+  "sub_category": "帐篷",
+  "base_price": 699.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/mobigarden_lengshan2.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/100015168944.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_8_real_04_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 699.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "牧高笛冷山2双人帐篷采用7001铝合金杆+210T抗撕裂格子布外帐+B3透气网纱内帐双层结构。前后双门设计大空间通风好，3000mm抗水压地布、3000mm外帐防水指数。重约2.6kg适合徒步登山轻装版背负，搭建简单10分钟完成。中国户外露营经典款，京东自营全国联保。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "驴友们反馈帐篷防风防水真心强，山顶大风暴雨没渗水。内外帐分离透气性好、夏天不闷热。两人加装备空间宽裕。铝杆轻量收纳后体积小适合背包党。包装含地钉地席风绳齐全。少量用户认为前庭再大点装备就更舒展。"
+      }
+    ]
+  }
+}

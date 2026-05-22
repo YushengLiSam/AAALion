@@ -1,0 +1,38 @@
+{
+  "product_id": "p_8_real_05",
+  "title": "探路者（TOREAD）三合一冲锋衣 男士秋冬户外登山防寒服 羽绒内胆",
+  "brand": "探路者（TOREAD）",
+  "category": "户外运动",
+  "sub_category": "冲锋衣",
+  "base_price": 1399.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10025247322355.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/10025247322355.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_8_real_05_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 1399.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "探路者男士三合一冲锋衣TAWI91121，外层防水防风冲锋衣+可拆卸90%白鸭绒内胆。外层TIEF-TEX防水透气面料抗静水压10000mm、抗撕裂耐磨。羽绒胆充绒量120g、690蓬松度兼顾轻量与保暖。卡比布黄色彩防风帽、立体剪裁内置雪裙，雪山徒步、滑雪、冬季通勤一衣三穿。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "用户反馈冲锋衣外层防风防水性能扎实，零下5度搭羽绒胆完全够暖。版型偏宽松内搭抓绒方便。颜色低调适合上班通勤兼周末登山。京东自营顺丰发货当日达。部分用户希望增加女款配色或更修身版型。"
+      }
+    ]
+  },
+  "title_en": "探路者（TOREAD）三合一冲锋衣 男士秋冬户外登山防寒服 羽绒内胆 TAWI91121"
+}

@@ -1,0 +1,37 @@
+{
+  "product_id": "p_7_real_03",
+  "title": "平凡的世界（套装共3册）路遥著 北京十月文艺出版社",
+  "brand": "北京十月文艺出版社",
+  "category": "图书音像",
+  "sub_category": "中文小说/经典",
+  "base_price": 108.0,
+  "image_path": null,
+  "image_url_external": "https://img14.360buyimg.com/n1/jfs/t1/10924046.jpg",
+  "provenance": {
+    "origin_country": "CN",
+    "source_platform": "JD",
+    "currency": "CNY",
+    "external_url": "https://item.jd.com/10924046.html",
+    "shipping_note": "国内现货"
+  },
+  "skus": [
+    {
+      "sku_id": "s_p_7_real_03_1",
+      "properties": {
+        "规格": "标准"
+      },
+      "price": 108.0
+    }
+  ],
+  "rag_knowledge": {
+    "marketing_description": "《平凡的世界》套装共3册，路遥呕心沥血六年创作的百万字长篇巨著，茅盾文学奖获奖作品。以孙少安、孙少平两兄弟为主线，全景式展现1975年至1985年间中国城乡社会变迁，刻画了一代青年在艰苦环境中追求理想与爱情、改变命运的奋斗历程。本书入选中国教育部'中学生必读'书单，连续多年蝉联各大书店畅销榜。",
+    "official_faq": [],
+    "user_reviews": [
+      {
+        "nickname": "海外/真人评论摘要",
+        "rating": 4,
+        "content": "读者表示三册一口气读完仿佛重走改革开放初年的黄土高原。少平孙少安的奋斗让无数年轻人备受激励。装帧朴素厚实价格亲民，特别适合年轻人和学生阅读。京东物流速度快塑封包装无破损。多人称'人生迷茫时翻一翻立刻有方向'。"
+      }
+    ]
+  }
+}
