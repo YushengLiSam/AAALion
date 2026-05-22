@@ -9,7 +9,9 @@ What devices we have, what each one is for, and the hard rules around the shared
 | MacBook (Shufeng's) | Shufeng | macOS 15+ | Primary dev machine for iOS (Xcode + Simulator) and local backend during dev. |
 | iPhone 13 | Shufeng | iOS 17+ | Real-device testing. Camera used for the 拍照找货 demo. |
 | Mac mini M4 (planned) | Team | macOS 15+ | Planned shared dev/demo machine. M4 unified memory makes it a viable CI runner for the iOS build. Not blocking. |
-| A100 server (SSH UC) | Team | Linux | Heavy work: CLIP image embedding (one-shot index build), batch RAG eval. **Strict scope rules below.** |
+| A100 server (SSH `uc`, host `mingkai-gigaio`) | Team | Ubuntu 24.x (Linux 6.8) | Heavy work: CLIP image embedding (one-shot index build), batch RAG eval. **Strict scope rules below.** |
+
+> **Note (2026-05-22)**: `nvidia-smi` currently reports a driver/library version mismatch on `uc`. Not blocking until we actually run CLIP; before the photo-search push, Tujie or Shufeng needs to reconcile the driver (or pin a torch CUDA version that matches).
 
 ## A100 server — hard rules
 
@@ -17,14 +19,14 @@ Layout on the A100:
 
 ```
 ~/shufeng/
-├── gpu-fuzz/     ← existing, ongoing fuzzing work — DO NOT TOUCH
-└── AAALion-/     ← new, this project, sibling of gpu-fuzz/
+├── cuda-fuzzing/     ← existing, ongoing fuzzing work — DO NOT TOUCH
+└── AAALion-/     ← new, this project, sibling of cuda-fuzzing/
 ```
 
 **Rules** (violate any of these and you risk corrupting Shufeng's other work):
 
 1. **All AAALion- work lives under `~/shufeng/AAALion-/`**. Never `cd` out of this subtree during an automated step.
-2. **Never modify, list, or run anything under `~/shufeng/gpu-fuzz/`**. It is a different task; treat it as read-only and out of scope.
+2. **Never modify, list, or run anything under `~/shufeng/cuda-fuzzing/`**. It is a different task; treat it as read-only and out of scope.
 3. **Never touch paths outside `~/shufeng/`** (no `/opt`, no `~/.bashrc` edits, no `apt install`, no `pip install --user`).
 4. Use a project-local Python venv: `~/shufeng/AAALion-/.venv/`. All `pip install` lands there.
 5. GPU-heavy steps (CLIP index, batch eval) — that's it. Web servers and request-path code stay on laptops; the A100 is not a service host.
@@ -51,7 +53,7 @@ Host uc
 
 ```bash
 ssh uc
-ls ~/shufeng/                                                  # confirm gpu-fuzz/ present
+ls ~/shufeng/                                                  # confirm cuda-fuzzing/ present
 mkdir -p ~/shufeng/AAALion- && cd ~/shufeng/AAALion-
 git clone https://github.com/YushengLiSam/AAALion-.git . || echo "private — rsync from laptop"
 python3 -m venv .venv && source .venv/bin/activate

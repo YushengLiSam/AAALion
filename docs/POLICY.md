@@ -32,7 +32,7 @@ When Shufeng says "store X in policy" in conversation with the project assistant
 ## A100 (SSH UC) — boundaries
 
 - All project work lives under `~/shufeng/AAALion-/`.
-- The existing `~/shufeng/gpu-fuzz/` is a different ongoing task and is strictly off-limits.
+- The existing `~/shufeng/cuda-fuzzing/` is a different ongoing task and is strictly off-limits.
 - No changes outside `~/shufeng/` (no system packages, no shell rc edits).
 
 ## Hallucination rules
