@@ -6,9 +6,26 @@
 >
 > 代码冻结 / Code freeze: 2026-06-10 · 答辩 / Defense: 2026-06-11 → 2026-06-19
 
-狮选 LionPick 是一款移动端的智能导购 Agent：iOS 原生客户端 + FastAPI 流式后端 + 向量检索 + 豆包 (Doubao-Seed-2.0-lite) 生成。用户可以用文字或图片描述需求，Agent 基于真实商品库进行多轮对话推荐，杜绝幻觉。
+狮选 LionPick 是一款移动端的智能导购 Agent：iOS 原生客户端 + FastAPI 流式后端 + 向量检索 + 多模态大模型。用户可以用文字或图片描述需求，Agent 基于真实商品库进行多轮对话推荐，杜绝幻觉。
 
-LionPick is a native iOS shopping assistant. The FastAPI backend streams responses over SSE, retrieves real products from a vector index, and uses Doubao-Seed-2.0-lite for grounded generation. It supports multi-turn dialogue, negation/exclusion, comparison, and a photo-to-product flow.
+LionPick is a native iOS shopping assistant. The FastAPI backend streams responses over SSE, retrieves real products from a vector index (Chroma + `bge-small-zh-v1.5`), and uses a vision-capable LLM via TokenRouter for grounded generation. It supports multi-turn dialogue, negation/exclusion, comparison, and photo-to-product search.
+
+## Live status (2026-05-22)
+
+| Capability | Status | Proof |
+|---|---|---|
+| iOS chat UI + streaming responses | ✅ | [`docs/demos/2026-05-22/01-basic-recommendation.png`](docs/demos/2026-05-22/01-basic-recommendation.png) |
+| Real LLM via TokenRouter (claude-haiku-4-5) | ✅ | All demos |
+| Chroma + sentence-transformers RAG (992 chunks indexed) | ✅ | All demos |
+| Anti-hallucination (honest "no match") | ✅ | [`02-conditional-filter.md`](docs/demos/2026-05-22/02-conditional-filter.md) |
+| Multi-turn dialogue (bonus 4.3) | 🟡 API done; UI capture pending | [`03-multi-turn.md`](docs/demos/2026-05-22/03-multi-turn.md) |
+| Negation / exclusion (bonus 4.3) | ✅ | [`04-negation.md`](docs/demos/2026-05-22/04-negation.md) |
+| Multi-product comparison (bonus 4.3) | ✅ | [`05-comparison.md`](docs/demos/2026-05-22/05-comparison.md) |
+| Photo-to-product (bonus 4.2, vision LLM) | ✅ | [`06-photo-upload.md`](docs/demos/2026-05-22/06-photo-upload.md) |
+| Simulator (iPhone 17 Pro) | ✅ | `aaalion ios-sim` |
+| Physical iPhone 13 Pro deploy | ⏳ pending Team ID | [`docs/IOS_SETUP.md`](docs/IOS_SETUP.md) |
+| A100 OpenCLIP indexer (bonus 4.2 depth) | ⏳ Round 3 | [`docs/HARDWARE.md`](docs/HARDWARE.md) |
+| Real product data | ⏳ AI-gen seed + manual curation in progress | [`docs/research/`](docs/research/) |
 
 ---
 
@@ -20,78 +37,70 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 | 李雨晟 | Yusheng Li | 后端 / Backend | `server/` |
 | 管图杰 | Tujie Guan | 检索 / RAG | `rag/` |
 
-> 陈澍枫 同时兜底其他模块 — 如有进度风险，按 [SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md) 推进。
->
-> Shufeng is the project lead and fallback owner — see [docs/SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md).
+> Shufeng is the project lead and fallback owner — see [`docs/SOLO_DEV_PLAN.md`](docs/SOLO_DEV_PLAN.md).
 
 ## Tech stack / 技术栈
 
 - **客户端 / Client**: Swift 5.9, SwiftUI, iOS 17+
-- **后端 / Backend**: Python 3.11, FastAPI, SSE streaming
-- **向量库 / Vector DB**: Qdrant (default) · Chroma (fallback)
-- **Embeddings**: Doubao-embedding-vision (text) + OpenCLIP ViT-B/32 (images, indexed on A100)
-- **LLM**: Doubao-Seed-2.0-lite via `https://ark.cn-beijing.volces.com/api/v3/`
+- **后端 / Backend**: Python 3.12, FastAPI, SSE streaming, Pydantic v2 multimodal content union
+- **向量库 / Vector DB**: Chroma in-process (Qdrant supported as alternate)
+- **Embeddings**: `BAAI/bge-small-zh-v1.5` (sentence-transformers, Chinese, free, CPU)
+- **LLM**: `claude-haiku-4-5` via TokenRouter (75+ models behind one OpenAI-compatible API; switchable to Doubao when the new key arrives)
+- **Defense fallback**: `LLM_PROVIDER=echo` for credential-less demos
 
 ## Quickstart / 快速开始
 
 ```bash
-# 0. (一次) 配置环境变量 / set env once
+# 1. Install aaalion helper (so commands work from anywhere)
+ln -sf "$(pwd)/tools/aaalion" "$HOME/.local/bin/aaalion"
+
+# 2. Configure (copy + edit; key from https://www.tokenrouter.com/console/token)
 cp .env.example server/.env
-# fill DOUBAO_API_KEY in server/.env (从微信群获取真实 Key)
+$EDITOR server/.env   # set TOKENROUTER_API_KEY
 
-# 1. 向量库 / vector DB
-cd server && docker compose up -d qdrant
+# 3. Backend + Chroma index
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r server/requirements.txt
+aaalion ingest                       # builds Chroma index from data/seed/ (one-time)
+aaalion backend                      # uvicorn on :8000
 
-# 2. 一次性建索引 / one-time index
-cd ../rag && pip install -r requirements.txt && python -m ingest.run
-
-# 3. 后端 / backend
-cd ../server && pip install -r requirements.txt && uvicorn app.main:app --reload
-
-# 4. iOS 工程 / iOS project — 需要 xcodegen
-cd ../client/AAALionApp && xcodegen && open AAALionApp.xcodeproj   # then Cmd+R
-
-# 5. (可选) 截屏助手 / screenshot helper
-python ../tools/screenshot_watcher.py
+# 4. iOS simulator (iPhone 17 Pro)
+aaalion ios-sim                      # regen .xcodeproj, build, install, launch
 ```
 
-或者用 `make`:
-
-```bash
-make help           # 列出所有命令
-make backend        # 起后端
-make ingest         # 建索引
-make ios            # 重新生成 .xcodeproj
-make sync-a100      # rsync 到 A100
-```
+For iPhone device deploy, see [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md).
 
 ## Project layout / 项目结构
 
 ```
-client/    iOS 客户端 (SwiftUI)             ← 陈澍枫
-server/    FastAPI 后端 (SSE, Doubao 编排)   ← 李雨晟
+client/    iOS 客户端 (SwiftUI)        ← 陈澍枫
+server/    FastAPI 后端 (SSE, multimodal)   ← 李雨晟
 rag/       Ingest / retrieve / prompts      ← 管图杰
 data/      seed/ (committed) + extra/ (gitignored)
-docs/      架构、流水线、硬件、政策、路线图等
-meetings/  会议记录 / YYYY-MM-DD-topic.md
-tools/     screenshot_watcher.py + 辅助脚本
+docs/      架构、流水线、政策、demos、research
+meetings/  会议记录
+tools/     aaalion + screenshot + check-secrets
 ```
 
 ## Read these next / 接下来该读这些
 
 | Document | Purpose |
 |---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 端到端系统设计 / system design |
-| [docs/PIPELINE.md](docs/PIPELINE.md) | 开发流程 / dev SOP |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | 20 天每日计划 / day-by-day plan |
-| [docs/HARDWARE.md](docs/HARDWARE.md) | 设备 / devices, A100 SSH rules |
-| [docs/POLICY.md](docs/POLICY.md) | 团队规则 / team policy |
-| [docs/DATA.md](docs/DATA.md) | 如何找真实数据 / how to source real data |
-| [docs/API.md](docs/API.md) | 后端接口 / backend endpoints |
-| [docs/SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md) | 陈澍枫单人推进计划 / Shufeng's solo-dev plan |
-| [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md) | 加分项 / stretch ideas |
-| [docs/EXECUTION_SUMMARY.md](docs/EXECUTION_SUMMARY.md) | 仓库初始化总结 / bootstrap summary |
-| [docs/commits/](docs/commits/) | 重大提交记录 / major commit records |
+| [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) | Full step-by-step for a teammate's MacBook + iPhone ≥13 |
+| [docs/demos/2026-05-22/](docs/demos/2026-05-22/) | Six end-to-end demo screenshots + verdicts |
+| [docs/research/](docs/research/) | Data-availability research (no usable real dataset; manual curation plan) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | End-to-end system design |
+| [docs/PIPELINE.md](docs/PIPELINE.md) | Dev SOP (develop / test / iterate) |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | 20-day plan |
+| [docs/HARDWARE.md](docs/HARDWARE.md) | Devices + A100 SSH rules |
+| [docs/POLICY.md](docs/POLICY.md) | Team rules + commit format |
+| [docs/IOS_SETUP.md](docs/IOS_SETUP.md) | Xcode signing, simulator vs device |
+| [docs/API.md](docs/API.md) | Backend endpoints |
+| [docs/SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md) | Shufeng's solo-dev plan if teammates slip |
+| [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md) | Stretch ideas |
+| [docs/EXECUTION_SUMMARY.md](docs/EXECUTION_SUMMARY.md) | Initial bootstrap summary |
+| [docs/PLAN_2026-05-22.md](docs/PLAN_2026-05-22.md) | Latest plan (rounds 1+2) |
+| [docs/commits/](docs/commits/) | Major commit records |
 
 ## License
 
