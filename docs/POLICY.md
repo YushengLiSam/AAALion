@@ -1,21 +1,28 @@
-# Project Policy
+# Project Policy / 项目政策
 
 Durable team rules and preferences. Anything in this file is **shared** with all teammates (committed and pushed). Private entries go in `docs/POLICY_LOCAL.md` (gitignored).
 
 When Shufeng says "store X in policy" in conversation with the project assistant, the entry lands here (or `POLICY_LOCAL.md` if marked private).
 
-## Scope and identity
+## Scope and identity / 比赛与课题
 
-- **Competition**: ByteDance 2026 AI 全栈挑战赛. This is the AI Full-Stack Challenge — **not** the 工程训练营.
-- **Topic**: 基于 RAG 的多模态电商智能导购 AI Agent.
-- **Deadline**: 2026-06-10 (code-freeze). Defense window: 2026-06-11 to 2026-06-19.
+- **Team / 团队名**: AAALion (3 人，编队名).
+- **Product / 产品名**: 狮选 **LionPick** — 基于 RAG 的多模态电商智能导购 (Lion's Pick of the right product).
+- **Competition / 比赛**: ByteDance 2026 AI 全栈挑战赛. This is the AI Full-Stack Challenge — **not** the 工程训练营.
+- **Topic / 课题**: 基于 RAG 的多模态电商智能导购 AI Agent.
+- **Deadline / 截止**: 2026-06-10 (code-freeze). Defense window: 2026-06-11 to 2026-06-19.
 
-## Ownership
+## Ownership / 分工
 
-- **Shufeng Chen** — iOS client (`client/`).
-- **Yusheng Li (Sam)** — Backend (`server/`).
-- **Tujie Guan** — RAG / retrieval (`rag/`).
-- Cross-area changes require the affected owner's approval before merge.
+| 中文名 | 英文名 / 昵称 | 模块 | 主要分支 |
+|---|---|---|---|
+| 陈澍枫 | Shufeng Chen | iOS 客户端 `client/` (+ fallback for everything) | `shufeng` |
+| 李雨晟 | Yusheng Li (Sam) | 后端 `server/` | `sam` |
+| 管图杰 | Tujie Guan | RAG 检索 `rag/` | `tujie` |
+
+Cross-area changes require the affected owner's approval before merge.
+
+> **Important / 重点**: Shufeng acts as the project lead and the **fallback owner for every area**. If a teammate's deliverable slips, Shufeng owns the gap. Plan accordingly — see [SOLO_DEV_PLAN.md](SOLO_DEV_PLAN.md).
 
 ## Secrets
 
@@ -28,6 +35,39 @@ When Shufeng says "store X in policy" in conversation with the project assistant
 - Each developer has a personal branch: `shufeng`, `sam`, `tujie`.
 - Most of Shufeng's ongoing development happens on `shufeng` to protect `main` stability.
 - PRs are squash-merged into `main`.
+
+## Commit message format / 提交信息格式
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <one-sentence summary in present tense>
+
+<optional body — why, not what>
+```
+
+**Types**:
+- `feat` — new feature
+- `fix` — bug fix
+- `docs` — documentation only
+- `chore` — tooling, infra, deps, repo hygiene
+- `refactor` — code change with no functional difference
+- `test` — adding/updating tests
+- `style` — formatting only
+
+**Scopes** (match the repo layout):
+- `client` (iOS) · `server` (backend) · `rag` (retrieval)
+- `docs` · `meetings` · `data` · `tools` · `repo` (repo-wide)
+
+**Examples**:
+```
+feat(client): wire ChatService to real backend SSE
+fix(server): handle Doubao 429 with exponential backoff
+docs(policy): add commit message format
+chore(tools): add Makefile and xcodegen project.yml
+```
+
+The summary line stays under 70 chars when possible. Bullets in the body, not in the subject.
 
 ## A100 (SSH UC) — boundaries
 
@@ -67,3 +107,6 @@ Use this section to record decisions that change the architecture or scope.
 | 2026-05-22 | Switch client from Android (Sam's WeChat proposal) to **iOS**. | Shufeng owns the client and prefers iOS; iPhone 13 available for testing. |
 | 2026-05-22 | **Qdrant** as primary vector DB, Chroma as fallback. | Better multi-vector + filter support; still single-container Docker for private deployment. |
 | 2026-05-22 | A100 used for **index-build only**, not request-path serving. | Keeps the backend portable; A100 is overkill for serving. |
+| 2026-05-22 | Product name = **狮选 LionPick** (distinct from team name AAALion). | Bilingual, brandable, ties to lion identity, descriptive of "AI picks the right product." |
+| 2026-05-22 | Adopt Conventional Commits as the commit format. | Easier to scan history; supports future tooling (changelog generation). |
+| 2026-05-22 | Shufeng is the **fallback owner for every area** (solo-dev posture). | Risk mitigation if teammate output slips before 06-10. |

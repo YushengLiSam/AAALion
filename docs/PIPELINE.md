@@ -6,9 +6,9 @@ Read this before touching any code. It tells you the order of operations, how to
 
 ### Parallel-work-friendly order
 
-1. **Tujie (RAG)** brings up Qdrant + ingests `data/seed/` first. Output: a running Qdrant on `:6333` with two populated collections.
-2. **Sam (backend)** wraps it with FastAPI, exposing `/chat/stream`. He can stub Tujie's retrieval initially by returning a fixed top-3 from a local JSON.
-3. **Shufeng (iOS)** builds the chat UI against the SSE endpoint. He can stub Sam's backend by running a tiny local SSE server (see `tools/mock_sse_server.py` once created).
+1. **管图杰 (Tujie / RAG)** brings up Qdrant + ingests `data/seed/` first. Output: a running Qdrant on `:6333` with two populated collections.
+2. **李雨晟 (Sam / backend)** wraps it with FastAPI, exposing `/chat/stream`. He can stub Tujie's retrieval initially by returning a fixed top-3 from a local JSON.
+3. **陈澍枫 (Shufeng / iOS)** builds the chat UI against the SSE endpoint. He can stub Sam's backend by running a tiny local SSE server (see `tools/mock_backend.py`).
 
 ### Stubs each role provides for the others
 
@@ -37,9 +37,9 @@ Read this before touching any code. It tells you the order of operations, how to
   - **Why** (link to the requirement or issue).
   - **How to test** (commands + expected output).
 - Reviewer:
-  - iOS PRs → Shufeng self-merges (no other iOS dev).
-  - Backend → Sam self-merges.
-  - RAG → Tujie self-merges.
+  - iOS PRs → 陈澍枫 self-merges (no other iOS dev).
+  - Backend → 李雨晟 self-merges.
+  - RAG → 管图杰 self-merges.
   - **Cross-area** PRs (e.g. changing an API contract) → require the affected owner's approval.
 
 ## How to test

@@ -1,6 +1,8 @@
 # Execution Summary — Repo Bootstrap (2026-05-22)
 
-> **Audience**: Sam (Yusheng Li) and Tujie Guan. Shufeng (Chen) did the initial bootstrap; this is what was done and what's open for you.
+> 产品名 / Product: **狮选 LionPick** · 团队名 / Team: **AAALion**
+>
+> **Audience / 受众**: 李雨晟 (Sam) and 管图杰 (Tujie). 陈澍枫 (Shufeng) did the initial bootstrap; this is what was done and what's open for you.
 
 ## TL;DR
 
@@ -77,7 +79,7 @@ In `docs/`:
 
 ## Open work, per person
 
-### Sam (backend)
+### 李雨晟 (backend)
 
 1. Replace `server/app/services/doubao_client.py` `NotImplementedError` with a real `openai.AsyncOpenAI` streaming call against the ARK endpoint.
 2. Replace `routes/chat.py:_fake_stream` with real orchestration:
@@ -86,7 +88,7 @@ In `docs/`:
 3. Implement `POST /chat/multimodal` for image upload (multipart, 5 MB cap).
 4. Add `pytest` tests for the SSE event framing.
 
-### Tujie (RAG)
+### 管图杰 (RAG)
 
 1. Wire `rag/ingest/embed_text.py` to the real Doubao embedding endpoint.
 2. Wire `rag/ingest/embed_image.py` to OpenCLIP ViT-B/32; run on `uc` once driver mismatch is fixed.
@@ -94,7 +96,7 @@ In `docs/`:
 4. Replace `rag/retrieve/query.py` with real Qdrant search + payload filters (category, brand-exclude, price range).
 5. Grow `rag/eval/golden.jsonl` to 30+ cases with real expected ids; rerun `python -m rag.eval.run` and report recall@5.
 
-### Shufeng (iOS)
+### 陈澍枫 (iOS)
 
 1. Generate the `.xcodeproj` in Xcode following `client/AAALionApp/README.md`. Commit the project file.
 2. Wire `ChatService` to a real backend; verify SSE parsing with `XCTest`.

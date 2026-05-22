@@ -1,19 +1,31 @@
-# AAALionApp (iOS)
+# AAALionApp (iOS) — 狮选 LionPick
 
-The iOS client. SwiftUI, iOS 17+.
+The iOS client. SwiftUI, iOS 17+. App display name: **狮选**.
 
-## Open in Xcode
+## Generate the Xcode project (recommended)
 
-This scaffold uses **plain Swift source files** committed to git. To build it, you need to create an Xcode project that includes them:
+We use [**xcodegen**](https://github.com/yonaskolb/XcodeGen) so the `.xcodeproj` can be regenerated deterministically from `project.yml`. Install once:
+
+```bash
+brew install xcodegen
+```
+
+Then, from the repo root:
+
+```bash
+make ios     # equivalent to: cd client/AAALionApp && xcodegen
+open client/AAALionApp/AAALionApp.xcodeproj
+```
+
+Press `Cmd+R` to build on the iOS 17 simulator (iPhone 15) or your iPhone 13.
+
+`AAALionApp.xcodeproj` is **gitignored** — regenerate it from `project.yml` on every machine. `project.yml` IS committed and is the single source of truth.
+
+## Manual setup (only if xcodegen unavailable)
 
 1. Open Xcode → File → New → Project → App.
-2. Product Name: `AAALionApp`. Interface: SwiftUI. Language: Swift. Minimum deployment: iOS 17.0.
-3. Save at `client/AAALionApp/` (this directory) — overwriting the placeholder. Xcode will create `AAALionApp.xcodeproj` here.
-4. In Finder, drag the existing `AAALionApp/` Swift sources into the Xcode project navigator. **Uncheck** "Copy items if needed". Add to the `AAALionApp` target.
-5. Delete the generated `ContentView.swift` (we use `ChatView.swift` instead).
-6. Run on iOS 17+ Simulator (iPhone 15) or your real iPhone 13.
-
-Once the `.xcodeproj` is created, commit it (it must be in the repo so other devs can open it). The user-specific `xcuserdata` is gitignored.
+2. Product Name: `AAALionApp`. Interface: SwiftUI. Language: Swift. Minimum deployment: iOS 17.0. Display name: 狮选.
+3. Save at `client/AAALionApp/`. Drag the existing `AAALionApp/` Swift sources into the project navigator (uncheck "Copy items").
 
 ## Configure backend URL
 

@@ -2,7 +2,7 @@
 
 Things we deliberately deferred during the sprint. Roughly ordered by ROI.
 
-## Shufeng / iOS
+## 陈澍枫 (Shufeng) / iOS
 
 - **Voice input** — `Speech` framework for ASR, transcribed text feeds the chat. ~1.5 days.
 - **TTS playback** — `AVSpeechSynthesizer` reads AI replies aloud. ~0.5 day.
@@ -11,7 +11,7 @@ Things we deliberately deferred during the sprint. Roughly ordered by ROI.
 - **Widget extension** — "今日推荐" homescreen widget pulling from the same backend. Demo flair. ~1 day.
 - **Skeleton screens + haptics** — polish for the demo video. ~0.5 day.
 
-## Sam / backend
+## 李雨晟 (Sam) / backend
 
 - **Rate limiting with Redis** — per-IP token bucket. Needed if we open the demo to judges to poke at. ~0.5 day.
 - **Observability** — Prometheus metrics on retrieval latency, Doubao latency, token usage. Grafana dashboard. ~1 day.
@@ -20,7 +20,7 @@ Things we deliberately deferred during the sprint. Roughly ordered by ROI.
 - **gRPC for client** (post-competition) — protobuf schema, swift-grpc client; possibly better streaming. Speculative.
 - **Tracing** — OpenTelemetry from iOS → backend → Doubao. ~1 day. Useful for the engineering-quality bonus.
 
-## Tujie / RAG
+## 管图杰 (Tujie) / RAG
 
 - **Hybrid sparse+dense retrieval** — BM25 (Tantivy/Whoosh) + Qdrant, combined via RRF. Usually +5-10% recall. ~1 day.
 - **Learned reranker** — train a small cross-encoder on the golden eval. ~3 days.

@@ -2,7 +2,7 @@
 
 Living document. Update Sunday nights after the weekly sync.
 
-| Date window | Shufeng (iOS) | Sam (backend) | Tujie (RAG) | Joint milestone |
+| Date window | 陈澍枫 (iOS) | 李雨晟 (backend) | 管图杰 (RAG) | Joint milestone |
 |---|---|---|---|---|
 | **05-22 → 05-24** | Xcode project; ChatView skeleton; mock SSE locally consumed | FastAPI skeleton; `/chat/stream` returning fixture tokens | Unzip data; Qdrant up via docker compose; ingest text chunks | Repo scaffolded; all three roles can hit `make dev` and see something running |
 | **05-25 → 05-28** | Real SSE wired; message bubbles; ProductCard view | Doubao integration; real streaming; error/timeout handling | Top-k retrieval working; golden eval seeded (20 queries) | First end-to-end demo (text-only) |
@@ -26,8 +26,8 @@ Living document. Update Sunday nights after the weekly sync.
 
 | Risk | Owner | Mitigation |
 |---|---|---|
-| Doubao rate limit hits during demo | Sam | Cache last N responses; have a recorded backup video. |
-| SSE flaky on poor LAN | Shufeng | Add reconnect logic; fall back to non-streaming POST if needed. |
-| CLIP index quality poor on Chinese products | Tujie | Use both vision and text retrieval; let LLM combine. |
+| Doubao rate limit hits during demo | 李雨晟 | Cache last N responses; have a recorded backup video. |
+| SSE flaky on poor LAN | 陈澍枫 | Add reconnect logic; fall back to non-streaming POST if needed. |
+| CLIP index quality poor on Chinese products | 管图杰 | Use both vision and text retrieval; let LLM combine. |
 | Real product data not sourced by 06-01 | All | Hard fallback: manual curation of 50 entries (4 hours, 3-way split). |
 | Mac mini M4 doesn't arrive in time | Team | Stick to MacBook for backend; iOS demos directly on iPhone 13. |
