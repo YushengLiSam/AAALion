@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# aaalion — run `make <target>` from anywhere; finds the AAALion- repo automatically.
+#
+# Install (one time):
+#   ln -sf "$(pwd)/tools/aaalion" /usr/local/bin/aaalion   # from inside the repo
+#   # or:
+#   ln -sf ~/Desktop/rag/AAALion-/tools/aaalion /usr/local/bin/aaalion
+#
+# Usage:
+#   aaalion ios          # equivalent to: cd <repo> && make ios
+#   aaalion backend
+#   aaalion sync-a100
+#   aaalion help
+
+set -euo pipefail
+
+# Try common locations for the AAALion- repo.
+candidates=(
+  "$HOME/Desktop/rag/AAALion-"
+  "$HOME/AAALion-"
+  "$HOME/Projects/AAALion-"
+  "$HOME/code/AAALion-"
+  "$HOME/src/AAALion-"
+)
+
+# Also walk up from $PWD looking for a Makefile + the LionPick marker.
+walk_up() {
+  local dir="$PWD"
+  while [ "$dir" != "/" ]; do
+    if [ -f "$dir/Makefile" ] && grep -qs "LionPick" "$dir/Makefile" 2>/dev/null; then
+      echo "$dir"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+repo=""
+if root="$(walk_up)"; then
+  repo="$root"
+else
+  for c in "${candidates[@]}"; do
+    if [ -f "$c/Makefile" ] && grep -qs "LionPick" "$c/Makefile" 2>/dev/null; then
+      repo="$c"
+      break
+    fi
+  done
+fi
+
+if [ -z "$repo" ]; then
+  echo "aaalion: could not find the AAALion- repo." >&2
+  echo "  Looked in:" >&2
+  for c in "${candidates[@]}"; do echo "    $c" >&2; done
+  echo "  Set AAALION_HOME to override, or cd into the repo first." >&2
+  exit 1
+fi
+
+if [ -n "${AAALION_HOME:-}" ]; then
+  repo="$AAALION_HOME"
+fi
+
+cd "$repo"
+exec make "$@"
