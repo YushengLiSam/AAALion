@@ -48,6 +48,7 @@ screenshots/*
 *.qdrant
 *.chroma_db/
 chroma_db/
+data/.chroma/
 qdrant_storage/
 
 # Logs / temp

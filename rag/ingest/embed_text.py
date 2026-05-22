@@ -1,26 +1,41 @@
-"""Embed text chunks with Doubao-embedding-vision and upsert into Qdrant.
-
-This is a scaffold — Tujie will fill in the real embedding call once the
-embedding model endpoint is confirmed (per the PDF, no API key needed for
-the embedding model, just the same Doubao key).
+"""Embed text chunks. Default backend is `sentence-transformers` with a
+Chinese-friendly model — free, runs on CPU, no network at inference time
+once the model is cached. If a Doubao embedding endpoint becomes
+available later, swap the `_encode` function.
 """
 
 from __future__ import annotations
 
+import os
+from functools import lru_cache
 from typing import Iterable
 
 from .chunk import Chunk
 
+_MODEL_NAME = os.getenv("EMBED_MODEL", "BAAI/bge-small-zh-v1.5")
+
+
+@lru_cache(maxsize=1)
+def _model():
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer(_MODEL_NAME)
+
 
 def embed_chunks(chunks: Iterable[Chunk]) -> list[tuple[Chunk, list[float]]]:
-    """Embed text chunks → return (chunk, vector) pairs.
+    chunks = list(chunks)
+    if not chunks:
+        return []
+    model = _model()
+    vectors = model.encode(
+        [c.text for c in chunks],
+        normalize_embeddings=True,
+        show_progress_bar=False,
+        batch_size=16,
+    )
+    return list(zip(chunks, [list(map(float, v)) for v in vectors]))
 
-    TODO(tujie):
-      - Call the Doubao embedding endpoint in batches of 16.
-      - Handle the rate limit (RPM 700, TPM 800k).
-      - Return one vector per chunk.
 
-    For now this returns deterministic zero-vectors so downstream code
-    can be wired and tested without network access.
-    """
-    return [(c, [0.0] * 768) for c in chunks]
+def embed_query(text: str) -> list[float]:
+    model = _model()
+    vec = model.encode(text, normalize_embeddings=True, show_progress_bar=False)
+    return list(map(float, vec))

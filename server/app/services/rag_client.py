@@ -1,40 +1,28 @@
-"""Wrapper around the rag/ package, for use from the backend.
-
-Until Tujie's retrieve module lands, this returns a deterministic top-k
-based on naive keyword overlap with the cached product index. This is
-enough to unblock Sam and Shufeng.
-"""
+"""Backend's view of the RAG layer. Delegates to ``rag.retrieve.query``
+when the vector index is available; falls back to keyword overlap if the
+index is empty or unreachable."""
 
 from __future__ import annotations
 
-import json
-from functools import lru_cache
+import sys
 from pathlib import Path
 
-from app.config import settings
+# server/app/services/rag_client.py → parents[3] is the repo root.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
-@lru_cache(maxsize=1)
-def _products() -> list[dict]:
-    seed = settings.repo_root / "data" / "seed"
-    out: list[dict] = []
-    for json_path in seed.glob("*/data/*.json"):
-        try:
-            out.append(json.loads(json_path.read_text(encoding="utf-8")))
-        except (json.JSONDecodeError, OSError):
-            continue
-    return out
+def top_k(text: str, k: int = 3) -> list[dict]:
+    try:
+        from rag.retrieve.query import query
+        hits = query(text, k=k)
+        return [h.product for h in hits]
+    except Exception:
+        # Last-resort fallback so the route never 500s on RAG.
+        from rag.retrieve.query import _keyword_fallback  # type: ignore
+        return [h.product for h in _keyword_fallback(text, k=k)]
 
 
-def stub_top_k(query: str, k: int = 3) -> list[dict]:
-    """Stub retriever for parallel development. Replace with real call once
-    rag/retrieve/query.py is wired up."""
-    products = _products()
-    if not query.strip():
-        return products[:k]
-    scored = [
-        (sum(1 for token in query if token in p.get("title", "")), p)
-        for p in products
-    ]
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [p for _, p in scored[:k]]
+# Backwards-compatible alias used by older callers.
+stub_top_k = top_k

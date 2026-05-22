@@ -16,8 +16,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.schemas.chat import ChatMessage, ChatFilters
-from app.services.doubao_client import DoubaoClient
-from app.services.rag_client import stub_top_k
+from app.services.llm_provider import get_provider
+from app.services.rag_client import top_k
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -50,40 +50,26 @@ def _build_catalog(products: list[dict]) -> str:
     return "\n".join(lines) if lines else "(空)"
 
 
-async def _fixture_stream(products: list[dict]) -> AsyncIterator[str]:
-    """Fallback when Doubao is not configured."""
-    for ch in "好的，为你推荐以下商品（fixture stream，未接通豆包）：":
-        yield _sse({"type": "delta", "text": ch})
-        await asyncio.sleep(0.03)
-    for p in products:
-        yield _sse({
-            "type": "product_card",
-            "product": {
-                "product_id": p["product_id"],
-                "title": p.get("title"),
-                "brand": p.get("brand"),
-                "base_price": p.get("base_price"),
-                "image_url": None,
-            },
-        })
-        await asyncio.sleep(0.06)
-    yield _sse({"type": "done"})
+def _image_url(product_id: str, image_path: str | None) -> str | None:
+    if not image_path:
+        return None
+    # data/seed/<category>/images/<file>.jpg is mounted at /static/
+    return f"/static/{image_path}"
 
 
-async def _real_stream(client: DoubaoClient, user_text: str, products: list[dict]) -> AsyncIterator[str]:
+async def _stream(provider, user_text: str, products: list[dict]) -> AsyncIterator[str]:
     system = _PROMPT.format(catalog=_build_catalog(products))
-    messages = [
+    history = [
         {"role": "system", "content": system},
         {"role": "user", "content": user_text},
     ]
     try:
-        async for delta in client.stream_chat(messages):
+        async for delta in provider.stream_chat(history):
             yield _sse({"type": "delta", "text": delta})
     except Exception as e:  # noqa: BLE001
         yield _sse({"type": "error", "message": str(e), "code": "UPSTREAM"})
         return
 
-    # Emit product cards last so the client can render them after the reasoning text.
     for p in products:
         yield _sse({
             "type": "product_card",
@@ -92,7 +78,7 @@ async def _real_stream(client: DoubaoClient, user_text: str, products: list[dict
                 "title": p.get("title"),
                 "brand": p.get("brand"),
                 "base_price": p.get("base_price"),
-                "image_url": None,
+                "image_url": _image_url(p["product_id"], p.get("image_path")),
             },
         })
     yield _sse({"type": "done"})
@@ -101,8 +87,7 @@ async def _real_stream(client: DoubaoClient, user_text: str, products: list[dict
 @router.post("/stream")
 async def chat_stream(req: ChatRequest) -> StreamingResponse:
     user_text = next((m.content for m in reversed(req.messages) if m.role == "user"), "")
-    products = stub_top_k(user_text, k=3)
+    products = top_k(user_text, k=3)
 
-    client = DoubaoClient()
-    gen = _real_stream(client, user_text, products) if client.available else _fixture_stream(products)
-    return StreamingResponse(gen, media_type="text/event-stream")
+    provider = get_provider()
+    return StreamingResponse(_stream(provider, user_text, products), media_type="text/event-stream")
