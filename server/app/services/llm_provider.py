@@ -105,7 +105,9 @@ class EchoProvider:
 def get_provider() -> LLMProvider:
     requested = (os.getenv("LLM_PROVIDER") or "").lower().strip()
     if not requested:
-        if os.getenv("ANTHROPIC_API_KEY"):
+        if os.getenv("TOKENROUTER_API_KEY"):
+            requested = "tokenrouter"
+        elif os.getenv("ANTHROPIC_API_KEY", "").strip():
             requested = "anthropic"
         elif os.getenv("DOUBAO_API_KEY"):
             requested = "doubao"
@@ -138,5 +140,15 @@ def get_provider() -> LLMProvider:
             api_key=key,
             base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        )
+    if requested == "tokenrouter":
+        key = os.getenv("TOKENROUTER_API_KEY")
+        if not key:
+            return EchoProvider()
+        return OpenAICompatibleProvider(
+            name="tokenrouter",
+            api_key=key,
+            base_url=os.getenv("TOKENROUTER_BASE_URL", "https://api.tokenrouter.com/v1"),
+            model=os.getenv("TOKENROUTER_MODEL", "claude-sonnet-4-6"),
         )
     return EchoProvider()
