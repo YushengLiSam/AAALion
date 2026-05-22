@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Swift / Xcode
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+*.swiftpm/
+.build/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Large / generated data
+data/extra/
+data/extra/**
+!data/extra/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
+*.qdrant
+*.chroma_db/
+chroma_db/
+qdrant_storage/
+
+# Logs / temp
+*.log
+logs/
+tmp/
+.tmp/
+
+# Node (in case anyone adds tooling)
+node_modules/
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS / misc
+Thumbs.db
+ehthumbs.db
+
+# Persistent local policy (private entries)
+docs/POLICY_LOCAL.md

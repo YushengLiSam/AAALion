@@ -1,0 +1,10 @@
+{"query": "推荐一款适合油皮的洗面奶", "expected_product_ids": ["p_beauty_004"], "tags": ["basic", "intent"]}
+{"query": "200 元以下的蓝牙耳机有哪些？", "expected_product_ids": [], "tags": ["basic", "filter"]}
+{"query": "帮我推荐跑鞋，要轻量的，预算 500 以内", "expected_product_ids": [], "tags": ["advanced", "multi-turn"]}
+{"query": "A 和 B 这两款面霜哪个更保湿？", "expected_product_ids": [], "tags": ["advanced", "compare"]}
+{"query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌", "expected_product_ids": [], "tags": ["high", "negation"]}
+{"query": "下周去三亚度假，帮我搭配一套从防晒到穿搭的方案", "expected_product_ids": [], "tags": ["high", "compose"]}
+{"query": "把这款加到购物车", "expected_product_ids": [], "tags": ["high", "crud"]}
+{"query": "我想要同款外套", "expected_product_ids": [], "tags": ["high", "image"]}
+{"query": "雅诗兰黛小棕瓶 50ml 多少钱？", "expected_product_ids": ["p_beauty_001"], "tags": ["basic", "spec"]}
+{"query": "iPhone 17 Pro 宇宙橙 256GB 多少钱？", "expected_product_ids": ["p_digital_001"], "tags": ["basic", "spec"]}
