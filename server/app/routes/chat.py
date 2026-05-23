@@ -30,6 +30,7 @@ from app.schemas.chat import ChatMessage, ChatFilters
 from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
 from app.services.cache import cache, make_key, hash_image_bytes
+from app.services.contextual_query import build_retrieval_query
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 log = logging.getLogger("chat")
@@ -210,7 +211,7 @@ async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: i
 async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
-    embed_query = user_text if user_text else "拍照找货"
+    retrieval_query = build_retrieval_query(req.messages)
 
     # Retrieval ----------------------------------------------------------------
     products: list[dict] = []
@@ -220,7 +221,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         if img_bytes:
             products = top_k_image(img_bytes, k=3)
     if not products:
-        products = top_k(embed_query, k=5)
+        products = top_k(retrieval_query, k=5)
     t_retrieval = time.perf_counter()
 
     # Cart-intent detection ----------------------------------------------------
@@ -270,7 +271,15 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 if ev.get("type") == "delta":
                     await asyncio.sleep(0.015)
             t_done = time.perf_counter()
-            _log_timing(t_received, t_retrieval, t_first_delta, t_done, cache_hit=True, user_text=user_text)
+            _log_timing(
+                t_received,
+                t_retrieval,
+                t_first_delta,
+                t_done,
+                cache_hit=True,
+                user_text=user_text,
+                retrieval_query=retrieval_query,
+            )
             return
 
         # Cache miss: stream from LLM with retry/backoff.
@@ -305,12 +314,29 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             cache.put(cache_key, events_to_cache)
 
         t_done = time.perf_counter()
-        _log_timing(t_received, t_retrieval, t_first_delta, t_done, cache_hit=False, user_text=user_text)
+        _log_timing(
+            t_received,
+            t_retrieval,
+            t_first_delta,
+            t_done,
+            cache_hit=False,
+            user_text=user_text,
+            retrieval_query=retrieval_query,
+        )
 
     return StreamingResponse(generator(), media_type="text/event-stream")
 
 
-def _log_timing(t_received: float, t_retrieval: float, t_first_delta: float | None, t_done: float, *, cache_hit: bool, user_text: str) -> None:
+def _log_timing(
+    t_received: float,
+    t_retrieval: float,
+    t_first_delta: float | None,
+    t_done: float,
+    *,
+    cache_hit: bool,
+    user_text: str,
+    retrieval_query: str,
+) -> None:
     record = {
         "event": "chat_stream",
         "cache": "hit" if cache_hit else "miss",
@@ -319,6 +345,8 @@ def _log_timing(t_received: float, t_retrieval: float, t_first_delta: float | No
         "total_ms": round((t_done - t_received) * 1000),
         "query_preview": user_text[:60],
     }
+    if retrieval_query != user_text:
+        record["retrieval_query_preview"] = retrieval_query[:100]
     # uvicorn doesn't pipe named-logger info to stdout by default; print
     # so timing shows up next to the access logs without extra config.
     print(json.dumps(record, ensure_ascii=False), flush=True)

@@ -58,10 +58,22 @@ def _retrieve(query_text: str, mode: str, k: int) -> list[str]:
     raise ValueError(f"unknown mode: {mode}")
 
 
+def _case_query(case: dict) -> str:
+    if case.get("messages"):
+        sys.path.insert(0, str(REPO_ROOT / "server"))
+        from app.schemas.chat import ChatMessage
+        from app.services.contextual_query import build_retrieval_query
+
+        messages = [ChatMessage.model_validate(m) for m in case["messages"]]
+        return build_retrieval_query(messages)
+    return case["query"]
+
+
 def main() -> int:
     cases = _load()
     scored = [c for c in cases if c.get("expected_product_ids")]
-    print(f"loaded {len(cases)} cases ({len(scored)} with expected ids)\n")
+    multi_turn = sum(1 for c in cases if c.get("messages"))
+    print(f"loaded {len(cases)} cases ({len(scored)} with expected ids, {multi_turn} multi-turn)\n")
 
     modes = ["dense", "hybrid", "hybrid_rerank"]
     if os.getenv("RAG_RERANK", "1") == "0":
@@ -75,7 +87,7 @@ def main() -> int:
         errors = 0
         for case in scored:
             try:
-                retrieved = _retrieve(case["query"], mode, k=10)
+                retrieved = _retrieve(_case_query(case), mode, k=10)
             except Exception as e:
                 errors += 1
                 continue

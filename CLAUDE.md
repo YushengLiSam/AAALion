@@ -77,7 +77,7 @@ Last touched: **Round 6 (2026-05-24 evening)**. Author: Shufeng Chen (陈澍枫)
 | Cache | Shufeng | `server/app/services/cache.py` | wired into chat route |
 | RAG ingest | (Tujie, currently solo Shufeng) | `rag/ingest/chunk.py`, `embed_text.py`, `embed_image.py` | `rag/README.md` |
 | RAG retrieve | Shufeng | `rag/retrieve/query.py` (orchestrator) | hybrid `hybrid.py`, BM25 `bm25.py`, rewrite `rewrite.py`, negation `negation.py`, rerank `rerank.py` |
-| Eval | Shufeng | `rag/eval/run.py` + `rag/eval/golden.jsonl` (31 cases) | report: recall@5=0.71, MRR=0.69 |
+| Eval | Shufeng | `rag/eval/run.py` + `rag/eval/golden.jsonl` (31 cases, 2 multi-turn) | report: recall@5=0.816, MRR=0.705 |
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
 

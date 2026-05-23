@@ -14,8 +14,8 @@
 {"query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌", "expected_product_ids": ["p_beauty_006"], "tags": ["negation"]}
 {"query": "推荐洁面产品，除了泡沫型的", "expected_product_ids": [], "tags": ["negation"]}
 {"query": "不要 Apple 的笔记本电脑推荐", "expected_product_ids": [], "tags": ["negation", "no-match-expected"]}
-{"query": "再便宜点的呢", "expected_product_ids": ["p_beauty_011"], "tags": ["multi-turn-followup"]}
-{"query": "贵的呢", "expected_product_ids": ["p_beauty_004"], "tags": ["multi-turn-followup"]}
+{"query": "再便宜点的呢", "messages": [{"role": "user", "content": "推荐一款适合油皮的洗面奶"}, {"role": "assistant", "content": "可以看看几款控油洁面。"}, {"role": "user", "content": "再便宜点的呢"}], "expected_product_ids": ["p_beauty_011"], "tags": ["multi-turn-followup"]}
+{"query": "贵的呢", "messages": [{"role": "user", "content": "适合熬夜的精华液"}, {"role": "assistant", "content": "可以从修护和抗氧化精华里选。"}, {"role": "user", "content": "贵的呢"}], "expected_product_ids": ["p_beauty_004"], "tags": ["multi-turn-followup"]}
 {"query": "便宜点的", "expected_product_ids": [], "tags": ["vague", "rewrite-target"]}
 {"query": "好用的", "expected_product_ids": [], "tags": ["vague", "rewrite-target"]}
 {"query": "送礼推荐", "expected_product_ids": [], "tags": ["vague", "rewrite-target"]}

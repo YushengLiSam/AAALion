@@ -3,7 +3,7 @@ optional query rewriting, negation filtering, and cross-encoder reranking.
 
 The default path is:
   user_text → (optional) rewrite → hybrid retrieve top-20 → apply negation
-            → rerank top-5 → return product dicts to the route.
+            → rerank → apply price intent → top-k products.
 
 Toggle via env vars:
   RAG_REWRITE=1   enable LLM query expansion (default off — costs API calls)
@@ -31,6 +31,7 @@ def top_k(text: str, k: int = 5) -> list[dict]:
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
     rerank_on = os.getenv("RAG_RERANK", "1") == "1"
     negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
+    price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
 
     # 1) Optional rewrite to multi-query.
     queries: list[str] = [text]
@@ -67,17 +68,27 @@ def top_k(text: str, k: int = 5) -> list[dict]:
         except Exception:
             pass
 
-    # 4) Rerank with cross-encoder.
+    # 4) Rerank with cross-encoder. Keep a slightly larger pool when price
+    # intent may reorder candidates into the final top-k.
+    rerank_limit = max(k, 10) if price_on else k
     if rerank_on and len(candidates) > k:
         try:
             from rag.retrieve.rerank import rerank
-            candidates = rerank(text, candidates, top_k=k)
+            candidates = rerank(text, candidates, top_k=rerank_limit)
         except Exception:
-            candidates = candidates[:k]
+            candidates = candidates[:rerank_limit]
     else:
-        candidates = candidates[:k]
+        candidates = candidates[:rerank_limit]
 
-    return candidates
+    # 5) Price intent is a final preference layer, after semantic relevance.
+    if price_on:
+        try:
+            from app.services.price_intent import apply_price_intent
+            candidates = apply_price_intent(candidates, text)
+        except Exception:
+            pass
+
+    return candidates[:k]
 
 
 def top_k_image(image_bytes: bytes, k: int = 3) -> list[dict]:
