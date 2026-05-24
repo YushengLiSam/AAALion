@@ -13,6 +13,7 @@ rag/
 │   └── run.py          # python -m rag.ingest.run
 ├── retrieve/
 │   ├── query.py        # top-k with filters (keyword fallback today)
+│   ├── synonyms.py     # reviewed ecommerce query expansion dictionary
 │   └── rerank.py       # optional reranker (identity today)
 ├── prompts/
 │   └── system.md       # anti-hallucination system prompt template
@@ -25,12 +26,21 @@ rag/
 ## Bring up locally (CPU only)
 
 ```bash
-cd rag
+# from the repo root
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt   # torch is fine on CPU but heavy; skip if just iterating on retrieve
 python -m rag.ingest.run          # uses the fallback embedder (zero-vectors)
 python -m rag.eval.run            # recall@5 against the keyword retriever
+python tools/build_synonym_candidates.py --terms 无线耳机 降噪 舒敏 控油
 ```
+
+## Synonym expansion workflow
+
+- Runtime uses `rag/retrieve/synonyms.py`: a small reviewed ecommerce
+  dictionary, enabled by `RAG_SYNONYMS=1` by default.
+- Offline candidate generation uses `tools/build_synonym_candidates.py`.
+  Optional broad synonym packages may contribute candidates, but only reviewed
+  terms should be copied into `synonyms.py`.
 
 ## Bring up on the A100 (for CLIP)
 

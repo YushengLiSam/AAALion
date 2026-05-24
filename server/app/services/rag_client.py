@@ -2,10 +2,11 @@
 optional query rewriting, negation filtering, and cross-encoder reranking.
 
 The default path is:
-  user_text → (optional) rewrite → hybrid retrieve top-20 → apply negation
-            → rerank → apply price intent → top-k products.
+  user_text → curated synonyms → (optional) rewrite → hybrid retrieve top-20
+            → apply negation → rerank → apply price intent → top-k products.
 
 Toggle via env vars:
+  RAG_SYNONYMS=1 enable curated local query expansion (default on)
   RAG_REWRITE=1   enable LLM query expansion (default off — costs API calls)
   RAG_NEGATION=1  enable LLM negation extraction (auto-on when 不要/除了/不含 in query)
   RAG_RERANK=1    enable cross-encoder rerank (default on)
@@ -28,19 +29,28 @@ def _negation_signals(text: str) -> bool:
 
 def top_k(text: str, k: int = 5) -> list[dict]:
     """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products."""
+    synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
     rerank_on = os.getenv("RAG_RERANK", "1") == "1"
     negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
     price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
 
-    # 1) Optional rewrite to multi-query.
+    # 1) Curated local expansion, then optional LLM rewrite to multi-query.
     queries: list[str] = [text]
+    if synonyms_on:
+        try:
+            from rag.retrieve.synonyms import expand_query
+
+            queries = expand_query(text) or [text]
+        except Exception:
+            queries = [text]
     if rewrite_on:
         try:
             from rag.retrieve.rewrite import rewrite_query
-            queries = rewrite_query(text) or [text]
+
+            queries = _dedupe_queries(queries + (rewrite_query(text) or [])) or [text]
         except Exception:
-            queries = [text]
+            queries = _dedupe_queries(queries) or [text]
 
     # 2) Hybrid retrieve top-20 across all queries, dedupe by product_id.
     try:
@@ -102,3 +112,15 @@ def top_k_image(image_bytes: bytes, k: int = 3) -> list[dict]:
 
 
 stub_top_k = top_k
+
+
+def _dedupe_queries(queries: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for query in queries:
+        key = (query or "").strip()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(key)
+    return out
