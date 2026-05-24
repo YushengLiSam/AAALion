@@ -135,7 +135,7 @@ def _product_card_event(p: dict) -> dict:
 _ADD_TO_CART = re.compile(r"加入?购物?车|加购|加入车|放购物?车")
 _CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单")
 
-
+#读用户是否想checkout
 def _detect_cart_intent(text: str) -> dict | None:
     if not text:
         return None
@@ -145,7 +145,7 @@ def _detect_cart_intent(text: str) -> dict | None:
         return {"type": "cart_intent", "action": "add"}
     return None
 
-
+#user_text 主要给 _detect_cart_intent() 用——判断用户说没说"加购"、"下单"这类关键词。
 def _extract_user_text(messages) -> str:
     for m in reversed(messages):
         if m.role != "user":
@@ -170,7 +170,7 @@ def _has_image(messages) -> bool:
         return False
     return False
 
-
+#iPhone 上传图片时，不是直接传文件，而是把图片转成 Base64 字符串塞在 JSON 里。 找原始图片的二进制数据
 def _extract_image_bytes(messages) -> bytes | None:
     import base64
     for m in reversed(messages):
@@ -190,7 +190,7 @@ def _extract_image_bytes(messages) -> bytes | None:
         return None
     return None
 
-
+#调 LLM 失败了不直接报错，等一会儿再试
 async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: int = 3):
     """Async-iterate provider.stream_chat with exponential backoff on early errors."""
     delay = 0.5

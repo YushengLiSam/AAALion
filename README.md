@@ -79,9 +79,15 @@ aaalion backend                      # uvicorn on 0.0.0.0:8000
 
 # 4. iOS simulator
 aaalion ios-sim                      # regen .xcodeproj, build, install, launch
+
+# 5. (optional) RAG retrieval quality eval
+python -m rag.eval.run               # CLI: 7 metrics × 3 retrieval strategies
+python -m rag.eval.report            # HTML dashboard → docs/eval_report.html
 ```
 
 Backend URL is hardcoded in `client/AAALionApp/AAALionApp/Config.swift` (`defaultBackendURL`). **You can also change it at runtime via the in-app Settings (gear icon)** — no rebuild needed for LAN IP changes.
+
+The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for current numbers and methodology.
 
 For iPhone device deploy, see [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md). For the A100 CLIP image index, see [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md).
 
@@ -115,6 +121,7 @@ tools/     aaalion + screenshot + check-secrets
 | [docs/POLICY.md](docs/POLICY.md) | Team rules + commit format |
 | [docs/IOS_SETUP.md](docs/IOS_SETUP.md) | Xcode, signing, weekly resign cadence |
 | [docs/API.md](docs/API.md) | Backend endpoints |
+| 📊 [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md) | RAG retrieval quality numbers + how to regenerate the HTML dashboard |
 | [docs/SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md) | Fallback execution plan |
 | [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md) | Stretch ideas |
 | [docs/EXECUTION_SUMMARY.md](docs/EXECUTION_SUMMARY.md) | Initial bootstrap summary |

@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>狮选 LionPick — RAG 检索质量看板</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue",
+                 Helvetica, "Microsoft YaHei", Arial, sans-serif;
+    background: #FBF7F1;
+    color: #1F1A14;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px 40px 64px;
+    line-height: 1.55;
+}
+h1 { font-size: 26px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 32px 0 10px; border-bottom: 1px solid #ECE3D2; padding-bottom: 6px; }
+h3 { font-size: 15px; margin: 22px 0 8px; color: #7A6E5F; font-weight: 600; }
+.meta { color: #7A6E5F; font-size: 13px; margin-bottom: 22px; }
+.meta span { margin-right: 18px; }
+.meta b { color: #1F1A14; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #ECE3D2; }
+th:first-child, td:first-child { text-align: left; font-weight: 500; }
+th { background: #FFFDF8; color: #7A6E5F; font-weight: 600; }
+tr.prod th, tr.prod td { background: #FFF7E8; }
+tr.prod td:first-child::after { content: " ★ 生产路径"; color: #E89A3C; font-size: 11px; font-weight: 500; }
+td.best { background: #F6D8A8; font-weight: 600; color: #1F1A14; }
+.dim { color: #C9BCA6; }
+
+.observations {
+    background: #FFFDF8;
+    border-left: 3px solid #E89A3C;
+    padding: 14px 18px;
+    margin: 18px 0 28px;
+    border-radius: 0 8px 8px 0;
+}
+.observations ul { margin: 0; padding-left: 22px; }
+.observations li { margin-bottom: 6px; }
+
+details { margin: 8px 0; }
+details summary {
+    cursor: pointer;
+    padding: 4px 0;
+    font-size: 13px;
+    color: #7A6E5F;
+    user-select: none;
+}
+details summary:hover { color: #E89A3C; }
+.case {
+    border: 1px solid #ECE3D2;
+    background: #FFFFFF;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 10px 0;
+}
+.case .q { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+.case .tags { font-size: 11px; color: #7A6E5F; margin-bottom: 8px; }
+.case .tags .tag {
+    display: inline-block; background: #ECE3D2; color: #1F1A14;
+    padding: 1px 7px; border-radius: 10px; margin-right: 5px;
+}
+.case .ids { font-size: 11px; color: #7A6E5F; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.case .ids .hit { color: #2E7D32; font-weight: 600; }
+.case .ids .miss { color: #7A6E5F; }
+.case .ids .leak { color: #D32F2F; font-weight: 600; }
+.case .modes-row { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+.case .mode-block {
+    flex: 1; min-width: 270px;
+    background: #FBF7F1; padding: 8px 10px; border-radius: 6px;
+}
+.case .mode-block .lbl { font-size: 11px; color: #7A6E5F; font-weight: 600; margin-bottom: 2px; }
+.case .mode-block .metrics { font-size: 11px; color: #7A6E5F; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.foot { color: #C9BCA6; font-size: 11px; margin-top: 36px; text-align: center; }
+
+/* Inline bar chart */
+.bar-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 12px; }
+.bar-row .lbl { width: 165px; color: #7A6E5F; }
+.bar-row .bar-track { flex: 1; height: 14px; background: #ECE3D2; border-radius: 4px; position: relative; }
+.bar-row .bar-fill { height: 100%; background: #E89A3C; border-radius: 4px; }
+.bar-row .val { width: 55px; text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+
+<h1>🦁 狮选 LionPick · RAG 检索质量看板</h1>
+<div class="meta">
+  <span>生成时间 <b>2026-05-24T11:20:49</b></span>
+  <span>数据集 <b>145</b> 件商品</span>
+  <span>Golden case <b>56</b>(<b>41</b> valid · <b>15</b> no-match · <b>6</b> 带 forbidden · <b>5</b> multi-turn)</span>
+  <span>top-k <b>10</b></span>
+</div>
+
+<h2>🔭 自动观察</h2>
+<div class="observations"><ul><li><b>Hybrid + Rerank</b> 综合 recall@5 最高 (0.780),比 <b>Hybrid (Dense + BM25)</b> 高 +0.028。</li><li>反选准确率从 dense 的 0.633 提升到 hybrid+rerank 的 0.733 (+0.100)——证明 negation filter + 同义词 pipeline 在反选场景的真实贡献。</li><li>hybrid+rerank 延迟 1,950ms,是 dense 的 13.1 倍。精度换延迟的代价 ≈ +1,801 ms,生产路径靠缓存抵消(LRU 命中后 first_delta 可降到 ~300ms)。</li><li>按场景拆分:rerank 在 <b>多轮追问</b> 提升最大 (+0.200 recall@5)。</li><li>反之 rerank 在 <b>基础推荐</b> 反而落后 (-0.097 recall@5),提示该场景下 BM25 噪声经 RRF 放大。</li><li>precision@5 总体 ~0.259 — golden 集 expected 多为单/双商品,top-5 中只有 1-2 命中是正常下限,不是 bug。</li></ul></div>
+
+<h2>📊 三策略总览</h2>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class=''>0.768</td><td class=''>0.864</td><td class=''>0.689</td><td class='best'>0.278</td><td class=''>0.633</td><td class=''>0.855</td><td class=''>149 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class=''>0.752</td><td class=''>0.835</td><td class=''>0.639</td><td class=''>0.273</td><td class=''>0.667</td><td class=''>0.849</td><td class='best'>37 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class='best'>0.780</td><td class='best'>0.888</td><td class='best'>0.701</td><td class=''>0.259</td><td class='best'>0.733</td><td class='best'>0.856</td><td class=''>1,950 ms</td></tr></table>
+<h3>Recall@5 对比</h3>
+<div style='margin: 10px 0 18px'><div class='bar-row'><div class='lbl'>Dense</div><div class='bar-track'><div class='bar-fill' style='width:98.4%'></div></div><div class='val'>0.768</div></div>
+<div class='bar-row'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='bar-track'><div class='bar-fill' style='width:96.4%'></div></div><div class='val'>0.752</div></div>
+<div class='bar-row'><div class='lbl'>Hybrid + Rerank</div><div class='bar-track'><div class='bar-fill' style='width:100.0%'></div></div><div class='val'>0.780</div></div></div>
+
+<h2>🎯 分场景拆解</h2>
+<h3>基础推荐 <span class='dim' style='font-weight:400'>· basic · 13 cases</span></h3>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class='best'>0.958</td><td class='best'>0.958</td><td class='best'>0.896</td><td class='best'>0.300</td><td class=''><span class='dim'>—</span></td><td class='best'>0.777</td><td class=''>532 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class=''>0.833</td><td class=''>0.875</td><td class=''>0.764</td><td class=''>0.267</td><td class=''><span class='dim'>—</span></td><td class=''>0.777</td><td class='best'>73 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class=''>0.861</td><td class=''>0.931</td><td class=''>0.892</td><td class=''>0.250</td><td class=''><span class='dim'>—</span></td><td class='best'>0.777</td><td class=''>1,985 ms</td></tr></table>
+<h3>条件筛选 <span class='dim' style='font-weight:400'>· filter · 8 cases</span></h3>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class='best'>0.905</td><td class=''>0.952</td><td class=''>0.798</td><td class='best'>0.371</td><td class=''><span class='dim'>—</span></td><td class='best'>0.777</td><td class=''>29 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class=''>0.762</td><td class=''>0.857</td><td class='best'>0.857</td><td class=''>0.343</td><td class=''><span class='dim'>—</span></td><td class=''>0.777</td><td class='best'>27 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class=''>0.810</td><td class='best'>1.000</td><td class=''>0.469</td><td class=''>0.314</td><td class=''><span class='dim'>—</span></td><td class='best'>0.777</td><td class=''>1,709 ms</td></tr></table>
+<h3>反选/排除 <span class='dim' style='font-weight:400'>· negation · 8 cases</span></h3>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class=''>0.611</td><td class='best'>0.875</td><td class=''>0.308</td><td class=''>0.267</td><td class=''>0.633</td><td class='best'>0.815</td><td class=''>29 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class='best'>0.667</td><td class=''>0.708</td><td class=''>0.302</td><td class='best'>0.300</td><td class=''>0.667</td><td class=''>0.757</td><td class='best'>28 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class='best'>0.667</td><td class='best'>0.875</td><td class='best'>0.544</td><td class=''>0.233</td><td class='best'>0.733</td><td class=''>0.779</td><td class=''>2,291 ms</td></tr></table>
+<h3>多轮追问 <span class='dim' style='font-weight:400'>· multiturn · 5 cases</span></h3>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class=''>0.700</td><td class=''>0.700</td><td class=''>0.667</td><td class=''>0.240</td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''>39 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class=''>0.500</td><td class=''>0.700</td><td class=''>0.533</td><td class=''>0.200</td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class='best'>25 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class='best'>0.900</td><td class='best'>0.900</td><td class='best'>0.867</td><td class='best'>0.280</td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''>1,853 ms</td></tr></table>
+<h3>多商品对比 <span class='dim' style='font-weight:400'>· compare · 6 cases</span></h3>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class='best'>0.900</td><td class=''>0.900</td><td class='best'>0.900</td><td class='best'>0.360</td><td class=''><span class='dim'>—</span></td><td class=''>0.784</td><td class=''>41 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class='best'>0.900</td><td class='best'>1.000</td><td class='best'>0.900</td><td class='best'>0.360</td><td class=''><span class='dim'>—</span></td><td class=''>0.784</td><td class='best'>25 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class='best'>0.900</td><td class='best'>1.000</td><td class='best'>0.900</td><td class='best'>0.360</td><td class=''><span class='dim'>—</span></td><td class='best'>0.834</td><td class=''>1,904 ms</td></tr></table>
+<h3>无匹配场景 <span class='dim' style='font-weight:400'>· no-match · 11 cases</span></h3>
+<table><tr><th>策略</th><th>Recall@5</th><th>Recall@10</th><th>MRR</th><th>Precision@5</th><th>反选准确率</th><th>无匹配正确率</th><th>延迟 (ms)</th></tr><tr class=''><td>Dense</td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''>0.819</td><td class=''>33 ms</td></tr><tr class=''><td>Hybrid (Dense + BM25)</td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''>0.815</td><td class='best'>26 ms</td></tr><tr class='prod'><td>Hybrid + Rerank</td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class=''><span class='dim'>—</span></td><td class='best'>0.820</td><td class=''>1,753 ms</td></tr></table>
+
+<h2>🔍 逐 case 明细</h2>
+<details><summary><b>基础推荐</b> · 13 cases</summary>
+<div class='case'>
+<div class='q'>推荐一款适合油皮的洗面奶</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>intent</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_011</span> <span class='hit'>p_beauty_004</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_1_intl_01</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_023</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.500 · MRR=0.167 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_023</span> <span class='hit'>p_beauty_011</span> <span class='miss'>p_food_019</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_beauty_017</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_018</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>适合敏感肌的洁面产品有什么</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>intent</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_011</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_005</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_022</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_012</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>200元以下的蓝牙耳机有哪些</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>filter</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_025</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_clothes_005</span> <span class='miss'>p_food_019</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_clothes_019</span> <span class='miss'>p_3_intl_02</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_022</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>性价比高的国产手机推荐</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_009</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.250 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_002</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_digital_015</span> <span class='hit'>p_digital_009</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_2_intl_05</span> <span class='miss'>p_digital_010</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_015</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_food_019</span> <span class='miss'>p_digital_001</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.200 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_011</span> <span class='miss'>p_digital_005</span> <span class='hit'>p_digital_009</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_003</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>iPhone 17 Pro 宇宙橙 256GB 多少钱</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>spec</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_011</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_015</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_020</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>Apple MacBook Air M5 16GB</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>spec</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_020</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_020</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_022</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_020</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_02</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_020</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_025</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>雅诗兰黛特润修护精华露 30ml</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>spec</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_001</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_003</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_001</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_real_05</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_001</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_016</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_020</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>兰蔻小黑瓶 30ml 多少钱</div>
+<div class='tags'><span class='tag'>basic</span><span class='tag'>spec</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_002</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_002</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_010</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_002</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_1_intl_04</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_002</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_010</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐一款入门跑步鞋</div>
+<div class='tags'><span class='tag'>basic</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_009</span> <span class='hit'>p_clothes_007</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_009</span> <span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_007</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_014</span> <span class='miss'>p_clothes_015</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_3_intl_02</span> <span class='miss'>p_clothes_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='miss'>p_8_real_02</span> <span class='hit'>p_clothes_007</span> <span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_009</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_014</span> <span class='miss'>p_clothes_015</span> <span class='miss'>p_8_real_03</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_clothes_020</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.333 · Recall@10=0.667 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_010</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_020</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_021</span> <span class='miss'>p_clothes_012</span> <span class='miss'>p_8_real_03</span> <span class='hit'>p_clothes_009</span> <span class='miss'>p_3_intl_02</span> <span class='miss'>p_3_intl_05</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>想买一本经典中文小说</div>
+<div class='tags'><span class='tag'>basic</span></div>
+<div class='ids'>expected: <span class='hit'>p_7_real_03</span> <span class='hit'>p_7_real_02</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='miss'>p_7_real_01</span> <span class='hit'>p_7_real_02</span> <span class='miss'>p_7_real_04</span> <span class='hit'>p_7_real_03</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_7_real_05</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_clothes_001</span> <span class='miss'>p_clothes_018</span> <span class='miss'>p_food_014</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='miss'>p_7_real_01</span> <span class='hit'>p_7_real_02</span> <span class='hit'>p_7_real_03</span> <span class='miss'>p_food_008</span> <span class='miss'>p_7_real_04</span> <span class='miss'>p_food_011</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_food_003</span> <span class='miss'>p_7_real_05</span> <span class='miss'>p_clothes_024</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.500 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_7_real_04</span> <span class='hit'>p_7_real_03</span> <span class='miss'>p_7_real_01</span> <span class='miss'>p_7_real_05</span> <span class='miss'>p_food_008</span> <span class='hit'>p_7_real_02</span> <span class='miss'>p_3_intl_01</span> <span class='miss'>p_1_real_05</span> <span class='miss'>p_food_003</span> <span class='miss'>p_clothes_024</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐适合通勤的双肩包</div>
+<div class='tags'><span class='tag'>basic</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_018</span> <span class='hit'>p_clothes_025</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_018</span> <span class='hit'>p_clothes_025</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_clothes_003</span> <span class='miss'>p_clothes_005</span> <span class='miss'>p_clothes_002</span> <span class='miss'>p_clothes_022</span> <span class='miss'>p_3_intl_03</span> <span class='miss'>p_clothes_012</span> <span class='miss'>p_8_real_05</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_018</span> <span class='hit'>p_clothes_025</span> <span class='miss'>p_food_019</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_clothes_003</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_clothes_005</span> <span class='miss'>p_3_intl_01</span> <span class='miss'>p_clothes_002</span> <span class='miss'>p_beauty_020</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_025</span> <span class='hit'>p_clothes_018</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_food_019</span> <span class='miss'>p_clothes_002</span> <span class='miss'>p_8_real_05</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_3_intl_03</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐徒步登山鞋</div>
+<div class='tags'><span class='tag'>basic</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_014</span> <span class='hit'>p_8_real_03</span> <span class='hit'>p_clothes_015</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_014</span> <span class='hit'>p_8_real_03</span> <span class='hit'>p_clothes_015</span> <span class='miss'>p_clothes_009</span> <span class='miss'>p_clothes_007</span> <span class='miss'>p_clothes_010</span> <span class='miss'>p_clothes_017</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_3_intl_02</span> <span class='miss'>p_clothes_013</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_014</span> <span class='hit'>p_8_real_03</span> <span class='hit'>p_clothes_015</span> <span class='miss'>p_clothes_017</span> <span class='miss'>p_8_real_04</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_clothes_025</span> <span class='miss'>p_clothes_009</span> <span class='miss'>p_clothes_007</span> <span class='miss'>p_clothes_010</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_8_real_03</span> <span class='hit'>p_clothes_014</span> <span class='hit'>p_clothes_015</span> <span class='miss'>p_clothes_017</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_8_real_04</span> <span class='miss'>p_8_real_05</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_010</span> <span class='miss'>p_clothes_025</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐有机牛奶</div>
+<div class='tags'><span class='tag'>basic</span></div>
+<div class='ids'>expected: <span class='hit'>p_food_007</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_food_007</span> <span class='miss'>p_food_016</span> <span class='miss'>p_food_008</span> <span class='miss'>p_food_017</span> <span class='miss'>p_food_006</span> <span class='miss'>p_5_real_01</span> <span class='miss'>p_food_002</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_food_010</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_food_007</span> <span class='miss'>p_food_016</span> <span class='miss'>p_food_010</span> <span class='miss'>p_food_019</span> <span class='miss'>p_food_008</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_food_017</span> <span class='miss'>p_food_006</span> <span class='miss'>p_5_real_01</span> <span class='miss'>p_food_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_food_007</span> <span class='miss'>p_food_016</span> <span class='miss'>p_5_real_01</span> <span class='miss'>p_food_017</span> <span class='miss'>p_food_008</span> <span class='miss'>p_food_023</span> <span class='miss'>p_food_010</span> <span class='miss'>p_food_004</span> <span class='miss'>p_food_006</span> <span class='miss'>p_food_002</span></div></div>
+</div>
+</div>
+</details>
+<details><summary><b>条件筛选</b> · 6 cases</summary>
+<div class='case'>
+<div class='q'>100元以下的洁面产品</div>
+<div class='tags'><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_011</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_1_real_04</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_intl_03</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_018</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_food_002</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_1_real_04</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_6_real_04</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_intl_05</span> <span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_018</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>500元以下的运动T恤</div>
+<div class='tags'><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_003</span> <span class='hit'>p_clothes_021</span> <span class='hit'>p_clothes_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_003</span> <span class='hit'>p_clothes_021</span> <span class='miss'>p_clothes_002</span> <span class='miss'>p_clothes_020</span> <span class='hit'>p_clothes_001</span> <span class='miss'>p_clothes_023</span> <span class='miss'>p_clothes_004</span> <span class='miss'>p_clothes_016</span> <span class='miss'>p_clothes_006</span> <span class='miss'>p_clothes_005</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_003</span> <span class='hit'>p_clothes_021</span> <span class='miss'>p_clothes_002</span> <span class='miss'>p_clothes_020</span> <span class='hit'>p_clothes_001</span> <span class='miss'>p_clothes_023</span> <span class='miss'>p_clothes_005</span> <span class='miss'>p_clothes_004</span> <span class='miss'>p_clothes_016</span> <span class='miss'>p_clothes_008</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.333 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_clothes_020</span> <span class='hit'>p_clothes_001</span> <span class='miss'>p_clothes_002</span> <span class='miss'>p_clothes_023</span> <span class='miss'>p_clothes_019</span> <span class='hit'>p_clothes_003</span> <span class='miss'>p_clothes_024</span> <span class='hit'>p_clothes_021</span> <span class='miss'>p_clothes_004</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>200元以下的速溶咖啡</div>
+<div class='tags'><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_food_023</span> <span class='hit'>p_food_022</span> <span class='hit'>p_food_002</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_food_023</span> <span class='hit'>p_food_022</span> <span class='miss'>p_food_001</span> <span class='hit'>p_food_002</span> <span class='miss'>p_food_006</span> <span class='miss'>p_food_025</span> <span class='miss'>p_food_005</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_food_023</span> <span class='hit'>p_food_022</span> <span class='miss'>p_food_001</span> <span class='hit'>p_food_002</span> <span class='miss'>p_food_005</span> <span class='miss'>p_food_015</span> <span class='miss'>p_food_004</span> <span class='miss'>p_food_003</span> <span class='miss'>p_food_006</span> <span class='miss'>p_food_007</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='miss'>p_food_004</span> <span class='miss'>p_food_005</span> <span class='hit'>p_food_023</span> <span class='hit'>p_food_022</span> <span class='hit'>p_food_002</span> <span class='miss'>p_food_020</span> <span class='miss'>p_food_014</span> <span class='miss'>p_food_025</span> <span class='miss'>p_food_006</span> <span class='miss'>p_food_001</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>2000元以下的智能手表</div>
+<div class='tags'><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_8_real_01</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_8_real_01</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_011</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_beauty_025</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_8_real_01</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_food_007</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_7_real_02</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_clothes_005</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.250 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_6_real_01</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_05</span> <span class='hit'>p_8_real_01</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>100元以下的休闲零食</div>
+<div class='tags'><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_food_010</span> <span class='hit'>p_food_021</span> <span class='hit'>p_food_009</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.333 · Recall@10=0.667 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_food_019</span> <span class='miss'>p_food_004</span> <span class='hit'>p_food_010</span> <span class='miss'>p_4_intl_02</span> <span class='miss'>p_food_002</span> <span class='miss'>p_food_024</span> <span class='miss'>p_food_015</span> <span class='miss'>p_food_003</span> <span class='hit'>p_food_009</span> <span class='miss'>p_food_020</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.333 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_food_010</span> <span class='miss'>p_food_019</span> <span class='miss'>p_food_002</span> <span class='miss'>p_4_intl_02</span> <span class='miss'>p_food_004</span> <span class='miss'>p_food_015</span> <span class='hit'>p_food_009</span> <span class='miss'>p_4_intl_01</span> <span class='hit'>p_food_021</span> <span class='miss'>p_food_007</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.667 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='miss'>p_food_004</span> <span class='hit'>p_food_021</span> <span class='miss'>p_food_024</span> <span class='miss'>p_food_008</span> <span class='hit'>p_food_010</span> <span class='miss'>p_food_020</span> <span class='hit'>p_food_009</span> <span class='miss'>p_4_intl_02</span> <span class='miss'>p_4_intl_01</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>500元以下的高倍防晒霜</div>
+<div class='tags'><span class='tag'>filter</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_006</span> <span class='hit'>p_beauty_010</span> <span class='hit'>p_beauty_023</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_010</span> <span class='hit'>p_beauty_023</span> <span class='miss'>p_beauty_020</span> <span class='hit'>p_beauty_006</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_6_real_02</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_012</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_010</span> <span class='hit'>p_beauty_023</span> <span class='hit'>p_beauty_006</span> <span class='miss'>p_clothes_025</span> <span class='miss'>p_food_007</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_clothes_005</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_food_015</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.667 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_006</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_012</span> <span class='hit'>p_beauty_023</span> <span class='miss'>p_1_real_02</span> <span class='hit'>p_beauty_010</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_food_004</span></div></div>
+</div>
+</div>
+</details>
+<details><summary><b>反选/排除</b> · 8 cases</summary>
+<div class='case'>
+<div class='q'>推荐防晒霜，但我不要含酒精的，也不要日系品牌</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_006</span></div>
+<div class='ids'>forbidden: <span class='leak'>p_beauty_010</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=1.000 · MRR=0.167 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_023</span> <span class='leak'>p_beauty_010</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_008</span> <span class='hit'>p_beauty_006</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_003</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_020</span> <span class='miss'>p_clothes_009</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_clothes_025</span> <span class='leak'>p_beauty_010</span> <span class='miss'>p_clothes_005</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_clothes_023</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_clothes_018</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_006</span> <span class='leak'>p_beauty_010</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_008</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐洁面产品，除了泡沫型的</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_011</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_6_real_02</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_1_real_04</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_011</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_023</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_011</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_1_real_04</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_005</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>不要 Apple 的笔记本电脑推荐</div>
+<div class='tags'><span class='tag'>negation</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_025</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_021</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_006</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_018</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_025</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_011</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_004</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐一款手机，不要Apple</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_017</span> <span class='hit'>p_digital_002</span> <span class='hit'>p_digital_014</span> <span class='hit'>p_digital_008</span></div>
+<div class='ids'>forbidden: <span class='leak'>p_digital_025</span> <span class='leak'>p_digital_003</span> <span class='leak'>p_digital_024</span> <span class='leak'>p_digital_018</span> <span class='leak'>p_digital_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.250 · MRR=0.100 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='leak'>p_digital_001</span> <span class='leak'>p_digital_025</span> <span class='miss'>p_digital_006</span> <span class='leak'>p_digital_024</span> <span class='leak'>p_digital_003</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_016</span> <span class='leak'>p_digital_018</span> <span class='hit'>p_digital_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.250 · MRR=0.143 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='leak'>p_digital_001</span> <span class='miss'>p_digital_006</span> <span class='leak'>p_digital_003</span> <span class='leak'>p_digital_025</span> <span class='miss'>p_digital_020</span> <span class='leak'>p_digital_024</span> <span class='hit'>p_digital_002</span> <span class='miss'>p_digital_013</span> <span class='leak'>p_digital_018</span> <span class='miss'>p_digital_012</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.250 · MRR=0.100 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_016</span> <span class='miss'>p_digital_013</span> <span class='leak'>p_digital_024</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_2_intl_02</span> <span class='leak'>p_digital_003</span> <span class='miss'>p_digital_005</span> <span class='leak'>p_digital_025</span> <span class='miss'>p_digital_011</span> <span class='hit'>p_digital_002</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐跑步鞋，不要Nike</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_008</span> <span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_009</span></div>
+<div class='ids'>forbidden: <span class='leak'>p_3_intl_02</span> <span class='leak'>p_clothes_007</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='leak'>p_clothes_007</span> <span class='hit'>p_clothes_008</span> <span class='hit'>p_clothes_009</span> <span class='miss'>p_8_real_02</span> <span class='hit'>p_clothes_010</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_clothes_015</span> <span class='miss'>p_clothes_012</span> <span class='miss'>p_clothes_014</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='leak'>p_clothes_007</span> <span class='hit'>p_clothes_008</span> <span class='miss'>p_8_real_02</span> <span class='hit'>p_clothes_009</span> <span class='hit'>p_clothes_010</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_clothes_021</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_clothes_015</span> <span class='miss'>p_clothes_014</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.333 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_010</span> <span class='miss'>p_clothes_021</span> <span class='leak'>p_clothes_007</span> <span class='leak'>p_3_intl_02</span> <span class='miss'>p_clothes_012</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_020</span> <span class='hit'>p_clothes_009</span> <span class='hit'>p_clothes_008</span> <span class='miss'>p_clothes_019</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐头戴式降噪耳机，不要Sony</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='ids'>expected: <span class='hit'>p_2_intl_04</span></div>
+<div class='ids'>forbidden: <span class='leak'>p_2_intl_01</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.250 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='leak'>p_2_intl_01</span> <span class='miss'>p_digital_018</span> <span class='hit'>p_2_intl_04</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_006</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='leak'>p_2_intl_01</span> <span class='hit'>p_2_intl_04</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='leak'>p_2_intl_01</span> <span class='hit'>p_2_intl_04</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_021</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐抗初老精华，不要兰蔻</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='ids'>expected: <span class='hit'>p_1_real_01</span> <span class='hit'>p_beauty_001</span> <span class='hit'>p_beauty_009</span></div>
+<div class='ids'>forbidden: <span class='leak'>p_beauty_002</span> <span class='leak'>p_beauty_019</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.667 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='leak'>p_beauty_002</span> <span class='hit'>p_1_real_01</span> <span class='hit'>p_beauty_001</span> <span class='leak'>p_beauty_019</span> <span class='miss'>p_beauty_005</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_024</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.600</div><div class='ids' style='margin-top:4px'><span class='leak'>p_beauty_002</span> <span class='hit'>p_beauty_001</span> <span class='hit'>p_1_real_01</span> <span class='leak'>p_beauty_019</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_1_intl_04</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.667 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='leak'>p_beauty_002</span> <span class='miss'>p_1_real_02</span> <span class='hit'>p_beauty_001</span> <span class='miss'>p_beauty_024</span> <span class='hit'>p_1_real_01</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_1_real_05</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_intl_02</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐速溶咖啡，不要雀巢</div>
+<div class='tags'><span class='tag'>negation</span></div>
+<div class='ids'>expected: <span class='hit'>p_food_022</span> <span class='hit'>p_food_001</span></div>
+<div class='ids'>forbidden: <span class='leak'>p_food_023</span> <span class='leak'>p_food_002</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='leak'>p_food_023</span> <span class='leak'>p_food_002</span> <span class='hit'>p_food_001</span> <span class='hit'>p_food_022</span> <span class='miss'>p_food_025</span> <span class='miss'>p_food_006</span> <span class='miss'>p_food_005</span> <span class='miss'>p_food_016</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='leak'>p_food_023</span> <span class='leak'>p_food_002</span> <span class='hit'>p_food_001</span> <span class='hit'>p_food_022</span> <span class='miss'>p_food_016</span> <span class='miss'>p_food_005</span> <span class='miss'>p_food_017</span> <span class='miss'>p_food_025</span> <span class='miss'>p_5_real_05</span> <span class='miss'>p_food_006</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='leak'>p_food_002</span> <span class='leak'>p_food_023</span> <span class='hit'>p_food_001</span> <span class='miss'>p_food_005</span> <span class='hit'>p_food_022</span> <span class='miss'>p_food_025</span> <span class='miss'>p_5_real_05</span> <span class='miss'>p_food_006</span> <span class='miss'>p_food_014</span> <span class='miss'>p_food_016</span></div></div>
+</div>
+</div>
+</details>
+<details><summary><b>多轮追问</b> · 5 cases</summary>
+<div class='case'>
+<div class='q'>推荐一款适合油皮的洗面奶 更便宜 平价 低价 性价比 再便宜点的呢</div>
+<div class='tags'><span class='tag'>multiturn</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_011</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=1.000 · MRR=0.167 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_024</span> <span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_food_012</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_017</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_food_017</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>适合熬夜的精华液 更高端 高价位 旗舰 贵的呢</div>
+<div class='tags'><span class='tag'>multiturn</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_004</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_001</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_008</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_021</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_001</span> <span class='hit'>p_beauty_004</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_018</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>轻量碳板的</div>
+<div class='tags'><span class='tag'>multiturn</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_007</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_010</span> <span class='miss'>p_food_015</span> <span class='miss'>p_food_024</span> <span class='miss'>p_food_005</span> <span class='miss'>p_food_017</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_clothes_021</span> <span class='miss'>p_food_010</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_010</span> <span class='miss'>p_food_015</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_food_005</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_food_004</span> <span class='miss'>p_digital_022</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_010</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_food_004</span> <span class='miss'>p_clothes_025</span> <span class='miss'>p_8_real_05</span> <span class='miss'>p_food_005</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_2_intl_05</span> <span class='miss'>p_clothes_021</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐适合熬夜的精华 更便宜 平价 低价 性价比 国货平价的</div>
+<div class='tags'><span class='tag'>multiturn</span></div>
+<div class='ids'>expected: <span class='hit'>p_1_real_02</span> <span class='hit'>p_beauty_009</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_024</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_018</span> <span class='hit'>p_1_real_02</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_008</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_024</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_002</span> <span class='hit'>p_1_real_02</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_food_006</span> <span class='miss'>p_beauty_018</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_1_real_02</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_food_012</span> <span class='miss'>p_food_002</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>要折叠屏</div>
+<div class='tags'><span class='tag'>multiturn</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_010</span> <span class='hit'>p_digital_014</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_010</span> <span class='hit'>p_digital_014</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_017</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_010</span> <span class='hit'>p_digital_014</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_004</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_010</span> <span class='hit'>p_digital_014</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_clothes_025</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_004</span></div></div>
+</div>
+</div>
+</details>
+<details><summary><b>多商品对比</b> · 6 cases</summary>
+<div class='case'>
+<div class='q'>雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜</div>
+<div class='tags'><span class='tag'>compare</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_002</span> <span class='hit'>p_beauty_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_001</span> <span class='hit'>p_beauty_002</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_017</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_001</span> <span class='hit'>p_beauty_002</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_003</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_002</span> <span class='hit'>p_beauty_001</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_food_005</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_food_006</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_019</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>iPhone 17 Pro 和 iPhone 17 Pro Max 对比</div>
+<div class='tags'><span class='tag'>compare</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_003</span> <span class='hit'>p_digital_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_003</span> <span class='hit'>p_digital_001</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_003</span> <span class='hit'>p_digital_001</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_024</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_003</span> <span class='hit'>p_digital_001</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_015</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>华为 FreeBuds 和 Apple AirPods 哪个降噪好</div>
+<div class='tags'><span class='tag'>compare</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_019</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_025</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_digital_024</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>Sony WH-1000XM5 和 Bose QC Ultra 哪个降噪更好</div>
+<div class='tags'><span class='tag'>compare</span></div>
+<div class='ids'>expected: <span class='hit'>p_2_intl_04</span> <span class='hit'>p_2_intl_01</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_2_intl_04</span> <span class='hit'>p_2_intl_01</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_015</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_2_intl_04</span> <span class='hit'>p_2_intl_01</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_digital_008</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_2_intl_01</span> <span class='hit'>p_2_intl_04</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_021</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>特步 160X 和 Nike Pegasus 41 哪个更适合马拉松</div>
+<div class='tags'><span class='tag'>compare</span></div>
+<div class='ids'>expected: <span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_007</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_007</span> <span class='hit'>p_clothes_010</span> <span class='miss'>p_clothes_009</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_014</span> <span class='miss'>p_clothes_015</span> <span class='miss'>p_8_real_03</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_3_intl_02</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_007</span> <span class='hit'>p_clothes_010</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_3_intl_02</span> <span class='miss'>p_clothes_021</span> <span class='miss'>p_clothes_006</span> <span class='miss'>p_clothes_003</span> <span class='miss'>p_clothes_009</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_014</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_clothes_010</span> <span class='hit'>p_clothes_007</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_021</span> <span class='miss'>p_3_intl_02</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_clothes_019</span> <span class='miss'>p_clothes_003</span> <span class='miss'>p_8_real_03</span> <span class='miss'>p_clothes_008</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>雪花秀和资生堂哪个适合干皮</div>
+<div class='tags'><span class='tag'>compare</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_004</span> <span class='hit'>p_1_real_04</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_intl_04</span> <span class='hit'>p_beauty_004</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_1_intl_01</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_beauty_014</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.500 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_intl_04</span> <span class='hit'>p_beauty_004</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_019</span> <span class='hit'>p_1_real_04</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_022</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.500 · Recall@10=1.000 · MRR=0.500 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_008</span> <span class='hit'>p_1_real_04</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_019</span> <span class='hit'>p_beauty_004</span> <span class='miss'>p_beauty_007</span></div></div>
+</div>
+</div>
+</details>
+<details><summary><b>无匹配场景</b> · 8 cases</summary>
+<div class='case'>
+<div class='q'>请推荐一款轻量跑鞋</div>
+<div class='tags'><span class='tag'>intent</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_clothes_009</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_007</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_010</span> <span class='miss'>p_clothes_015</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_clothes_014</span> <span class='miss'>p_3_intl_02</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_clothes_009</span> <span class='miss'>p_clothes_010</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_007</span> <span class='miss'>p_clothes_014</span> <span class='miss'>p_clothes_011</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_beauty_016</span> <span class='miss'>p_beauty_011</span> <span class='miss'>p_clothes_015</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_clothes_010</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_clothes_021</span> <span class='miss'>p_clothes_020</span> <span class='miss'>p_8_real_05</span> <span class='miss'>p_clothes_014</span> <span class='miss'>p_clothes_008</span> <span class='miss'>p_clothes_024</span> <span class='miss'>p_clothes_009</span> <span class='miss'>p_3_intl_02</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>适合干皮的乳液</div>
+<div class='tags'><span class='tag'>intent</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_1_intl_01</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_013</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_012</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_011</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_013</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>保湿面霜推荐</div>
+<div class='tags'><span class='tag'>intent</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_007</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_1_intl_02</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_007</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_1_intl_01</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_001</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>Apple iPad Air 平板</div>
+<div class='tags'><span class='tag'>spec</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_025</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_001</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_025</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_digital_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_025</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_006</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>新手适合的相机</div>
+<div class='tags'><span class='tag'>intent</span><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_016</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_2_intl_05</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_digital_001</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_05</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_beauty_025</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_clothes_020</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_3_intl_01</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_05</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_017</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_beauty_025</span> <span class='miss'>p_digital_001</span> <span class='miss'>p_8_real_02</span> <span class='miss'>p_digital_003</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐一款电动牙刷</div>
+<div class='tags'><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_6_real_01</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_010</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_010</span> <span class='miss'>p_beauty_016</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_food_019</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_6_real_01</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_021</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_018</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐一款无线充电器</div>
+<div class='tags'><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_025</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_005</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_006</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_2_intl_01</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_6_real_01</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_2_intl_01</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>推荐一辆扫地机器人</div>
+<div class='tags'><span class='tag'>no-match</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_022</span> <span class='miss'>p_8_real_01</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_6_real_05</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_02</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_022</span> <span class='miss'>p_food_019</span> <span class='miss'>p_8_real_01</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_6_real_05</span> <span class='miss'>p_digital_008</span> <span class='miss'>p_digital_004</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_024</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_016</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_digital_022</span> <span class='miss'>p_8_real_01</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_clothes_025</span> <span class='miss'>p_digital_023</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_024</span> <span class='miss'>p_clothes_020</span></div></div>
+</div>
+</div>
+</details>
+<details><summary><b>其他/未分类</b> · 10 cases</summary>
+<div class='case'>
+<div class='q'>适合熬夜的精华液</div>
+<div class='tags'><span class='tag'>intent</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_002</span> <span class='hit'>p_beauty_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.400</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_001</span> <span class='hit'>p_beauty_002</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_004</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.500 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_024</span> <span class='hit'>p_beauty_002</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_018</span> <span class='hit'>p_beauty_001</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_food_006</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.500 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_002</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_food_005</span> <span class='miss'>p_1_intl_02</span> <span class='miss'>p_beauty_005</span> <span class='hit'>p_beauty_001</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_food_006</span> <span class='miss'>p_1_real_02</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>便宜点的</div>
+<div class='tags'><span class='tag'>vague</span><span class='tag'>rewrite-target</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_food_022</span> <span class='miss'>p_food_010</span> <span class='miss'>p_food_021</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_food_016</span> <span class='miss'>p_food_008</span> <span class='miss'>p_food_025</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_food_002</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_food_021</span> <span class='miss'>p_beauty_021</span> <span class='miss'>p_food_012</span> <span class='miss'>p_food_022</span> <span class='miss'>p_food_020</span> <span class='miss'>p_food_010</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_food_015</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_clothes_013</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_food_004</span> <span class='miss'>p_food_005</span> <span class='miss'>p_food_021</span> <span class='miss'>p_food_012</span> <span class='miss'>p_food_008</span> <span class='miss'>p_food_010</span> <span class='miss'>p_food_002</span> <span class='miss'>p_food_020</span> <span class='miss'>p_food_016</span> <span class='miss'>p_food_025</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>好用的</div>
+<div class='tags'><span class='tag'>vague</span><span class='tag'>rewrite-target</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_014</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_food_015</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_clothes_013</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_food_021</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_clothes_012</span> <span class='miss'>p_beauty_003</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_009</span> <span class='miss'>p_food_004</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_011</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_food_003</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>送礼推荐</div>
+<div class='tags'><span class='tag'>vague</span><span class='tag'>rewrite-target</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_real_02</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_food_019</span> <span class='miss'>p_food_009</span> <span class='miss'>p_7_real_02</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_7_real_05</span> <span class='miss'>p_food_017</span> <span class='miss'>p_5_real_03</span> <span class='miss'>p_food_008</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_6_real_04</span> <span class='miss'>p_food_019</span> <span class='miss'>p_5_real_03</span> <span class='miss'>p_4_intl_01</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_2_intl_03</span> <span class='miss'>p_food_009</span> <span class='miss'>p_7_real_02</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_1_real_01</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'><span class=dim>— no metrics —</span></div><div class='ids' style='margin-top:4px'><span class='miss'>p_5_real_03</span> <span class='miss'>p_2_intl_03</span> <span class='miss'>p_4_intl_01</span> <span class='miss'>p_6_real_01</span> <span class='miss'>p_6_real_04</span> <span class='miss'>p_food_019</span> <span class='miss'>p_7_real_05</span> <span class='miss'>p_food_009</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_food_020</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>iPhone 17 Pro 黑色 1TB 多少钱</div>
+<div class='tags'><span class='tag'>spec</span><span class='tag'>sku</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_001</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_digital_002</span> <span class='miss'>p_digital_013</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_005</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_009</span> <span class='miss'>p_digital_008</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_02</span> <span class='miss'>p_2_intl_01</span> <span class='hit'>p_digital_001</span> <span class='miss'>p_digital_003</span> <span class='miss'>p_digital_006</span> <span class='miss'>p_digital_013</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_016</span> <span class='miss'>p_digital_012</span> <span class='miss'>p_digital_024</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>薇诺娜舒敏控油洁面乳</div>
+<div class='tags'><span class='tag'>spec</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_011</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=1.000 · MRR=0.100 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_004</span> <span class='hit'>p_beauty_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.200 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_018</span> <span class='hit'>p_beauty_011</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_017</span> <span class='miss'>p_beauty_012</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_007</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_022</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_014</span> <span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_006</span> <span class='miss'>p_beauty_017</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>理肤泉特护清盈防晒乳 SPF50</div>
+<div class='tags'><span class='tag'>spec</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_006</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.200 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_023</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_beauty_010</span> <span class='hit'>p_beauty_006</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_real_04</span> <span class='miss'>p_beauty_005</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.200 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_023</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_1_intl_05</span> <span class='hit'>p_beauty_006</span> <span class='miss'>p_beauty_007</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_020</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_003</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_023</span> <span class='miss'>p_1_intl_05</span> <span class='hit'>p_beauty_006</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_010</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_food_025</span> <span class='miss'>p_beauty_012</span> <span class='miss'>p_1_real_04</span> <span class='miss'>p_1_real_03</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>无线耳机降噪</div>
+<div class='tags'><span class='tag'>intent</span></div>
+<div class='ids'>expected: <span class='hit'>p_digital_004</span> <span class='hit'>p_digital_005</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_04</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_digital_007</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_2_intl_04</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_019</span> <span class='miss'>p_digital_010</span> <span class='miss'>p_digital_014</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_2_intl_04</span> <span class='miss'>p_digital_007</span> <span class='miss'>p_2_intl_01</span> <span class='miss'>p_digital_018</span> <span class='miss'>p_2_intl_02</span> <span class='miss'>p_digital_020</span> <span class='miss'>p_digital_025</span> <span class='miss'>p_digital_011</span> <span class='miss'>p_digital_015</span> <span class='miss'>p_digital_009</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>国产护肤平价好物</div>
+<div class='tags'><span class='tag'>intent</span><span class='tag'>rewrite-target</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_011</span> <span class='hit'>p_beauty_009</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_real_02</span> <span class='miss'>p_1_real_04</span> <span class='miss'>p_1_intl_05</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_1_intl_03</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_003</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=0.000 · Recall@10=0.000 · MRR=0.000 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_real_04</span> <span class='miss'>p_1_real_02</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_intl_03</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_1_real_05</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_1_intl_04</span> <span class='miss'>p_1_intl_05</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=0.500 · Recall@10=0.500 · MRR=0.200 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_1_intl_05</span> <span class='miss'>p_1_intl_01</span> <span class='miss'>p_1_real_03</span> <span class='miss'>p_1_real_02</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_1_real_05</span></div></div>
+</div>
+</div>
+<div class='case'>
+<div class='q'>适合熬夜的护肤精华，要平价</div>
+<div class='tags'><span class='tag'>compose</span><span class='tag'>intent</span></div>
+<div class='ids'>expected: <span class='hit'>p_beauty_009</span></div>
+<div class='modes-row'>
+<div class='mode-block'><div class='lbl'>Dense</div><div class='metrics'>Recall@5=0.000 · Recall@10=1.000 · MRR=0.167 · Precision@5=0.000</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_beauty_024</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_008</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_006</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid (Dense + BM25)</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=0.333 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_002</span> <span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_003</span> <span class='miss'>p_beauty_018</span> <span class='miss'>p_beauty_021</span> <span class='miss'>p_beauty_011</span></div></div>
+<div class='mode-block'><div class='lbl'>Hybrid + Rerank</div><div class='metrics'>Recall@5=1.000 · Recall@10=1.000 · MRR=1.000 · Precision@5=0.200</div><div class='ids' style='margin-top:4px'><span class='hit'>p_beauty_009</span> <span class='miss'>p_beauty_024</span> <span class='miss'>p_beauty_021</span> <span class='miss'>p_beauty_005</span> <span class='miss'>p_beauty_019</span> <span class='miss'>p_beauty_004</span> <span class='miss'>p_beauty_001</span> <span class='miss'>p_beauty_002</span> <span class='miss'>p_1_real_01</span> <span class='miss'>p_beauty_003</span></div></div>
+</div>
+</div>
+</details>
+
+<div class="foot">
+  Generated by <code>python -m rag.eval.report</code> ·
+  source data <code>rag/eval/golden.jsonl</code> ·
+  metrics defined in <code>rag/eval/core.py</code>
+</div>
+
+</body>
+</html>
