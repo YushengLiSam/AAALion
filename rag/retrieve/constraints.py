@@ -83,6 +83,16 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
     result.brand_include = included or None
     result.brand_exclude = excluded or None
 
+    # R8: extract country-trigger keywords ("日系" / "美系" / ...) locally
+    # so they persist across multi-turn conversations via Filter state.
+    # `apply_negation` resolves these to ISO codes through brand_origin.
+    if text and any(neg in text for neg in ("不要", "不含", "不带", "除了", "排除", "也不要")):
+        try:
+            from rag.retrieve.negation import _local_country_keywords
+            result.exclude_keywords = _local_country_keywords(text) or None
+        except Exception:
+            result.exclude_keywords = None
+
     if explicit:
         if explicit.get("category") is not None:
             result.category = str(explicit["category"])

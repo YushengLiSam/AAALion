@@ -115,10 +115,30 @@ def top_k(
             candidates = [h.product for h in _keyword_fallback(text, k=20, f=retrieval_filter)]
 
     # 3) Negation filter (drops violating candidates).
-    if negation_on:
+    # R8: if the current turn has 不要, run the LLM-or-local negation extractor.
+    # Otherwise, if conversation_filter carries `exclude_keywords` from prior
+    # turns (e.g. "不要日系" said in turn 1, current turn is "再便宜点的呢"),
+    # still apply those keyword exclusions so country bans persist.
+    inherited_keywords: list[str] = []
+    if isinstance(retrieval_filter, Filter) and retrieval_filter.exclude_keywords:
+        inherited_keywords = list(retrieval_filter.exclude_keywords)
+    if negation_on or inherited_keywords:
         try:
-            from rag.retrieve.negation import extract_negation, apply_negation
-            neg = extract_negation(text)
+            from rag.retrieve.negation import apply_negation, extract_negation
+            if negation_on:
+                neg = extract_negation(text)
+                # Union the inherited keywords so prior-turn negations still apply.
+                if inherited_keywords:
+                    existing = set(neg.get("exclude_keywords", []) or [])
+                    for kw in inherited_keywords:
+                        if kw not in existing:
+                            neg.setdefault("exclude_keywords", []).append(kw)
+            else:
+                neg = {
+                    "exclude_brands": [],
+                    "exclude_categories": [],
+                    "exclude_keywords": inherited_keywords,
+                }
             candidates = apply_negation(candidates, neg)
         except Exception:
             pass

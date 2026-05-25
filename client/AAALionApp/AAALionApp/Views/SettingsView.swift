@@ -6,6 +6,11 @@ struct SettingsView: View {
     @State private var probeResult: ProbeResult?
     @AppStorage("lionpick.autoTTS") private var autoTTS: Bool = false
 
+    // R8: cache observability panel (consumes Sam's /cache/stats endpoint).
+    @State private var cacheStats: CacheStats?
+    @State private var cacheError: String?
+    @State private var pollingTask: Task<Void, Never>?
+
     enum ProbeResult: Equatable {
         case ok(version: String)
         case failed(message: String)
@@ -61,6 +66,35 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                Section {
+                    if let stats = cacheStats {
+                        cacheStatsView(stats)
+                    } else if let err = cacheError {
+                        Label(err, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    } else {
+                        HStack {
+                            ProgressView().controlSize(.small)
+                            Text("加载中 / Loading…").font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Button {
+                        Task { await refreshCacheStats() }
+                    } label: {
+                        Label("刷新 / Refresh", systemImage: "arrow.clockwise")
+                    }
+                } header: {
+                    Text("缓存命中率 / Cache hit-rate")
+                } footer: {
+                    Text("命中率 (hit rate) 越高,意味着更多查询命中缓存、首字延迟越低。\n" +
+                         "Higher hit-rate = more queries served from in-memory LRU = lower first-delta latency. " +
+                         "Source: `GET /cache/stats`.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .navigationTitle("设置 / Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -77,7 +111,74 @@ struct SettingsView: View {
             }
             .onAppear {
                 backendURLText = Config.backendURL.absoluteString
+                Task { await refreshCacheStats() }
+                // Auto-poll every 10s while sheet is open.
+                pollingTask?.cancel()
+                pollingTask = Task {
+                    while !Task.isCancelled {
+                        try? await Task.sleep(nanoseconds: 10_000_000_000)
+                        if Task.isCancelled { break }
+                        await refreshCacheStats()
+                    }
+                }
             }
+            .onDisappear {
+                pollingTask?.cancel()
+                pollingTask = nil
+            }
+        }
+    }
+
+    // MARK: - Cache stats panel (R8 B1)
+
+    @ViewBuilder
+    private func cacheStatsView(_ s: CacheStats) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("命中率 / Hit rate").font(.subheadline)
+                Spacer()
+                Text(String(format: "%.1f%%", s.hitRate * 100))
+                    .font(.system(.subheadline, design: .rounded).bold())
+                    .foregroundStyle(s.hitRate >= 0.3 ? .green : .orange)
+            }
+            HStack {
+                Text("命中 / Hits").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(s.hits)").font(.caption.monospacedDigit())
+            }
+            HStack {
+                Text("未命中 / Misses").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(s.misses) (含 \(s.expiredMisses) 过期 / expired)")
+                    .font(.caption.monospacedDigit())
+            }
+            HStack {
+                Text("容量 / Capacity").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(s.size) / \(s.maxSize)   TTL \(s.ttlSec)s")
+                    .font(.caption.monospacedDigit())
+            }
+            HStack {
+                Text("淘汰 / Evictions").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(s.evictions)").font(.caption.monospacedDigit())
+            }
+            HStack {
+                Text("Uptime").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(s.uptimeSec))s").font(.caption.monospacedDigit())
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func refreshCacheStats() async {
+        do {
+            let stats = try await CacheStatsService(baseURL: Config.backendURL).fetch()
+            cacheStats = stats
+            cacheError = nil
+        } catch {
+            cacheError = "无法获取 / can't fetch: \(error.localizedDescription)"
         }
     }
 

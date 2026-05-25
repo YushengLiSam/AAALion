@@ -18,6 +18,7 @@ from rag.retrieve.query import Filter
 _CLEAR_BUDGET_RE = re.compile(r"(?:预算|价格)(?:不限|不限制)|不限预算|取消预算|取消价格限制")
 _CLEAR_BRAND_RE = re.compile(r"(?:品牌不限|不限品牌|取消品牌限制|不限制品牌)")
 _CLEAR_CATEGORY_RE = re.compile(r"(?:品类不限|类别不限|不限品类|取消品类限制)")
+_CLEAR_KEYWORDS_RE = re.compile(r"(?:国别不限|不限国别|取消国别|不限地区)")
 _ALLOW_BRAND_RE = re.compile(r"(?:也可以|也行|可以接受|不排除|可以考虑)")
 
 
@@ -47,6 +48,7 @@ def _merge_turn(state: Filter, text: str) -> None:
     clear_budget = bool(_CLEAR_BUDGET_RE.search(text))
     clear_brand = bool(_CLEAR_BRAND_RE.search(text))
     clear_category = bool(_CLEAR_CATEGORY_RE.search(text))
+    clear_keywords = bool(_CLEAR_KEYWORDS_RE.search(text))
     allow_brand = bool(_ALLOW_BRAND_RE.search(text))
 
     if clear_budget:
@@ -59,6 +61,8 @@ def _merge_turn(state: Filter, text: str) -> None:
         state.category = None
         state.sub_category = None
         state.sub_categories = None
+    if clear_keywords:
+        state.exclude_keywords = None
 
     turn = build_retrieval_filter(text)
     if turn is None:
@@ -83,6 +87,12 @@ def _merge_turn(state: Filter, text: str) -> None:
     if not clear_brand and turn.brand_exclude:
         state.brand_exclude = _ordered_union(state.brand_exclude, turn.brand_exclude)
         state.brand_include = _remove_brands(state.brand_include, turn.brand_exclude)
+
+    # R8: country-keyword exclusions persist across turns the same way as
+    # brand_exclude. "不要日系" on turn 1 keeps applying on turn 2 unless the
+    # user explicitly cancels with "国别不限".
+    if not clear_keywords and turn.exclude_keywords:
+        state.exclude_keywords = _ordered_union(state.exclude_keywords, list(turn.exclude_keywords))
 
     if turn.brand_include:
         if allow_brand:
