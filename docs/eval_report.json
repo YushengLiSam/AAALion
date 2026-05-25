@@ -1,0 +1,6046 @@
+{
+  "meta": {
+    "n_cases": 56,
+    "n_scored": 56,
+    "timestamp": "2026-05-24T11:20:49",
+    "dataset_size": 145,
+    "k": 10,
+    "modes": [
+      "dense",
+      "hybrid",
+      "hybrid_rerank"
+    ]
+  },
+  "modes": {
+    "dense": {
+      "label": "Dense",
+      "overall": {
+        "latency_ms": 148.83419562829658,
+        "mrr": 0.6886178861788618,
+        "negation_accuracy": 0.6333333333333334,
+        "no_match_correctness": 0.8547008803757626,
+        "precision@5": 0.27804878048780485,
+        "recall@10": 0.8638211382113822,
+        "recall@5": 0.7682926829268293
+      },
+      "by_tag": {
+        "basic": {
+          "latency_ms": 531.7364326105095,
+          "mrr": 0.8958333333333334,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7772706959213892,
+          "precision@5": 0.3,
+          "recall@10": 0.9583333333333334,
+          "recall@5": 0.9583333333333334
+        },
+        "intent": {
+          "latency_ms": 682.1399498730898,
+          "mrr": 0.5277777777777778,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.8116422281422282,
+          "precision@5": 0.13333333333333333,
+          "recall@10": 0.5833333333333334,
+          "recall@5": 0.4166666666666667
+        },
+        "filter": {
+          "latency_ms": 29.076270933728665,
+          "mrr": 0.7976190476190476,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7772706959213892,
+          "precision@5": 0.37142857142857144,
+          "recall@10": 0.9523809523809524,
+          "recall@5": 0.9047619047619048
+        },
+        "no-match": {
+          "latency_ms": 32.65328032218597,
+          "mrr": null,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.8188993570908178,
+          "precision@5": null,
+          "recall@10": null,
+          "recall@5": null
+        },
+        "spec": {
+          "latency_ms": 33.11894793296233,
+          "mrr": 0.7571428571428571,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.69,
+          "precision@5": 0.17142857142857143,
+          "recall@10": 1.0,
+          "recall@5": 0.8571428571428571
+        },
+        "compare": {
+          "latency_ms": 40.56849998111526,
+          "mrr": 0.9,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7837662337662338,
+          "precision@5": 0.36,
+          "recall@10": 0.9,
+          "recall@5": 0.9
+        },
+        "negation": {
+          "latency_ms": 29.219713411293924,
+          "mrr": 0.3083333333333333,
+          "negation_accuracy": 0.6333333333333334,
+          "no_match_correctness": 0.8146001325778214,
+          "precision@5": 0.26666666666666666,
+          "recall@10": 0.875,
+          "recall@5": 0.611111111111111
+        },
+        "multiturn": {
+          "latency_ms": 38.5857748799026,
+          "mrr": 0.6666666666666667,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.24000000000000005,
+          "recall@10": 0.7,
+          "recall@5": 0.7
+        },
+        "vague": {
+          "latency_ms": 49.46304143716892,
+          "mrr": null,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.960754378260099,
+          "precision@5": null,
+          "recall@10": null,
+          "recall@5": null
+        },
+        "rewrite-target": {
+          "latency_ms": 43.476468534208834,
+          "mrr": 0.0,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.960754378260099,
+          "precision@5": 0.0,
+          "recall@10": 0.0,
+          "recall@5": 0.0
+        },
+        "sku": {
+          "latency_ms": 23.494833149015903,
+          "mrr": 1.0,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 1.0,
+          "recall@5": 1.0
+        },
+        "compose": {
+          "latency_ms": 22.50075014308095,
+          "mrr": 0.16666666666666666,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.0,
+          "recall@10": 1.0,
+          "recall@5": 0.0
+        }
+      },
+      "per_case": [
+        {
+          "query": "推荐一款适合油皮的洗面奶",
+          "expected": [
+            "p_beauty_004",
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_014",
+            "p_beauty_020",
+            "p_beauty_018",
+            "p_beauty_017",
+            "p_beauty_013",
+            "p_beauty_006",
+            "p_1_intl_01",
+            "p_beauty_007",
+            "p_beauty_023"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 6489.371208008379
+          },
+          "latency_ms": 6489.371208008379,
+          "error": null
+        },
+        {
+          "query": "适合敏感肌的洁面产品有什么",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_012",
+            "p_beauty_007",
+            "p_1_intl_02",
+            "p_1_intl_05",
+            "p_beauty_022",
+            "p_beauty_024",
+            "p_beauty_017",
+            "p_beauty_001",
+            "p_beauty_005"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 55.895166005939245
+          },
+          "latency_ms": 55.895166005939245,
+          "error": null
+        },
+        {
+          "query": "200元以下的蓝牙耳机有哪些",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "filter",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_2_intl_04",
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_01",
+            "p_2_intl_02",
+            "p_digital_017",
+            "p_digital_002",
+            "p_digital_019",
+            "p_digital_022",
+            "p_digital_025"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7772706959213892,
+            "latency_ms": 23.88841612264514
+          },
+          "latency_ms": 23.88841612264514,
+          "error": null
+        },
+        {
+          "query": "性价比高的国产手机推荐",
+          "expected": [
+            "p_digital_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "filter"
+          ],
+          "retrieved": [
+            "p_digital_002",
+            "p_digital_001",
+            "p_digital_015",
+            "p_digital_009",
+            "p_digital_016",
+            "p_digital_003",
+            "p_digital_017",
+            "p_digital_008",
+            "p_2_intl_05",
+            "p_digital_010"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.25,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 52.928084041923285
+          },
+          "latency_ms": 52.928084041923285,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 宇宙橙 256GB 多少钱",
+          "expected": [
+            "p_digital_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_016",
+            "p_digital_020",
+            "p_digital_002",
+            "p_digital_009",
+            "p_digital_011",
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_015"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.103624746203423
+          },
+          "latency_ms": 24.103624746203423,
+          "error": null
+        },
+        {
+          "query": "Apple MacBook Air M5 16GB",
+          "expected": [
+            "p_digital_020"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_digital_020",
+            "p_digital_006",
+            "p_digital_024",
+            "p_digital_012",
+            "p_digital_013",
+            "p_digital_025",
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_022"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 69.61491610854864
+          },
+          "latency_ms": 69.61491610854864,
+          "error": null
+        },
+        {
+          "query": "雅诗兰黛特润修护精华露 30ml",
+          "expected": [
+            "p_beauty_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_1_real_01",
+            "p_1_intl_02",
+            "p_beauty_024",
+            "p_beauty_004",
+            "p_1_real_02",
+            "p_1_real_03",
+            "p_beauty_002",
+            "p_1_intl_05",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.37870902940631
+          },
+          "latency_ms": 24.37870902940631,
+          "error": null
+        },
+        {
+          "query": "兰蔻小黑瓶 30ml 多少钱",
+          "expected": [
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_1_real_01",
+            "p_beauty_001",
+            "p_1_intl_04",
+            "p_1_intl_02",
+            "p_beauty_017",
+            "p_beauty_008",
+            "p_beauty_019",
+            "p_beauty_004",
+            "p_beauty_010"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 50.403499975800514
+          },
+          "latency_ms": 50.403499975800514,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的精华液",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_beauty_024",
+            "p_beauty_005",
+            "p_beauty_018",
+            "p_beauty_009",
+            "p_1_intl_04",
+            "p_beauty_003",
+            "p_1_real_02",
+            "p_beauty_004"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 50.59704137966037
+          },
+          "latency_ms": 50.59704137966037,
+          "error": null
+        },
+        {
+          "query": "请推荐一款轻量跑鞋",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_clothes_009",
+            "p_8_real_02",
+            "p_clothes_007",
+            "p_clothes_008",
+            "p_clothes_010",
+            "p_clothes_015",
+            "p_clothes_011",
+            "p_clothes_013",
+            "p_clothes_014",
+            "p_3_intl_02"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.762997002997003,
+            "latency_ms": 28.212749864906073
+          },
+          "latency_ms": 28.212749864906073,
+          "error": null
+        },
+        {
+          "query": "雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_1_intl_02",
+            "p_beauty_024",
+            "p_beauty_008",
+            "p_beauty_009",
+            "p_1_intl_04",
+            "p_beauty_019",
+            "p_1_real_01",
+            "p_beauty_017"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 47.0277089625597
+          },
+          "latency_ms": 47.0277089625597,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 和 iPhone 17 Pro Max 对比",
+          "expected": [
+            "p_digital_001",
+            "p_digital_003"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_digital_003",
+            "p_digital_001",
+            "p_digital_009",
+            "p_digital_020",
+            "p_digital_013",
+            "p_digital_006",
+            "p_digital_008",
+            "p_digital_025",
+            "p_digital_012",
+            "p_digital_002"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 50.468374975025654
+          },
+          "latency_ms": 50.468374975025654,
+          "error": null
+        },
+        {
+          "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "compare",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_02",
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_digital_013",
+            "p_digital_005",
+            "p_digital_024",
+            "p_digital_025",
+            "p_digital_019"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7837662337662338,
+            "latency_ms": 47.532042022794485
+          },
+          "latency_ms": 47.532042022794485,
+          "error": null
+        },
+        {
+          "query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌",
+          "expected": [
+            "p_beauty_006"
+          ],
+          "forbidden": [
+            "p_beauty_010"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_020",
+            "p_beauty_023",
+            "p_beauty_010",
+            "p_beauty_005",
+            "p_beauty_008",
+            "p_beauty_006",
+            "p_beauty_007",
+            "p_1_real_02",
+            "p_beauty_017",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 1.0,
+            "mrr": 0.16666666666666666,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 46.8133338727057
+          },
+          "latency_ms": 46.8133338727057,
+          "error": null
+        },
+        {
+          "query": "推荐洁面产品，除了泡沫型的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_017",
+            "p_6_real_02",
+            "p_beauty_002",
+            "p_beauty_005",
+            "p_beauty_010",
+            "p_beauty_022",
+            "p_beauty_003",
+            "p_beauty_007",
+            "p_1_real_04"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9303571428571429,
+            "latency_ms": 32.90641587227583
+          },
+          "latency_ms": 32.90641587227583,
+          "error": null
+        },
+        {
+          "query": "不要 Apple 的笔记本电脑推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "negation",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_025",
+            "p_digital_006",
+            "p_digital_020",
+            "p_digital_024",
+            "p_digital_001",
+            "p_digital_012",
+            "p_digital_023",
+            "p_digital_013",
+            "p_digital_022",
+            "p_digital_021"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.6988431222984999,
+            "latency_ms": 33.6045827716589
+          },
+          "latency_ms": 33.6045827716589,
+          "error": null
+        },
+        {
+          "query": "推荐一款适合油皮的洗面奶 更便宜 平价 低价 性价比 再便宜点的呢",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_014",
+            "p_beauty_018",
+            "p_beauty_017",
+            "p_beauty_006",
+            "p_beauty_020",
+            "p_beauty_013",
+            "p_beauty_023",
+            "p_beauty_005",
+            "p_beauty_002"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 48.786415718495846
+          },
+          "latency_ms": 48.786415718495846,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
+          "expected": [
+            "p_beauty_004"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_1_intl_04",
+            "p_beauty_018",
+            "p_beauty_002",
+            "p_beauty_024",
+            "p_beauty_009",
+            "p_beauty_005",
+            "p_1_real_02",
+            "p_1_real_01",
+            "p_beauty_008"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 50.00199982896447
+          },
+          "latency_ms": 50.00199982896447,
+          "error": null
+        },
+        {
+          "query": "便宜点的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_food_022",
+            "p_food_010",
+            "p_food_021",
+            "p_beauty_008",
+            "p_beauty_023",
+            "p_food_016",
+            "p_food_008",
+            "p_food_025",
+            "p_beauty_010",
+            "p_food_002"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9607655502392345,
+            "latency_ms": 48.28166589140892
+          },
+          "latency_ms": 48.28166589140892,
+          "error": null
+        },
+        {
+          "query": "好用的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_beauty_005",
+            "p_beauty_002",
+            "p_beauty_023",
+            "p_beauty_004",
+            "p_beauty_003",
+            "p_beauty_022",
+            "p_beauty_009",
+            "p_beauty_019",
+            "p_beauty_010",
+            "p_beauty_011"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9833333333333333,
+            "latency_ms": 73.76020820811391
+          },
+          "latency_ms": 73.76020820811391,
+          "error": null
+        },
+        {
+          "query": "送礼推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_1_real_02",
+            "p_6_real_04",
+            "p_food_019",
+            "p_food_009",
+            "p_7_real_02",
+            "p_1_real_01",
+            "p_7_real_05",
+            "p_food_017",
+            "p_5_real_03",
+            "p_food_008"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9381642512077295,
+            "latency_ms": 26.34725021198392
+          },
+          "latency_ms": 26.34725021198392,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 黑色 1TB 多少钱",
+          "expected": [
+            "p_digital_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec",
+            "sku"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_020",
+            "p_digital_012",
+            "p_digital_006",
+            "p_digital_005",
+            "p_digital_016",
+            "p_digital_014",
+            "p_digital_002",
+            "p_digital_013"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.494833149015903
+          },
+          "latency_ms": 23.494833149015903,
+          "error": null
+        },
+        {
+          "query": "薇诺娜舒敏控油洁面乳",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec"
+          ],
+          "retrieved": [
+            "p_1_real_03",
+            "p_beauty_007",
+            "p_beauty_022",
+            "p_beauty_017",
+            "p_beauty_018",
+            "p_beauty_012",
+            "p_beauty_010",
+            "p_beauty_023",
+            "p_beauty_004",
+            "p_beauty_011"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 1.0,
+            "mrr": 0.1,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.040875025093555
+          },
+          "latency_ms": 24.040875025093555,
+          "error": null
+        },
+        {
+          "query": "理肤泉特护清盈防晒乳 SPF50",
+          "expected": [
+            "p_beauty_006"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_023",
+            "p_1_intl_05",
+            "p_beauty_012",
+            "p_beauty_010",
+            "p_beauty_006",
+            "p_beauty_020",
+            "p_beauty_019",
+            "p_beauty_003",
+            "p_1_real_04",
+            "p_beauty_005"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.2,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.122958071529865
+          },
+          "latency_ms": 24.122958071529865,
+          "error": null
+        },
+        {
+          "query": "适合干皮的乳液",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_beauty_007",
+            "p_beauty_019",
+            "p_1_intl_05",
+            "p_beauty_013",
+            "p_beauty_012",
+            "p_beauty_004",
+            "p_beauty_008",
+            "p_1_intl_01",
+            "p_beauty_022",
+            "p_beauty_011"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9673333333333334,
+            "latency_ms": 54.5244999229908
+          },
+          "latency_ms": 54.5244999229908,
+          "error": null
+        },
+        {
+          "query": "保湿面霜推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_beauty_007",
+            "p_1_intl_05",
+            "p_beauty_008",
+            "p_1_real_01",
+            "p_beauty_019",
+            "p_beauty_009",
+            "p_beauty_001",
+            "p_1_real_03",
+            "p_beauty_024",
+            "p_1_intl_02"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7021260221260222,
+            "latency_ms": 46.291416976600885
+          },
+          "latency_ms": 46.291416976600885,
+          "error": null
+        },
+        {
+          "query": "无线耳机降噪",
+          "expected": [
+            "p_digital_004",
+            "p_digital_005"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_2_intl_02",
+            "p_digital_019",
+            "p_digital_010",
+            "p_digital_014",
+            "p_digital_025",
+            "p_digital_011"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.426707834005356
+          },
+          "latency_ms": 23.426707834005356,
+          "error": null
+        },
+        {
+          "query": "Apple iPad Air 平板",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "spec",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_025",
+            "p_digital_013",
+            "p_digital_024",
+            "p_digital_005",
+            "p_digital_019",
+            "p_digital_021",
+            "p_digital_020",
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_001"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.69,
+            "latency_ms": 24.792167358100414
+          },
+          "latency_ms": 24.792167358100414,
+          "error": null
+        },
+        {
+          "query": "国产护肤平价好物",
+          "expected": [
+            "p_beauty_009",
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_1_real_02",
+            "p_1_real_04",
+            "p_1_intl_05",
+            "p_1_intl_04",
+            "p_1_intl_03",
+            "p_beauty_005",
+            "p_1_real_03",
+            "p_beauty_002",
+            "p_beauty_018",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.51674982532859
+          },
+          "latency_ms": 25.51674982532859,
+          "error": null
+        },
+        {
+          "query": "新手适合的相机",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_016",
+            "p_digital_017",
+            "p_digital_015",
+            "p_digital_002",
+            "p_digital_008",
+            "p_digital_003",
+            "p_2_intl_05",
+            "p_digital_020",
+            "p_digital_010",
+            "p_digital_001"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.8141125541125541,
+            "latency_ms": 25.063208770006895
+          },
+          "latency_ms": 25.063208770006895,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的护肤精华，要平价",
+          "expected": [
+            "p_beauty_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compose",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_018",
+            "p_beauty_005",
+            "p_beauty_002",
+            "p_beauty_024",
+            "p_beauty_009",
+            "p_beauty_003",
+            "p_beauty_008",
+            "p_beauty_004",
+            "p_beauty_006"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 1.0,
+            "mrr": 0.16666666666666666,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 22.50075014308095
+          },
+          "latency_ms": 22.50075014308095,
+          "error": null
+        },
+        {
+          "query": "推荐一款入门跑步鞋",
+          "expected": [
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_009",
+            "p_clothes_010",
+            "p_clothes_007",
+            "p_8_real_02",
+            "p_clothes_008",
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_clothes_013",
+            "p_3_intl_02",
+            "p_clothes_011"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.850667290389538
+          },
+          "latency_ms": 23.850667290389538,
+          "error": null
+        },
+        {
+          "query": "想买一本经典中文小说",
+          "expected": [
+            "p_7_real_02",
+            "p_7_real_03"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_7_real_01",
+            "p_7_real_02",
+            "p_7_real_04",
+            "p_7_real_03",
+            "p_digital_019",
+            "p_7_real_05",
+            "p_digital_005",
+            "p_clothes_001",
+            "p_clothes_018",
+            "p_food_014"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.71091691404581
+          },
+          "latency_ms": 24.71091691404581,
+          "error": null
+        },
+        {
+          "query": "推荐适合通勤的双肩包",
+          "expected": [
+            "p_clothes_018",
+            "p_clothes_025"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_018",
+            "p_clothes_025",
+            "p_clothes_024",
+            "p_clothes_003",
+            "p_clothes_005",
+            "p_clothes_002",
+            "p_clothes_022",
+            "p_3_intl_03",
+            "p_clothes_012",
+            "p_8_real_05"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.812124833464622
+          },
+          "latency_ms": 25.812124833464622,
+          "error": null
+        },
+        {
+          "query": "100元以下的洁面产品",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_6_real_04",
+            "p_1_real_04",
+            "p_1_intl_05",
+            "p_beauty_017",
+            "p_beauty_003",
+            "p_1_intl_03",
+            "p_beauty_019",
+            "p_beauty_005",
+            "p_beauty_018"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.206540875136852
+          },
+          "latency_ms": 26.206540875136852,
+          "error": null
+        },
+        {
+          "query": "500元以下的运动T恤",
+          "expected": [
+            "p_clothes_001",
+            "p_clothes_003",
+            "p_clothes_021"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_clothes_003",
+            "p_clothes_021",
+            "p_clothes_002",
+            "p_clothes_020",
+            "p_clothes_001",
+            "p_clothes_023",
+            "p_clothes_004",
+            "p_clothes_016",
+            "p_clothes_006",
+            "p_clothes_005"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.80195774883032
+          },
+          "latency_ms": 26.80195774883032,
+          "error": null
+        },
+        {
+          "query": "200元以下的速溶咖啡",
+          "expected": [
+            "p_food_022",
+            "p_food_023",
+            "p_food_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_food_023",
+            "p_food_022",
+            "p_food_001",
+            "p_food_002",
+            "p_food_006",
+            "p_food_025",
+            "p_food_005"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.725167244672775
+          },
+          "latency_ms": 25.725167244672775,
+          "error": null
+        },
+        {
+          "query": "2000元以下的智能手表",
+          "expected": [
+            "p_8_real_01"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_8_real_01",
+            "p_digital_022",
+            "p_6_real_01",
+            "p_digital_002",
+            "p_digital_008",
+            "p_digital_017",
+            "p_digital_004",
+            "p_digital_011",
+            "p_digital_005",
+            "p_beauty_025"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 27.427792083472013
+          },
+          "latency_ms": 27.427792083472013,
+          "error": null
+        },
+        {
+          "query": "100元以下的休闲零食",
+          "expected": [
+            "p_food_009",
+            "p_food_010",
+            "p_food_021"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_food_019",
+            "p_food_004",
+            "p_food_010",
+            "p_4_intl_02",
+            "p_food_002",
+            "p_food_024",
+            "p_food_015",
+            "p_food_003",
+            "p_food_009",
+            "p_food_020"
+          ],
+          "metrics": {
+            "recall@5": 0.3333333333333333,
+            "recall@10": 0.6666666666666666,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.884250316768885
+          },
+          "latency_ms": 23.884250316768885,
+          "error": null
+        },
+        {
+          "query": "推荐一款手机，不要Apple",
+          "expected": [
+            "p_digital_002",
+            "p_digital_008",
+            "p_digital_014",
+            "p_digital_017"
+          ],
+          "forbidden": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_018",
+            "p_digital_024",
+            "p_digital_025"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_025",
+            "p_digital_006",
+            "p_digital_024",
+            "p_digital_003",
+            "p_digital_020",
+            "p_digital_013",
+            "p_digital_016",
+            "p_digital_018",
+            "p_digital_002"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.25,
+            "mrr": 0.1,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.19999999999999996,
+            "no_match_correctness": null,
+            "latency_ms": 25.77612502500415
+          },
+          "latency_ms": 25.77612502500415,
+          "error": null
+        },
+        {
+          "query": "推荐跑步鞋，不要Nike",
+          "expected": [
+            "p_clothes_008",
+            "p_clothes_009",
+            "p_clothes_010"
+          ],
+          "forbidden": [
+            "p_clothes_007",
+            "p_3_intl_02"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_clothes_007",
+            "p_clothes_008",
+            "p_clothes_009",
+            "p_8_real_02",
+            "p_clothes_010",
+            "p_clothes_013",
+            "p_clothes_011",
+            "p_clothes_015",
+            "p_clothes_012",
+            "p_clothes_014"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.6,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 22.968541830778122
+          },
+          "latency_ms": 22.968541830778122,
+          "error": null
+        },
+        {
+          "query": "推荐头戴式降噪耳机，不要Sony",
+          "expected": [
+            "p_2_intl_04"
+          ],
+          "forbidden": [
+            "p_2_intl_01"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_2_intl_01",
+            "p_digital_018",
+            "p_2_intl_04",
+            "p_digital_017",
+            "p_2_intl_02",
+            "p_digital_002",
+            "p_digital_019",
+            "p_digital_025",
+            "p_digital_006"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.25,
+            "precision@5": 0.2,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 24.208583869040012
+          },
+          "latency_ms": 24.208583869040012,
+          "error": null
+        },
+        {
+          "query": "推荐抗初老精华，不要兰蔻",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_009",
+            "p_1_real_01"
+          ],
+          "forbidden": [
+            "p_beauty_002",
+            "p_beauty_019"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_1_real_01",
+            "p_beauty_001",
+            "p_beauty_019",
+            "p_beauty_005",
+            "p_beauty_009",
+            "p_beauty_018",
+            "p_beauty_007",
+            "p_1_intl_04",
+            "p_beauty_024"
+          ],
+          "metrics": {
+            "recall@5": 0.6666666666666666,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 23.271040990948677
+          },
+          "latency_ms": 23.271040990948677,
+          "error": null
+        },
+        {
+          "query": "推荐速溶咖啡，不要雀巢",
+          "expected": [
+            "p_food_001",
+            "p_food_022"
+          ],
+          "forbidden": [
+            "p_food_002",
+            "p_food_023"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_food_023",
+            "p_food_002",
+            "p_food_001",
+            "p_food_022",
+            "p_food_025",
+            "p_food_006",
+            "p_food_005",
+            "p_food_016"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.4,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 24.209083057940006
+          },
+          "latency_ms": 24.209083057940006,
+          "error": null
+        },
+        {
+          "query": "轻量碳板的",
+          "expected": [
+            "p_clothes_010",
+            "p_clothes_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_food_015",
+            "p_food_024",
+            "p_food_005",
+            "p_food_017",
+            "p_clothes_013",
+            "p_clothes_008",
+            "p_beauty_018",
+            "p_clothes_021",
+            "p_food_010"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 22.909707855433226
+          },
+          "latency_ms": 22.909707855433226,
+          "error": null
+        },
+        {
+          "query": "推荐适合熬夜的精华 更便宜 平价 低价 性价比 国货平价的",
+          "expected": [
+            "p_beauty_009",
+            "p_1_real_02"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_024",
+            "p_beauty_009",
+            "p_beauty_018",
+            "p_1_real_02",
+            "p_beauty_002",
+            "p_beauty_005",
+            "p_beauty_006",
+            "p_1_intl_04",
+            "p_beauty_008"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 49.512834288179874
+          },
+          "latency_ms": 49.512834288179874,
+          "error": null
+        },
+        {
+          "query": "要折叠屏",
+          "expected": [
+            "p_digital_010",
+            "p_digital_014"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_digital_010",
+            "p_digital_014",
+            "p_digital_009",
+            "p_digital_005",
+            "p_digital_004",
+            "p_digital_019",
+            "p_digital_003",
+            "p_digital_002",
+            "p_digital_023",
+            "p_digital_017"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 21.71791670843959
+          },
+          "latency_ms": 21.71791670843959,
+          "error": null
+        },
+        {
+          "query": "Sony WH-1000XM5 和 Bose QC Ultra 哪个降噪更好",
+          "expected": [
+            "p_2_intl_01",
+            "p_2_intl_04"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_2_intl_04",
+            "p_2_intl_01",
+            "p_digital_007",
+            "p_digital_018",
+            "p_digital_017",
+            "p_2_intl_02",
+            "p_digital_006",
+            "p_digital_020",
+            "p_digital_024",
+            "p_digital_015"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 21.70316595584154
+          },
+          "latency_ms": 21.70316595584154,
+          "error": null
+        },
+        {
+          "query": "特步 160X 和 Nike Pegasus 41 哪个更适合马拉松",
+          "expected": [
+            "p_clothes_010",
+            "p_clothes_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_009",
+            "p_clothes_011",
+            "p_clothes_008",
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_8_real_03",
+            "p_8_real_02",
+            "p_3_intl_02"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 47.387124970555305
+          },
+          "latency_ms": 47.387124970555305,
+          "error": null
+        },
+        {
+          "query": "雪花秀和资生堂哪个适合干皮",
+          "expected": [
+            "p_1_real_04",
+            "p_beauty_004"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_1_intl_04",
+            "p_beauty_004",
+            "p_beauty_007",
+            "p_1_intl_01",
+            "p_beauty_019",
+            "p_beauty_013",
+            "p_1_intl_05",
+            "p_beauty_012",
+            "p_6_real_04",
+            "p_beauty_014"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 29.292582999914885
+          },
+          "latency_ms": 29.292582999914885,
+          "error": null
+        },
+        {
+          "query": "推荐一款电动牙刷",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_6_real_01",
+            "p_digital_007",
+            "p_digital_022",
+            "p_beauty_018",
+            "p_digital_006",
+            "p_digital_002",
+            "p_digital_014",
+            "p_digital_025",
+            "p_digital_018",
+            "p_digital_010"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9476190476190476,
+            "latency_ms": 25.144875049591064
+          },
+          "latency_ms": 25.144875049591064,
+          "error": null
+        },
+        {
+          "query": "推荐一款无线充电器",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_025",
+            "p_digital_013",
+            "p_6_real_01",
+            "p_digital_023",
+            "p_digital_007",
+            "p_digital_006",
+            "p_digital_002",
+            "p_digital_004",
+            "p_digital_020",
+            "p_digital_005"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.8968215488215489,
+            "latency_ms": 25.369375012815
+          },
+          "latency_ms": 25.369375012815,
+          "error": null
+        },
+        {
+          "query": "推荐一辆扫地机器人",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_022",
+            "p_8_real_01",
+            "p_digital_020",
+            "p_6_real_05",
+            "p_digital_008",
+            "p_digital_004",
+            "p_digital_006",
+            "p_digital_024",
+            "p_2_intl_01",
+            "p_2_intl_02"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.967003367003367,
+            "latency_ms": 24.762749671936035
+          },
+          "latency_ms": 24.762749671936035,
+          "error": null
+        },
+        {
+          "query": "推荐徒步登山鞋",
+          "expected": [
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_8_real_03"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_014",
+            "p_8_real_03",
+            "p_clothes_015",
+            "p_clothes_009",
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_017",
+            "p_clothes_008",
+            "p_3_intl_02",
+            "p_clothes_013"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.66437530145049
+          },
+          "latency_ms": 23.66437530145049,
+          "error": null
+        },
+        {
+          "query": "推荐有机牛奶",
+          "expected": [
+            "p_food_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_food_007",
+            "p_food_016",
+            "p_food_008",
+            "p_food_017",
+            "p_food_006",
+            "p_5_real_01",
+            "p_food_002",
+            "p_6_real_04",
+            "p_food_010"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.951915558427572
+          },
+          "latency_ms": 23.951915558427572,
+          "error": null
+        },
+        {
+          "query": "500元以下的高倍防晒霜",
+          "expected": [
+            "p_beauty_006",
+            "p_beauty_010",
+            "p_beauty_023"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_beauty_010",
+            "p_beauty_023",
+            "p_beauty_020",
+            "p_beauty_006",
+            "p_beauty_005",
+            "p_beauty_008",
+            "p_6_real_02",
+            "p_1_real_02",
+            "p_1_real_01",
+            "p_beauty_012"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.747959036380053
+          },
+          "latency_ms": 25.747959036380053,
+          "error": null
+        }
+      ],
+      "errors": 0
+    },
+    "hybrid": {
+      "label": "Hybrid (Dense + BM25)",
+      "overall": {
+        "latency_ms": 37.13032372096287,
+        "mrr": 0.6392566782810685,
+        "negation_accuracy": 0.6666666666666666,
+        "no_match_correctness": 0.8487143797080262,
+        "precision@5": 0.27317073170731704,
+        "recall@10": 0.8353658536585366,
+        "recall@5": 0.7520325203252032
+      },
+      "by_tag": {
+        "basic": {
+          "latency_ms": 73.2569327721229,
+          "mrr": 0.763888888888889,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7772706959213891,
+          "precision@5": 0.26666666666666666,
+          "recall@10": 0.875,
+          "recall@5": 0.8333333333333334
+        },
+        "intent": {
+          "latency_ms": 87.78428751975298,
+          "mrr": 0.3055555555555555,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.798038998038998,
+          "precision@5": 0.10000000000000002,
+          "recall@10": 0.5833333333333334,
+          "recall@5": 0.4166666666666667
+        },
+        "filter": {
+          "latency_ms": 26.761385321151465,
+          "mrr": 0.8571428571428571,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7772706959213891,
+          "precision@5": 0.34285714285714286,
+          "recall@10": 0.8571428571428571,
+          "recall@5": 0.7619047619047619
+        },
+        "no-match": {
+          "latency_ms": 26.35308714922179,
+          "mrr": null,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.8152864521398645,
+          "precision@5": null,
+          "recall@10": null,
+          "recall@5": null
+        },
+        "spec": {
+          "latency_ms": 26.729083620011806,
+          "mrr": 0.7714285714285715,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.74,
+          "precision@5": 0.19999999999999998,
+          "recall@10": 1.0,
+          "recall@5": 1.0
+        },
+        "compare": {
+          "latency_ms": 24.633291798333328,
+          "mrr": 0.9,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7837662337662338,
+          "precision@5": 0.36,
+          "recall@10": 1.0,
+          "recall@5": 0.9
+        },
+        "negation": {
+          "latency_ms": 27.55985938711092,
+          "mrr": 0.30158730158730157,
+          "negation_accuracy": 0.6666666666666666,
+          "no_match_correctness": 0.7571098579782791,
+          "precision@5": 0.3,
+          "recall@10": 0.7083333333333334,
+          "recall@5": 0.6666666666666666
+        },
+        "multiturn": {
+          "latency_ms": 24.567924812436104,
+          "mrr": 0.5333333333333334,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 0.7,
+          "recall@5": 0.5
+        },
+        "vague": {
+          "latency_ms": 23.58345842609803,
+          "mrr": null,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.9589025264082472,
+          "precision@5": null,
+          "recall@10": null,
+          "recall@5": null
+        },
+        "rewrite-target": {
+          "latency_ms": 24.838614859618247,
+          "mrr": 0.0,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.9589025264082472,
+          "precision@5": 0.0,
+          "recall@10": 0.0,
+          "recall@5": 0.0
+        },
+        "sku": {
+          "latency_ms": 25.445417035371065,
+          "mrr": 1.0,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 1.0,
+          "recall@5": 1.0
+        },
+        "compose": {
+          "latency_ms": 29.105249792337418,
+          "mrr": 0.3333333333333333,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 1.0,
+          "recall@5": 1.0
+        }
+      },
+      "per_case": [
+        {
+          "query": "推荐一款适合油皮的洗面奶",
+          "expected": [
+            "p_beauty_004",
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_020",
+            "p_beauty_013",
+            "p_beauty_014",
+            "p_beauty_006",
+            "p_beauty_023",
+            "p_beauty_011",
+            "p_food_019",
+            "p_beauty_018",
+            "p_digital_010",
+            "p_beauty_017"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.5,
+            "mrr": 0.16666666666666666,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 640.4387503862381
+          },
+          "latency_ms": 640.4387503862381,
+          "error": null
+        },
+        {
+          "query": "适合敏感肌的洁面产品有什么",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_007",
+            "p_beauty_012",
+            "p_beauty_017",
+            "p_1_intl_05",
+            "p_1_real_03",
+            "p_beauty_024",
+            "p_beauty_002",
+            "p_beauty_001",
+            "p_beauty_022"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.6650410592556
+          },
+          "latency_ms": 25.6650410592556,
+          "error": null
+        },
+        {
+          "query": "200元以下的蓝牙耳机有哪些",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "filter",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_2_intl_04",
+            "p_digital_018",
+            "p_digital_007",
+            "p_2_intl_01",
+            "p_2_intl_02",
+            "p_clothes_005",
+            "p_food_019",
+            "p_digital_020",
+            "p_clothes_019",
+            "p_3_intl_02"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7772706959213891,
+            "latency_ms": 25.051416363567114
+          },
+          "latency_ms": 25.051416363567114,
+          "error": null
+        },
+        {
+          "query": "性价比高的国产手机推荐",
+          "expected": [
+            "p_digital_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "filter"
+          ],
+          "retrieved": [
+            "p_digital_015",
+            "p_digital_010",
+            "p_digital_016",
+            "p_digital_008",
+            "p_digital_007",
+            "p_digital_005",
+            "p_digital_019",
+            "p_digital_002",
+            "p_food_019",
+            "p_digital_001"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.483874905854464
+          },
+          "latency_ms": 24.483874905854464,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 宇宙橙 256GB 多少钱",
+          "expected": [
+            "p_digital_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_016",
+            "p_digital_009",
+            "p_digital_002",
+            "p_digital_013",
+            "p_digital_008",
+            "p_digital_024",
+            "p_digital_012",
+            "p_digital_011"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 27.90191676467657
+          },
+          "latency_ms": 27.90191676467657,
+          "error": null
+        },
+        {
+          "query": "Apple MacBook Air M5 16GB",
+          "expected": [
+            "p_digital_020"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_digital_020",
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_025",
+            "p_digital_013",
+            "p_digital_024",
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_018",
+            "p_2_intl_02"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.25445895642042
+          },
+          "latency_ms": 24.25445895642042,
+          "error": null
+        },
+        {
+          "query": "雅诗兰黛特润修护精华露 30ml",
+          "expected": [
+            "p_beauty_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_1_intl_02",
+            "p_1_real_01",
+            "p_beauty_004",
+            "p_1_intl_04",
+            "p_beauty_002",
+            "p_1_real_02",
+            "p_beauty_024",
+            "p_beauty_003",
+            "p_1_real_05"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 28.94575009122491
+          },
+          "latency_ms": 28.94575009122491,
+          "error": null
+        },
+        {
+          "query": "兰蔻小黑瓶 30ml 多少钱",
+          "expected": [
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_beauty_019",
+            "p_beauty_008",
+            "p_beauty_001",
+            "p_1_real_02",
+            "p_beauty_024",
+            "p_beauty_018",
+            "p_beauty_006",
+            "p_1_real_01",
+            "p_1_intl_04"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.07837489247322
+          },
+          "latency_ms": 25.07837489247322,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的精华液",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_005",
+            "p_beauty_024",
+            "p_beauty_002",
+            "p_beauty_009",
+            "p_beauty_018",
+            "p_beauty_001",
+            "p_beauty_003",
+            "p_1_intl_02",
+            "p_beauty_004",
+            "p_food_006"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.31595914438367
+          },
+          "latency_ms": 23.31595914438367,
+          "error": null
+        },
+        {
+          "query": "请推荐一款轻量跑鞋",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_clothes_009",
+            "p_clothes_010",
+            "p_clothes_008",
+            "p_clothes_007",
+            "p_clothes_014",
+            "p_clothes_011",
+            "p_8_real_02",
+            "p_beauty_016",
+            "p_beauty_011",
+            "p_clothes_015"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.762997002997003,
+            "latency_ms": 25.447958149015903
+          },
+          "latency_ms": 25.447958149015903,
+          "error": null
+        },
+        {
+          "query": "雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_1_intl_02",
+            "p_beauty_008",
+            "p_beauty_019",
+            "p_beauty_024",
+            "p_beauty_020",
+            "p_1_real_01",
+            "p_beauty_009",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 22.46937481686473
+          },
+          "latency_ms": 22.46937481686473,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 和 iPhone 17 Pro Max 对比",
+          "expected": [
+            "p_digital_001",
+            "p_digital_003"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_digital_003",
+            "p_digital_001",
+            "p_digital_009",
+            "p_digital_012",
+            "p_digital_008",
+            "p_digital_013",
+            "p_digital_002",
+            "p_digital_006",
+            "p_digital_016",
+            "p_digital_024"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.093500036746264
+          },
+          "latency_ms": 25.093500036746264,
+          "error": null
+        },
+        {
+          "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "compare",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_02",
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_digital_005",
+            "p_digital_021",
+            "p_digital_024",
+            "p_digital_004",
+            "p_digital_025"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7837662337662338,
+            "latency_ms": 24.598042014986277
+          },
+          "latency_ms": 24.598042014986277,
+          "error": null
+        },
+        {
+          "query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌",
+          "expected": [
+            "p_beauty_006"
+          ],
+          "forbidden": [
+            "p_beauty_010"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_020",
+            "p_clothes_009",
+            "p_beauty_023",
+            "p_clothes_025",
+            "p_beauty_010",
+            "p_clothes_005",
+            "p_beauty_005",
+            "p_clothes_023",
+            "p_beauty_008",
+            "p_clothes_018"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 25.025249924510717
+          },
+          "latency_ms": 25.025249924510717,
+          "error": null
+        },
+        {
+          "query": "推荐洁面产品，除了泡沫型的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_017",
+            "p_beauty_002",
+            "p_beauty_010",
+            "p_6_real_04",
+            "p_beauty_012",
+            "p_beauty_003",
+            "p_beauty_007",
+            "p_beauty_018",
+            "p_beauty_023"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.8858571428571429,
+            "latency_ms": 28.645959217101336
+          },
+          "latency_ms": 28.645959217101336,
+          "error": null
+        },
+        {
+          "query": "不要 Apple 的笔记本电脑推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "negation",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_006",
+            "p_digital_020",
+            "p_digital_012",
+            "p_digital_001",
+            "p_digital_024",
+            "p_digital_023",
+            "p_digital_025",
+            "p_digital_022",
+            "p_digital_013",
+            "p_digital_018"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.6283625730994152,
+            "latency_ms": 23.873416241258383
+          },
+          "latency_ms": 23.873416241258383,
+          "error": null
+        },
+        {
+          "query": "推荐一款适合油皮的洗面奶 更便宜 平价 低价 性价比 再便宜点的呢",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_013",
+            "p_beauty_020",
+            "p_beauty_023",
+            "p_beauty_006",
+            "p_beauty_024",
+            "p_beauty_011",
+            "p_beauty_014",
+            "p_food_012",
+            "p_beauty_018",
+            "p_beauty_017"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 1.0,
+            "mrr": 0.16666666666666666,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.322041776031256
+          },
+          "latency_ms": 24.322041776031256,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
+          "expected": [
+            "p_beauty_004"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_024",
+            "p_beauty_005",
+            "p_beauty_009",
+            "p_beauty_018",
+            "p_1_intl_02",
+            "p_beauty_002",
+            "p_beauty_001",
+            "p_1_intl_04",
+            "p_digital_022",
+            "p_digital_021"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 22.764333058148623
+          },
+          "latency_ms": 22.764333058148623,
+          "error": null
+        },
+        {
+          "query": "便宜点的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_food_021",
+            "p_beauty_021",
+            "p_food_012",
+            "p_food_022",
+            "p_food_020",
+            "p_food_010",
+            "p_beauty_008",
+            "p_food_015",
+            "p_beauty_023",
+            "p_clothes_013"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9385433280170122,
+            "latency_ms": 24.193041026592255
+          },
+          "latency_ms": 24.193041026592255,
+          "error": null
+        },
+        {
+          "query": "好用的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_digital_014",
+            "p_beauty_005",
+            "p_food_015",
+            "p_beauty_002",
+            "p_clothes_013",
+            "p_beauty_023",
+            "p_food_021",
+            "p_beauty_004",
+            "p_clothes_012",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 1.0,
+            "latency_ms": 24.73699999973178
+          },
+          "latency_ms": 24.73699999973178,
+          "error": null
+        },
+        {
+          "query": "送礼推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_6_real_04",
+            "p_food_019",
+            "p_5_real_03",
+            "p_4_intl_01",
+            "p_1_real_02",
+            "p_2_intl_03",
+            "p_food_009",
+            "p_7_real_02",
+            "p_6_real_01",
+            "p_1_real_01"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9381642512077295,
+            "latency_ms": 21.820334251970053
+          },
+          "latency_ms": 21.820334251970053,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 黑色 1TB 多少钱",
+          "expected": [
+            "p_digital_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec",
+            "sku"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_012",
+            "p_digital_006",
+            "p_digital_014",
+            "p_digital_016",
+            "p_digital_005",
+            "p_digital_013",
+            "p_digital_009",
+            "p_digital_008"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.445417035371065
+          },
+          "latency_ms": 25.445417035371065,
+          "error": null
+        },
+        {
+          "query": "薇诺娜舒敏控油洁面乳",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec"
+          ],
+          "retrieved": [
+            "p_1_real_03",
+            "p_beauty_007",
+            "p_beauty_022",
+            "p_beauty_018",
+            "p_beauty_011",
+            "p_beauty_023",
+            "p_beauty_014",
+            "p_beauty_020",
+            "p_beauty_017",
+            "p_beauty_012"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.2,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.63825000450015
+          },
+          "latency_ms": 24.63825000450015,
+          "error": null
+        },
+        {
+          "query": "理肤泉特护清盈防晒乳 SPF50",
+          "expected": [
+            "p_beauty_006"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_023",
+            "p_beauty_010",
+            "p_beauty_012",
+            "p_1_intl_05",
+            "p_beauty_006",
+            "p_beauty_007",
+            "p_1_real_03",
+            "p_beauty_020",
+            "p_beauty_019",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.2,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.95820899680257
+          },
+          "latency_ms": 26.95820899680257,
+          "error": null
+        },
+        {
+          "query": "适合干皮的乳液",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_beauty_013",
+            "p_beauty_019",
+            "p_beauty_008",
+            "p_beauty_014",
+            "p_beauty_020",
+            "p_beauty_007",
+            "p_beauty_005",
+            "p_1_intl_05",
+            "p_beauty_024",
+            "p_beauty_012"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9666666666666667,
+            "latency_ms": 27.407207991927862
+          },
+          "latency_ms": 27.407207991927862,
+          "error": null
+        },
+        {
+          "query": "保湿面霜推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_beauty_007",
+            "p_1_intl_05",
+            "p_beauty_008",
+            "p_1_real_01",
+            "p_1_real_03",
+            "p_beauty_001",
+            "p_beauty_019",
+            "p_beauty_012",
+            "p_beauty_009",
+            "p_1_intl_01"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.6384896584896584,
+            "latency_ms": 23.971374612301588
+          },
+          "latency_ms": 23.971374612301588,
+          "error": null
+        },
+        {
+          "query": "无线耳机降噪",
+          "expected": [
+            "p_digital_004",
+            "p_digital_005"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_2_intl_02",
+            "p_digital_019",
+            "p_digital_010",
+            "p_digital_014",
+            "p_digital_025",
+            "p_digital_011"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.105332653969526
+          },
+          "latency_ms": 26.105332653969526,
+          "error": null
+        },
+        {
+          "query": "Apple iPad Air 平板",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "spec",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_025",
+            "p_digital_013",
+            "p_digital_024",
+            "p_digital_020",
+            "p_digital_021",
+            "p_digital_005",
+            "p_digital_019",
+            "p_digital_006",
+            "p_digital_001",
+            "p_digital_011"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.74,
+            "latency_ms": 30.610292218625546
+          },
+          "latency_ms": 30.610292218625546,
+          "error": null
+        },
+        {
+          "query": "国产护肤平价好物",
+          "expected": [
+            "p_beauty_009",
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_1_real_04",
+            "p_1_real_02",
+            "p_beauty_003",
+            "p_1_intl_03",
+            "p_1_real_03",
+            "p_1_real_05",
+            "p_beauty_018",
+            "p_beauty_005",
+            "p_1_intl_04",
+            "p_1_intl_05"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 28.6040841601789
+          },
+          "latency_ms": 28.6040841601789,
+          "error": null
+        },
+        {
+          "query": "新手适合的相机",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_2_intl_05",
+            "p_digital_017",
+            "p_digital_016",
+            "p_beauty_025",
+            "p_digital_015",
+            "p_clothes_020",
+            "p_digital_002",
+            "p_8_real_02",
+            "p_digital_008",
+            "p_3_intl_01"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.824002664002664,
+            "latency_ms": 27.78191724792123
+          },
+          "latency_ms": 27.78191724792123,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的护肤精华，要平价",
+          "expected": [
+            "p_beauty_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compose",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_beauty_009",
+            "p_beauty_005",
+            "p_beauty_024",
+            "p_beauty_004",
+            "p_beauty_003",
+            "p_beauty_018",
+            "p_beauty_021",
+            "p_beauty_011"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 29.105249792337418
+          },
+          "latency_ms": 29.105249792337418,
+          "error": null
+        },
+        {
+          "query": "推荐一款入门跑步鞋",
+          "expected": [
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_8_real_02",
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_009",
+            "p_clothes_008",
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_8_real_03",
+            "p_clothes_013",
+            "p_clothes_020"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.299625005573034
+          },
+          "latency_ms": 25.299625005573034,
+          "error": null
+        },
+        {
+          "query": "想买一本经典中文小说",
+          "expected": [
+            "p_7_real_02",
+            "p_7_real_03"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_7_real_01",
+            "p_7_real_02",
+            "p_7_real_03",
+            "p_food_008",
+            "p_7_real_04",
+            "p_food_011",
+            "p_digital_019",
+            "p_food_003",
+            "p_7_real_05",
+            "p_clothes_024"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.616584043949842
+          },
+          "latency_ms": 26.616584043949842,
+          "error": null
+        },
+        {
+          "query": "推荐适合通勤的双肩包",
+          "expected": [
+            "p_clothes_018",
+            "p_clothes_025"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_018",
+            "p_clothes_025",
+            "p_food_019",
+            "p_clothes_024",
+            "p_clothes_003",
+            "p_digital_010",
+            "p_clothes_005",
+            "p_3_intl_01",
+            "p_clothes_002",
+            "p_beauty_020"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.41237510740757
+          },
+          "latency_ms": 25.41237510740757,
+          "error": null
+        },
+        {
+          "query": "100元以下的洁面产品",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_003",
+            "p_food_002",
+            "p_beauty_002",
+            "p_beauty_017",
+            "p_1_real_04",
+            "p_beauty_010",
+            "p_beauty_018",
+            "p_beauty_004",
+            "p_6_real_04"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 30.73162492364645
+          },
+          "latency_ms": 30.73162492364645,
+          "error": null
+        },
+        {
+          "query": "500元以下的运动T恤",
+          "expected": [
+            "p_clothes_001",
+            "p_clothes_003",
+            "p_clothes_021"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_clothes_003",
+            "p_clothes_021",
+            "p_clothes_002",
+            "p_clothes_020",
+            "p_clothes_001",
+            "p_clothes_023",
+            "p_clothes_005",
+            "p_clothes_004",
+            "p_clothes_016",
+            "p_clothes_008"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.279167272150517
+          },
+          "latency_ms": 26.279167272150517,
+          "error": null
+        },
+        {
+          "query": "200元以下的速溶咖啡",
+          "expected": [
+            "p_food_022",
+            "p_food_023",
+            "p_food_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_food_023",
+            "p_food_022",
+            "p_food_001",
+            "p_food_002",
+            "p_food_005",
+            "p_food_015",
+            "p_food_004",
+            "p_food_003",
+            "p_food_006",
+            "p_food_007"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.307832915335894
+          },
+          "latency_ms": 26.307832915335894,
+          "error": null
+        },
+        {
+          "query": "2000元以下的智能手表",
+          "expected": [
+            "p_8_real_01"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_8_real_01",
+            "p_6_real_01",
+            "p_digital_022",
+            "p_digital_005",
+            "p_food_007",
+            "p_1_intl_02",
+            "p_digital_002",
+            "p_7_real_02",
+            "p_digital_008",
+            "p_clothes_005"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 28.532542288303375
+          },
+          "latency_ms": 28.532542288303375,
+          "error": null
+        },
+        {
+          "query": "100元以下的休闲零食",
+          "expected": [
+            "p_food_009",
+            "p_food_010",
+            "p_food_021"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_food_010",
+            "p_food_019",
+            "p_food_002",
+            "p_4_intl_02",
+            "p_food_004",
+            "p_food_015",
+            "p_food_009",
+            "p_4_intl_01",
+            "p_food_021",
+            "p_food_007"
+          ],
+          "metrics": {
+            "recall@5": 0.3333333333333333,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.72545798122883
+          },
+          "latency_ms": 26.72545798122883,
+          "error": null
+        },
+        {
+          "query": "推荐一款手机，不要Apple",
+          "expected": [
+            "p_digital_002",
+            "p_digital_008",
+            "p_digital_014",
+            "p_digital_017"
+          ],
+          "forbidden": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_018",
+            "p_digital_024",
+            "p_digital_025"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_006",
+            "p_digital_003",
+            "p_digital_025",
+            "p_digital_020",
+            "p_digital_024",
+            "p_digital_002",
+            "p_digital_013",
+            "p_digital_018",
+            "p_digital_012"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.25,
+            "mrr": 0.14285714285714285,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.4,
+            "no_match_correctness": null,
+            "latency_ms": 25.908916722983122
+          },
+          "latency_ms": 25.908916722983122,
+          "error": null
+        },
+        {
+          "query": "推荐跑步鞋，不要Nike",
+          "expected": [
+            "p_clothes_008",
+            "p_clothes_009",
+            "p_clothes_010"
+          ],
+          "forbidden": [
+            "p_clothes_007",
+            "p_3_intl_02"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_clothes_007",
+            "p_clothes_008",
+            "p_8_real_02",
+            "p_clothes_009",
+            "p_clothes_010",
+            "p_clothes_011",
+            "p_clothes_021",
+            "p_clothes_013",
+            "p_clothes_015",
+            "p_clothes_014"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.6,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 27.965665794909
+          },
+          "latency_ms": 27.965665794909,
+          "error": null
+        },
+        {
+          "query": "推荐头戴式降噪耳机，不要Sony",
+          "expected": [
+            "p_2_intl_04"
+          ],
+          "forbidden": [
+            "p_2_intl_01"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_digital_018",
+            "p_2_intl_02",
+            "p_digital_010",
+            "p_digital_020",
+            "p_digital_023",
+            "p_digital_017",
+            "p_digital_002"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 29.173457995057106
+          },
+          "latency_ms": 29.173457995057106,
+          "error": null
+        },
+        {
+          "query": "推荐抗初老精华，不要兰蔻",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_009",
+            "p_1_real_01"
+          ],
+          "forbidden": [
+            "p_beauty_002",
+            "p_beauty_019"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_beauty_001",
+            "p_1_real_01",
+            "p_beauty_019",
+            "p_beauty_009",
+            "p_beauty_005",
+            "p_beauty_008",
+            "p_beauty_004",
+            "p_1_real_02",
+            "p_1_intl_04"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.6,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 29.36391718685627
+          },
+          "latency_ms": 29.36391718685627,
+          "error": null
+        },
+        {
+          "query": "推荐速溶咖啡，不要雀巢",
+          "expected": [
+            "p_food_001",
+            "p_food_022"
+          ],
+          "forbidden": [
+            "p_food_002",
+            "p_food_023"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_food_023",
+            "p_food_002",
+            "p_food_001",
+            "p_food_022",
+            "p_food_016",
+            "p_food_005",
+            "p_food_017",
+            "p_food_025",
+            "p_5_real_05",
+            "p_food_006"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.4,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 30.522292014211416
+          },
+          "latency_ms": 30.522292014211416,
+          "error": null
+        },
+        {
+          "query": "轻量碳板的",
+          "expected": [
+            "p_clothes_010",
+            "p_clothes_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_food_015",
+            "p_clothes_008",
+            "p_digital_021",
+            "p_clothes_013",
+            "p_food_005",
+            "p_clothes_011",
+            "p_digital_014",
+            "p_food_004",
+            "p_digital_022"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.667249854654074
+          },
+          "latency_ms": 26.667249854654074,
+          "error": null
+        },
+        {
+          "query": "推荐适合熬夜的精华 更便宜 平价 低价 性价比 国货平价的",
+          "expected": [
+            "p_beauty_009",
+            "p_1_real_02"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_024",
+            "p_beauty_009",
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_1_real_02",
+            "p_beauty_005",
+            "p_beauty_004",
+            "p_beauty_003",
+            "p_food_006",
+            "p_beauty_018"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 23.911333177238703
+          },
+          "latency_ms": 23.911333177238703,
+          "error": null
+        },
+        {
+          "query": "要折叠屏",
+          "expected": [
+            "p_digital_010",
+            "p_digital_014"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_digital_010",
+            "p_digital_014",
+            "p_digital_002",
+            "p_digital_023",
+            "p_digital_019",
+            "p_digital_005",
+            "p_digital_013",
+            "p_digital_012",
+            "p_digital_009",
+            "p_digital_004"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.174666196107864
+          },
+          "latency_ms": 25.174666196107864,
+          "error": null
+        },
+        {
+          "query": "Sony WH-1000XM5 和 Bose QC Ultra 哪个降噪更好",
+          "expected": [
+            "p_2_intl_01",
+            "p_2_intl_04"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_2_intl_04",
+            "p_2_intl_01",
+            "p_digital_007",
+            "p_2_intl_02",
+            "p_digital_018",
+            "p_digital_017",
+            "p_digital_015",
+            "p_digital_024",
+            "p_digital_014",
+            "p_digital_008"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 22.940041963011026
+          },
+          "latency_ms": 22.940041963011026,
+          "error": null
+        },
+        {
+          "query": "特步 160X 和 Nike Pegasus 41 哪个更适合马拉松",
+          "expected": [
+            "p_clothes_010",
+            "p_clothes_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_011",
+            "p_3_intl_02",
+            "p_clothes_021",
+            "p_clothes_006",
+            "p_clothes_003",
+            "p_clothes_009",
+            "p_clothes_008",
+            "p_clothes_014"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 24.17362481355667
+          },
+          "latency_ms": 24.17362481355667,
+          "error": null
+        },
+        {
+          "query": "雪花秀和资生堂哪个适合干皮",
+          "expected": [
+            "p_1_real_04",
+            "p_beauty_004"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_1_intl_04",
+            "p_beauty_004",
+            "p_6_real_04",
+            "p_beauty_013",
+            "p_beauty_019",
+            "p_1_real_04",
+            "p_beauty_014",
+            "p_beauty_008",
+            "p_beauty_020",
+            "p_beauty_022"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 28.525167144834995
+          },
+          "latency_ms": 28.525167144834995,
+          "error": null
+        },
+        {
+          "query": "推荐一款电动牙刷",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_010",
+            "p_beauty_016",
+            "p_digital_016",
+            "p_6_real_01",
+            "p_food_019",
+            "p_digital_007",
+            "p_digital_022",
+            "p_beauty_018",
+            "p_digital_006",
+            "p_digital_002"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9636363636363636,
+            "latency_ms": 27.77137467637658
+          },
+          "latency_ms": 27.77137467637658,
+          "error": null
+        },
+        {
+          "query": "推荐一款无线充电器",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_006",
+            "p_digital_007",
+            "p_digital_012",
+            "p_digital_020",
+            "p_2_intl_02",
+            "p_digital_009",
+            "p_digital_018",
+            "p_digital_022",
+            "p_digital_025",
+            "p_2_intl_01"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9125887445887446,
+            "latency_ms": 26.136042084544897
+          },
+          "latency_ms": 26.136042084544897,
+          "error": null
+        },
+        {
+          "query": "推荐一辆扫地机器人",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_022",
+            "p_food_019",
+            "p_8_real_01",
+            "p_digital_010",
+            "p_digital_020",
+            "p_6_real_05",
+            "p_digital_008",
+            "p_digital_004",
+            "p_digital_006",
+            "p_digital_024"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9703703703703703,
+            "latency_ms": 27.234917040914297
+          },
+          "latency_ms": 27.234917040914297,
+          "error": null
+        },
+        {
+          "query": "推荐徒步登山鞋",
+          "expected": [
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_8_real_03"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_014",
+            "p_8_real_03",
+            "p_clothes_015",
+            "p_clothes_017",
+            "p_8_real_04",
+            "p_clothes_024",
+            "p_clothes_025",
+            "p_clothes_009",
+            "p_clothes_007",
+            "p_clothes_010"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.970542035996914
+          },
+          "latency_ms": 26.970542035996914,
+          "error": null
+        },
+        {
+          "query": "推荐有机牛奶",
+          "expected": [
+            "p_food_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_food_007",
+            "p_food_016",
+            "p_food_010",
+            "p_food_019",
+            "p_food_008",
+            "p_digital_010",
+            "p_food_017",
+            "p_food_006",
+            "p_5_real_01",
+            "p_food_002"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 26.221416424959898
+          },
+          "latency_ms": 26.221416424959898,
+          "error": null
+        },
+        {
+          "query": "500元以下的高倍防晒霜",
+          "expected": [
+            "p_beauty_006",
+            "p_beauty_010",
+            "p_beauty_023"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_beauty_010",
+            "p_beauty_023",
+            "p_beauty_006",
+            "p_clothes_025",
+            "p_food_007",
+            "p_beauty_020",
+            "p_clothes_005",
+            "p_beauty_005",
+            "p_beauty_008",
+            "p_food_015"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 25.97916591912508
+          },
+          "latency_ms": 25.97916591912508,
+          "error": null
+        }
+      ],
+      "errors": 0
+    },
+    "hybrid_rerank": {
+      "label": "Hybrid + Rerank",
+      "overall": {
+        "latency_ms": 1949.7335675987415,
+        "mrr": 0.7012195121951219,
+        "negation_accuracy": 0.7333333333333333,
+        "no_match_correctness": 0.8558808857684118,
+        "precision@5": 0.2585365853658537,
+        "recall@10": 0.8882113821138212,
+        "recall@5": 0.7804878048780488
+      },
+      "by_tag": {
+        "basic": {
+          "latency_ms": 1984.694679446805,
+          "mrr": 0.8916666666666666,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7772706959213892,
+          "precision@5": 0.25,
+          "recall@10": 0.9305555555555557,
+          "recall@5": 0.861111111111111
+        },
+        "intent": {
+          "latency_ms": 2224.4334790389985,
+          "mrr": 0.7000000000000001,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.790333630131044,
+          "precision@5": 0.16666666666666666,
+          "recall@10": 0.6666666666666666,
+          "recall@5": 0.5833333333333334
+        },
+        "filter": {
+          "latency_ms": 1708.7848123628646,
+          "mrr": 0.46904761904761905,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.7772706959213892,
+          "precision@5": 0.31428571428571433,
+          "recall@10": 1.0,
+          "recall@5": 0.8095238095238096
+        },
+        "no-match": {
+          "latency_ms": 1752.7589429677887,
+          "mrr": null,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.8198821927272586,
+          "precision@5": null,
+          "recall@10": null,
+          "recall@5": null
+        },
+        "spec": {
+          "latency_ms": 1810.1423904881813,
+          "mrr": 0.6666666666666666,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.74,
+          "precision@5": 0.17142857142857143,
+          "recall@10": 0.8571428571428571,
+          "recall@5": 0.8571428571428571
+        },
+        "compare": {
+          "latency_ms": 1904.148860912149,
+          "mrr": 0.9,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.8337662337662337,
+          "precision@5": 0.36,
+          "recall@10": 1.0,
+          "recall@5": 0.9
+        },
+        "negation": {
+          "latency_ms": 2290.9781717462465,
+          "mrr": 0.5444444444444445,
+          "negation_accuracy": 0.7333333333333333,
+          "no_match_correctness": 0.7786001325778213,
+          "precision@5": 0.2333333333333333,
+          "recall@10": 0.875,
+          "recall@5": 0.6666666666666666
+        },
+        "multiturn": {
+          "latency_ms": 1853.4688416868448,
+          "mrr": 0.8666666666666666,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.27999999999999997,
+          "recall@10": 0.9,
+          "recall@5": 0.9
+        },
+        "vague": {
+          "latency_ms": 1895.9434999463458,
+          "mrr": null,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.973717341223062,
+          "precision@5": null,
+          "recall@10": null,
+          "recall@5": null
+        },
+        "rewrite-target": {
+          "latency_ms": 1854.2394894175231,
+          "mrr": 0.2,
+          "negation_accuracy": null,
+          "no_match_correctness": 0.973717341223062,
+          "precision@5": 0.2,
+          "recall@10": 0.5,
+          "recall@5": 0.5
+        },
+        "sku": {
+          "latency_ms": 1555.2678750827909,
+          "mrr": 0.3333333333333333,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 1.0,
+          "recall@5": 1.0
+        },
+        "compose": {
+          "latency_ms": 1854.860750027001,
+          "mrr": 1.0,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 1.0,
+          "recall@5": 1.0
+        }
+      },
+      "per_case": [
+        {
+          "query": "推荐一款适合油皮的洗面奶",
+          "expected": [
+            "p_beauty_004",
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_023",
+            "p_beauty_020",
+            "p_beauty_014",
+            "p_beauty_013",
+            "p_beauty_006",
+            "p_1_intl_05",
+            "p_beauty_017",
+            "p_beauty_005",
+            "p_beauty_018"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 4603.763374965638
+          },
+          "latency_ms": 4603.763374965638,
+          "error": null
+        },
+        {
+          "query": "适合敏感肌的洁面产品有什么",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_006",
+            "p_beauty_007",
+            "p_beauty_024",
+            "p_beauty_001",
+            "p_beauty_017",
+            "p_beauty_009",
+            "p_beauty_018",
+            "p_1_real_03",
+            "p_beauty_012"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2148.9375419914722
+          },
+          "latency_ms": 2148.9375419914722,
+          "error": null
+        },
+        {
+          "query": "200元以下的蓝牙耳机有哪些",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "filter",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_2_intl_02",
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_digital_007",
+            "p_digital_018",
+            "p_digital_025",
+            "p_digital_021",
+            "p_digital_017",
+            "p_digital_020",
+            "p_digital_022"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7772706959213892,
+            "latency_ms": 1534.93274981156
+          },
+          "latency_ms": 1534.93274981156,
+          "error": null
+        },
+        {
+          "query": "性价比高的国产手机推荐",
+          "expected": [
+            "p_digital_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "filter"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_digital_016",
+            "p_digital_011",
+            "p_digital_005",
+            "p_digital_009",
+            "p_digital_015",
+            "p_digital_002",
+            "p_digital_017",
+            "p_digital_008",
+            "p_digital_003"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.2,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1581.2647081911564
+          },
+          "latency_ms": 1581.2647081911564,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 宇宙橙 256GB 多少钱",
+          "expected": [
+            "p_digital_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_013",
+            "p_2_intl_02",
+            "p_digital_016",
+            "p_digital_024",
+            "p_2_intl_01",
+            "p_digital_009",
+            "p_digital_006",
+            "p_digital_020"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1690.1363339275122
+          },
+          "latency_ms": 1690.1363339275122,
+          "error": null
+        },
+        {
+          "query": "Apple MacBook Air M5 16GB",
+          "expected": [
+            "p_digital_020"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_digital_020",
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_013",
+            "p_digital_019",
+            "p_digital_014",
+            "p_2_intl_02",
+            "p_digital_018",
+            "p_digital_023",
+            "p_digital_025"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1518.2378748431802
+          },
+          "latency_ms": 1518.2378748431802,
+          "error": null
+        },
+        {
+          "query": "雅诗兰黛特润修护精华露 30ml",
+          "expected": [
+            "p_beauty_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_001",
+            "p_beauty_005",
+            "p_1_intl_02",
+            "p_beauty_024",
+            "p_1_real_02",
+            "p_beauty_006",
+            "p_beauty_002",
+            "p_beauty_016",
+            "p_beauty_018",
+            "p_beauty_020"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2106.215958017856
+          },
+          "latency_ms": 2106.215958017856,
+          "error": null
+        },
+        {
+          "query": "兰蔻小黑瓶 30ml 多少钱",
+          "expected": [
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic",
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_beauty_005",
+            "p_beauty_024",
+            "p_1_real_02",
+            "p_beauty_001",
+            "p_beauty_006",
+            "p_beauty_018",
+            "p_beauty_020",
+            "p_beauty_019",
+            "p_beauty_010"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1720.055541023612
+          },
+          "latency_ms": 1720.055541023612,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的精华液",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_beauty_024",
+            "p_beauty_009",
+            "p_food_005",
+            "p_1_intl_02",
+            "p_beauty_005",
+            "p_beauty_001",
+            "p_beauty_004",
+            "p_food_006",
+            "p_1_real_02"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2234.6573751419783
+          },
+          "latency_ms": 2234.6573751419783,
+          "error": null
+        },
+        {
+          "query": "请推荐一款轻量跑鞋",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_8_real_02",
+            "p_clothes_021",
+            "p_clothes_020",
+            "p_8_real_05",
+            "p_clothes_014",
+            "p_clothes_008",
+            "p_clothes_024",
+            "p_clothes_009",
+            "p_3_intl_02"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7992744324640877,
+            "latency_ms": 1601.013207808137
+          },
+          "latency_ms": 1601.013207808137,
+          "error": null
+        },
+        {
+          "query": "雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_beauty_001",
+            "p_1_intl_02",
+            "p_beauty_024",
+            "p_food_005",
+            "p_1_real_01",
+            "p_food_006",
+            "p_beauty_009",
+            "p_beauty_004",
+            "p_beauty_019"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2470.142416190356
+          },
+          "latency_ms": 2470.142416190356,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 和 iPhone 17 Pro Max 对比",
+          "expected": [
+            "p_digital_001",
+            "p_digital_003"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_digital_003",
+            "p_digital_001",
+            "p_2_intl_02",
+            "p_2_intl_01",
+            "p_digital_020",
+            "p_digital_016",
+            "p_digital_006",
+            "p_digital_013",
+            "p_digital_025",
+            "p_digital_015"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1621.5941668488085
+          },
+          "latency_ms": 1621.5941668488085,
+          "error": null
+        },
+        {
+          "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "compare",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_02",
+            "p_2_intl_04",
+            "p_digital_013",
+            "p_digital_025",
+            "p_digital_021",
+            "p_digital_005",
+            "p_2_intl_01",
+            "p_digital_024"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.8337662337662337,
+            "latency_ms": 1697.0254997722805
+          },
+          "latency_ms": 1697.0254997722805,
+          "error": null
+        },
+        {
+          "query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌",
+          "expected": [
+            "p_beauty_006"
+          ],
+          "forbidden": [
+            "p_beauty_010"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_006",
+            "p_beauty_010",
+            "p_beauty_023",
+            "p_beauty_005",
+            "p_clothes_024",
+            "p_1_real_02",
+            "p_1_intl_05",
+            "p_beauty_014",
+            "p_beauty_020",
+            "p_beauty_008"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 2896.457207854837
+          },
+          "latency_ms": 2896.457207854837,
+          "error": null
+        },
+        {
+          "query": "推荐洁面产品，除了泡沫型的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_6_real_04",
+            "p_1_real_04",
+            "p_1_intl_04",
+            "p_beauty_017",
+            "p_beauty_003",
+            "p_beauty_018",
+            "p_beauty_006",
+            "p_beauty_002",
+            "p_beauty_005"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.8983571428571429,
+            "latency_ms": 2378.6053331568837
+          },
+          "latency_ms": 2378.6053331568837,
+          "error": null
+        },
+        {
+          "query": "不要 Apple 的笔记本电脑推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "negation",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_025",
+            "p_digital_006",
+            "p_digital_020",
+            "p_digital_013",
+            "p_digital_024",
+            "p_digital_019",
+            "p_digital_005",
+            "p_digital_011",
+            "p_digital_012",
+            "p_digital_004"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.6588431222984998,
+            "latency_ms": 2014.7289582528174
+          },
+          "latency_ms": 2014.7289582528174,
+          "error": null
+        },
+        {
+          "query": "推荐一款适合油皮的洗面奶 更便宜 平价 低价 性价比 再便宜点的呢",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_011",
+            "p_beauty_018",
+            "p_beauty_013",
+            "p_beauty_014",
+            "p_beauty_006",
+            "p_beauty_017",
+            "p_beauty_023",
+            "p_beauty_020",
+            "p_beauty_002",
+            "p_food_017"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2088.2077501155436
+          },
+          "latency_ms": 2088.2077501155436,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
+          "expected": [
+            "p_beauty_004"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_beauty_001",
+            "p_beauty_004",
+            "p_beauty_005",
+            "p_beauty_024",
+            "p_beauty_009",
+            "p_1_real_02",
+            "p_1_intl_02",
+            "p_1_intl_04",
+            "p_beauty_018"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1826.3939167372882
+          },
+          "latency_ms": 1826.3939167372882,
+          "error": null
+        },
+        {
+          "query": "便宜点的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_food_004",
+            "p_food_005",
+            "p_food_021",
+            "p_food_012",
+            "p_food_008",
+            "p_food_010",
+            "p_food_002",
+            "p_food_020",
+            "p_food_016",
+            "p_food_025"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9607655502392345,
+            "latency_ms": 1730.5430001579225
+          },
+          "latency_ms": 1730.5430001579225,
+          "error": null
+        },
+        {
+          "query": "好用的",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_beauty_005",
+            "p_beauty_003",
+            "p_beauty_009",
+            "p_food_004",
+            "p_beauty_019",
+            "p_beauty_011",
+            "p_beauty_002",
+            "p_beauty_010",
+            "p_beauty_023",
+            "p_food_003"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 1.0,
+            "latency_ms": 1756.190249696374
+          },
+          "latency_ms": 1756.190249696374,
+          "error": null
+        },
+        {
+          "query": "送礼推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "vague",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_5_real_03",
+            "p_2_intl_03",
+            "p_4_intl_01",
+            "p_6_real_01",
+            "p_6_real_04",
+            "p_food_019",
+            "p_7_real_05",
+            "p_food_009",
+            "p_1_real_02",
+            "p_food_020"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9603864734299516,
+            "latency_ms": 2201.097249984741
+          },
+          "latency_ms": 2201.097249984741,
+          "error": null
+        },
+        {
+          "query": "iPhone 17 Pro 黑色 1TB 多少钱",
+          "expected": [
+            "p_digital_001"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec",
+            "sku"
+          ],
+          "retrieved": [
+            "p_2_intl_02",
+            "p_2_intl_01",
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_006",
+            "p_digital_013",
+            "p_digital_020",
+            "p_digital_016",
+            "p_digital_012",
+            "p_digital_024"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1555.2678750827909
+          },
+          "latency_ms": 1555.2678750827909,
+          "error": null
+        },
+        {
+          "query": "薇诺娜舒敏控油洁面乳",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_007",
+            "p_1_real_03",
+            "p_beauty_022",
+            "p_beauty_018",
+            "p_beauty_024",
+            "p_beauty_005",
+            "p_beauty_014",
+            "p_beauty_023",
+            "p_beauty_006",
+            "p_beauty_017"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2226.4892500825226
+          },
+          "latency_ms": 2226.4892500825226,
+          "error": null
+        },
+        {
+          "query": "理肤泉特护清盈防晒乳 SPF50",
+          "expected": [
+            "p_beauty_006"
+          ],
+          "forbidden": [],
+          "tags": [
+            "spec"
+          ],
+          "retrieved": [
+            "p_beauty_023",
+            "p_1_intl_05",
+            "p_beauty_006",
+            "p_beauty_005",
+            "p_beauty_010",
+            "p_beauty_018",
+            "p_food_025",
+            "p_beauty_012",
+            "p_1_real_04",
+            "p_1_real_03"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2170.5461661331356
+          },
+          "latency_ms": 2170.5461661331356,
+          "error": null
+        },
+        {
+          "query": "适合干皮的乳液",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_beauty_019",
+            "p_beauty_024",
+            "p_beauty_007",
+            "p_beauty_011",
+            "p_beauty_014",
+            "p_beauty_008",
+            "p_1_intl_05",
+            "p_beauty_023",
+            "p_beauty_017",
+            "p_beauty_013"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9376630036630037,
+            "latency_ms": 1757.2860829532146
+          },
+          "latency_ms": 1757.2860829532146,
+          "error": null
+        },
+        {
+          "query": "保湿面霜推荐",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_beauty_007",
+            "p_beauty_008",
+            "p_1_intl_05",
+            "p_1_real_01",
+            "p_1_real_03",
+            "p_beauty_005",
+            "p_beauty_024",
+            "p_1_real_02",
+            "p_beauty_009",
+            "p_beauty_001"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.6384896584896584,
+            "latency_ms": 2261.882832739502
+          },
+          "latency_ms": 2261.882832739502,
+          "error": null
+        },
+        {
+          "query": "无线耳机降噪",
+          "expected": [
+            "p_digital_004",
+            "p_digital_005"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent"
+          ],
+          "retrieved": [
+            "p_2_intl_04",
+            "p_digital_007",
+            "p_2_intl_01",
+            "p_digital_018",
+            "p_2_intl_02",
+            "p_digital_020",
+            "p_digital_025",
+            "p_digital_011",
+            "p_digital_015",
+            "p_digital_009"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr": 0.0,
+            "precision@5": 0.0,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2317.4646249972284
+          },
+          "latency_ms": 2317.4646249972284,
+          "error": null
+        },
+        {
+          "query": "Apple iPad Air 平板",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "spec",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_025",
+            "p_digital_013",
+            "p_2_intl_02",
+            "p_digital_024",
+            "p_digital_021",
+            "p_digital_018",
+            "p_digital_020",
+            "p_digital_019",
+            "p_digital_003",
+            "p_digital_006"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.74,
+            "latency_ms": 1494.1901247948408
+          },
+          "latency_ms": 1494.1901247948408,
+          "error": null
+        },
+        {
+          "query": "国产护肤平价好物",
+          "expected": [
+            "p_beauty_009",
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "rewrite-target"
+          ],
+          "retrieved": [
+            "p_1_intl_05",
+            "p_1_intl_01",
+            "p_1_real_03",
+            "p_1_real_02",
+            "p_beauty_009",
+            "p_beauty_005",
+            "p_beauty_002",
+            "p_1_real_01",
+            "p_beauty_003",
+            "p_1_real_05"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 0.2,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1729.127457831055
+          },
+          "latency_ms": 1729.127457831055,
+          "error": null
+        },
+        {
+          "query": "新手适合的相机",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "intent",
+            "no-match"
+          ],
+          "retrieved": [
+            "p_2_intl_05",
+            "p_digital_016",
+            "p_digital_015",
+            "p_digital_002",
+            "p_digital_017",
+            "p_digital_008",
+            "p_beauty_025",
+            "p_digital_001",
+            "p_8_real_02",
+            "p_digital_003"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.7859074259074259,
+            "latency_ms": 1735.3415419347584
+          },
+          "latency_ms": 1735.3415419347584,
+          "error": null
+        },
+        {
+          "query": "适合熬夜的护肤精华，要平价",
+          "expected": [
+            "p_beauty_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compose",
+            "intent"
+          ],
+          "retrieved": [
+            "p_beauty_009",
+            "p_beauty_024",
+            "p_beauty_021",
+            "p_beauty_005",
+            "p_beauty_019",
+            "p_beauty_004",
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_1_real_01",
+            "p_beauty_003"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1854.860750027001
+          },
+          "latency_ms": 1854.860750027001,
+          "error": null
+        },
+        {
+          "query": "推荐一款入门跑步鞋",
+          "expected": [
+            "p_clothes_007",
+            "p_clothes_010",
+            "p_clothes_009"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_8_real_02",
+            "p_clothes_020",
+            "p_clothes_008",
+            "p_clothes_021",
+            "p_clothes_012",
+            "p_8_real_03",
+            "p_clothes_009",
+            "p_3_intl_02",
+            "p_3_intl_05"
+          ],
+          "metrics": {
+            "recall@5": 0.3333333333333333,
+            "recall@10": 0.6666666666666666,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1698.667542077601
+          },
+          "latency_ms": 1698.667542077601,
+          "error": null
+        },
+        {
+          "query": "想买一本经典中文小说",
+          "expected": [
+            "p_7_real_02",
+            "p_7_real_03"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_7_real_04",
+            "p_7_real_03",
+            "p_7_real_01",
+            "p_7_real_05",
+            "p_food_008",
+            "p_7_real_02",
+            "p_3_intl_01",
+            "p_1_real_05",
+            "p_food_003",
+            "p_clothes_024"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1702.6681248098612
+          },
+          "latency_ms": 1702.6681248098612,
+          "error": null
+        },
+        {
+          "query": "推荐适合通勤的双肩包",
+          "expected": [
+            "p_clothes_018",
+            "p_clothes_025"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_clothes_025",
+            "p_clothes_018",
+            "p_clothes_024",
+            "p_digital_022",
+            "p_food_019",
+            "p_clothes_002",
+            "p_8_real_05",
+            "p_digital_015",
+            "p_beauty_020",
+            "p_3_intl_03"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1679.6037498861551
+          },
+          "latency_ms": 1679.6037498861551,
+          "error": null
+        },
+        {
+          "query": "100元以下的洁面产品",
+          "expected": [
+            "p_beauty_011"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_1_intl_05",
+            "p_beauty_011",
+            "p_beauty_018"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1764.5711251534522
+          },
+          "latency_ms": 1764.5711251534522,
+          "error": null
+        },
+        {
+          "query": "500元以下的运动T恤",
+          "expected": [
+            "p_clothes_001",
+            "p_clothes_003",
+            "p_clothes_021"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_clothes_020",
+            "p_clothes_001",
+            "p_clothes_002",
+            "p_clothes_023",
+            "p_clothes_019",
+            "p_clothes_003",
+            "p_clothes_024",
+            "p_clothes_021",
+            "p_clothes_004"
+          ],
+          "metrics": {
+            "recall@5": 0.3333333333333333,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1574.6096251532435
+          },
+          "latency_ms": 1574.6096251532435,
+          "error": null
+        },
+        {
+          "query": "200元以下的速溶咖啡",
+          "expected": [
+            "p_food_022",
+            "p_food_023",
+            "p_food_002"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_food_004",
+            "p_food_005",
+            "p_food_023",
+            "p_food_022",
+            "p_food_002",
+            "p_food_020",
+            "p_food_014",
+            "p_food_025",
+            "p_food_006",
+            "p_food_001"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1806.056082714349
+          },
+          "latency_ms": 1806.056082714349,
+          "error": null
+        },
+        {
+          "query": "2000元以下的智能手表",
+          "expected": [
+            "p_8_real_01"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_6_real_01",
+            "p_2_intl_02",
+            "p_2_intl_05",
+            "p_8_real_01"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.25,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1638.613250106573
+          },
+          "latency_ms": 1638.613250106573,
+          "error": null
+        },
+        {
+          "query": "100元以下的休闲零食",
+          "expected": [
+            "p_food_009",
+            "p_food_010",
+            "p_food_021"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_food_004",
+            "p_food_021",
+            "p_food_024",
+            "p_food_008",
+            "p_food_010",
+            "p_food_020",
+            "p_food_009",
+            "p_4_intl_02",
+            "p_4_intl_01"
+          ],
+          "metrics": {
+            "recall@5": 0.6666666666666666,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1841.7414999566972
+          },
+          "latency_ms": 1841.7414999566972,
+          "error": null
+        },
+        {
+          "query": "推荐一款手机，不要Apple",
+          "expected": [
+            "p_digital_002",
+            "p_digital_008",
+            "p_digital_014",
+            "p_digital_017"
+          ],
+          "forbidden": [
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_018",
+            "p_digital_024",
+            "p_digital_025"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_digital_016",
+            "p_digital_013",
+            "p_digital_024",
+            "p_digital_015",
+            "p_2_intl_02",
+            "p_digital_003",
+            "p_digital_005",
+            "p_digital_025",
+            "p_digital_011",
+            "p_digital_002"
+          ],
+          "metrics": {
+            "recall@5": 0.0,
+            "recall@10": 0.25,
+            "mrr": 0.1,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 1805.5346249602735
+          },
+          "latency_ms": 1805.5346249602735,
+          "error": null
+        },
+        {
+          "query": "推荐跑步鞋，不要Nike",
+          "expected": [
+            "p_clothes_008",
+            "p_clothes_009",
+            "p_clothes_010"
+          ],
+          "forbidden": [
+            "p_clothes_007",
+            "p_3_intl_02"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_clothes_021",
+            "p_clothes_007",
+            "p_3_intl_02",
+            "p_clothes_012",
+            "p_8_real_02",
+            "p_clothes_020",
+            "p_clothes_009",
+            "p_clothes_008",
+            "p_clothes_019"
+          ],
+          "metrics": {
+            "recall@5": 0.3333333333333333,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 2055.576624814421
+          },
+          "latency_ms": 2055.576624814421,
+          "error": null
+        },
+        {
+          "query": "推荐头戴式降噪耳机，不要Sony",
+          "expected": [
+            "p_2_intl_04"
+          ],
+          "forbidden": [
+            "p_2_intl_01"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_digital_007",
+            "p_2_intl_02",
+            "p_digital_018",
+            "p_digital_020",
+            "p_digital_023",
+            "p_digital_025",
+            "p_digital_002",
+            "p_digital_021"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 2466.6662919335067
+          },
+          "latency_ms": 2466.6662919335067,
+          "error": null
+        },
+        {
+          "query": "推荐抗初老精华，不要兰蔻",
+          "expected": [
+            "p_beauty_001",
+            "p_beauty_009",
+            "p_1_real_01"
+          ],
+          "forbidden": [
+            "p_beauty_002",
+            "p_beauty_019"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_beauty_002",
+            "p_1_real_02",
+            "p_beauty_001",
+            "p_beauty_024",
+            "p_1_real_01",
+            "p_beauty_009",
+            "p_beauty_008",
+            "p_1_real_05",
+            "p_beauty_003",
+            "p_1_intl_02"
+          ],
+          "metrics": {
+            "recall@5": 0.6666666666666666,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.4,
+            "negation_accuracy": 0.8,
+            "no_match_correctness": null,
+            "latency_ms": 2673.669416923076
+          },
+          "latency_ms": 2673.669416923076,
+          "error": null
+        },
+        {
+          "query": "推荐速溶咖啡，不要雀巢",
+          "expected": [
+            "p_food_001",
+            "p_food_022"
+          ],
+          "forbidden": [
+            "p_food_002",
+            "p_food_023"
+          ],
+          "tags": [
+            "negation"
+          ],
+          "retrieved": [
+            "p_food_002",
+            "p_food_023",
+            "p_food_001",
+            "p_food_005",
+            "p_food_022",
+            "p_food_025",
+            "p_5_real_05",
+            "p_food_006",
+            "p_food_014",
+            "p_food_016"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.4,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 2036.5869160741568
+          },
+          "latency_ms": 2036.5869160741568,
+          "error": null
+        },
+        {
+          "query": "轻量碳板的",
+          "expected": [
+            "p_clothes_010",
+            "p_clothes_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_digital_022",
+            "p_clothes_024",
+            "p_food_004",
+            "p_clothes_025",
+            "p_8_real_05",
+            "p_food_005",
+            "p_digital_021",
+            "p_2_intl_05",
+            "p_clothes_021"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1787.5948753207922
+          },
+          "latency_ms": 1787.5948753207922,
+          "error": null
+        },
+        {
+          "query": "推荐适合熬夜的精华 更便宜 平价 低价 性价比 国货平价的",
+          "expected": [
+            "p_beauty_009",
+            "p_1_real_02"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_1_real_02",
+            "p_beauty_009",
+            "p_beauty_024",
+            "p_beauty_005",
+            "p_beauty_004",
+            "p_beauty_001",
+            "p_beauty_002",
+            "p_1_real_01",
+            "p_food_012",
+            "p_food_002"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1906.4157083630562
+          },
+          "latency_ms": 1906.4157083630562,
+          "error": null
+        },
+        {
+          "query": "要折叠屏",
+          "expected": [
+            "p_digital_010",
+            "p_digital_014"
+          ],
+          "forbidden": [],
+          "tags": [
+            "multiturn"
+          ],
+          "retrieved": [
+            "p_digital_010",
+            "p_digital_014",
+            "p_digital_013",
+            "p_digital_021",
+            "p_digital_002",
+            "p_digital_023",
+            "p_clothes_025",
+            "p_digital_009",
+            "p_digital_003",
+            "p_digital_004"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1658.731957897544
+          },
+          "latency_ms": 1658.731957897544,
+          "error": null
+        },
+        {
+          "query": "Sony WH-1000XM5 和 Bose QC Ultra 哪个降噪更好",
+          "expected": [
+            "p_2_intl_01",
+            "p_2_intl_04"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_2_intl_01",
+            "p_2_intl_04",
+            "p_digital_007",
+            "p_2_intl_02",
+            "p_digital_018",
+            "p_digital_015",
+            "p_digital_020",
+            "p_digital_019",
+            "p_digital_017",
+            "p_digital_021"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2014.5594161003828
+          },
+          "latency_ms": 2014.5594161003828,
+          "error": null
+        },
+        {
+          "query": "特步 160X 和 Nike Pegasus 41 哪个更适合马拉松",
+          "expected": [
+            "p_clothes_010",
+            "p_clothes_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_clothes_010",
+            "p_clothes_007",
+            "p_8_real_02",
+            "p_clothes_021",
+            "p_3_intl_02",
+            "p_clothes_013",
+            "p_clothes_019",
+            "p_clothes_003",
+            "p_8_real_03",
+            "p_clothes_008"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1806.3720827922225
+          },
+          "latency_ms": 1806.3720827922225,
+          "error": null
+        },
+        {
+          "query": "雪花秀和资生堂哪个适合干皮",
+          "expected": [
+            "p_1_real_04",
+            "p_beauty_004"
+          ],
+          "forbidden": [],
+          "tags": [
+            "compare"
+          ],
+          "retrieved": [
+            "p_beauty_008",
+            "p_1_real_04",
+            "p_beauty_014",
+            "p_beauty_006",
+            "p_1_intl_04",
+            "p_6_real_04",
+            "p_beauty_013",
+            "p_beauty_019",
+            "p_beauty_004",
+            "p_beauty_007"
+          ],
+          "metrics": {
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1815.1995837688446
+          },
+          "latency_ms": 1815.1995837688446,
+          "error": null
+        },
+        {
+          "query": "推荐一款电动牙刷",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_6_real_01",
+            "p_digital_007",
+            "p_digital_021",
+            "p_digital_016",
+            "p_digital_022",
+            "p_digital_020",
+            "p_digital_006",
+            "p_digital_025",
+            "p_digital_013",
+            "p_digital_018"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9177156177156177,
+            "latency_ms": 1797.7233328856528
+          },
+          "latency_ms": 1797.7233328856528,
+          "error": null
+        },
+        {
+          "query": "推荐一款无线充电器",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_6_real_01",
+            "p_2_intl_02",
+            "p_digital_020",
+            "p_digital_009",
+            "p_digital_023",
+            "p_digital_007",
+            "p_digital_004",
+            "p_digital_006",
+            "p_digital_022",
+            "p_2_intl_01"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9661375661375662,
+            "latency_ms": 1685.337166301906
+          },
+          "latency_ms": 1685.337166301906,
+          "error": null
+        },
+        {
+          "query": "推荐一辆扫地机器人",
+          "expected": [],
+          "forbidden": [],
+          "tags": [
+            "no-match"
+          ],
+          "retrieved": [
+            "p_digital_016",
+            "p_6_real_01",
+            "p_digital_022",
+            "p_8_real_01",
+            "p_digital_025",
+            "p_clothes_025",
+            "p_digital_023",
+            "p_digital_020",
+            "p_digital_024",
+            "p_clothes_020"
+          ],
+          "metrics": {
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
+            "negation_accuracy": null,
+            "no_match_correctness": 0.9636363636363636,
+            "latency_ms": 1700.8868753910065
+          },
+          "latency_ms": 1700.8868753910065,
+          "error": null
+        },
+        {
+          "query": "推荐徒步登山鞋",
+          "expected": [
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_8_real_03"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_8_real_03",
+            "p_clothes_014",
+            "p_clothes_015",
+            "p_clothes_017",
+            "p_clothes_024",
+            "p_8_real_04",
+            "p_8_real_05",
+            "p_8_real_02",
+            "p_clothes_010",
+            "p_clothes_025"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1694.5626670494676
+          },
+          "latency_ms": 1694.5626670494676,
+          "error": null
+        },
+        {
+          "query": "推荐有机牛奶",
+          "expected": [
+            "p_food_007"
+          ],
+          "forbidden": [],
+          "tags": [
+            "basic"
+          ],
+          "retrieved": [
+            "p_food_007",
+            "p_food_016",
+            "p_5_real_01",
+            "p_food_017",
+            "p_food_008",
+            "p_food_023",
+            "p_food_010",
+            "p_food_004",
+            "p_food_006",
+            "p_food_002"
+          ],
+          "metrics": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 2121.984666213393
+          },
+          "latency_ms": 2121.984666213393,
+          "error": null
+        },
+        {
+          "query": "500元以下的高倍防晒霜",
+          "expected": [
+            "p_beauty_006",
+            "p_beauty_010",
+            "p_beauty_023"
+          ],
+          "forbidden": [],
+          "tags": [
+            "filter"
+          ],
+          "retrieved": [
+            "p_beauty_006",
+            "p_beauty_008",
+            "p_beauty_012",
+            "p_beauty_023",
+            "p_1_real_02",
+            "p_beauty_010",
+            "p_beauty_020",
+            "p_food_004"
+          ],
+          "metrics": {
+            "recall@5": 0.6666666666666666,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": null,
+            "no_match_correctness": null,
+            "latency_ms": 1928.4894578158855
+          },
+          "latency_ms": 1928.4894578158855,
+          "error": null
+        }
+      ],
+      "errors": 0
+    }
+  }
+}
