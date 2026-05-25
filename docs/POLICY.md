@@ -164,6 +164,26 @@ The summary line stays under 70 chars when possible. Bullets in the body, not in
 - Every doc in `docs/` is written assuming the reader is a cold-start teammate.
 - Meeting notes live in `meetings/` with the file name format `YYYY-MM-DD-topic.md`.
 
+## Team status updates (R8 onward)
+
+From R8 (2026-05-25) onwards, the historical `docs/WECHAT_UPDATE_*.md`
+cadence is retired. Those files were frozen point-in-time messages that
+became stale within hours of being written. The new split:
+
+- **WeChat status drafts**: **LOCAL ONLY**. Keep them in `docs/cluely/`
+  (gitignored) or in a scratch dir. Never `git add` them. `.gitignore`
+  has `docs/WECHAT_*.md` and `docs/wechat/` patterns to enforce this
+  even if a draft is accidentally placed under `docs/`.
+- **Persistent team-visible record**: [`docs/DEV_LOG.md`](DEV_LOG.md)
+  (rolling, reverse-chronological). Add an entry per shipping moment
+  (a merge to `main`, a verified feature, a postmortem). Each entry
+  carries a `by:` line crediting who did the work.
+- **Per-commit deep-dive records**: continue under
+  `docs/commits/YYYYMMDD-NNN-<topic>.md` for major commits. This is
+  the SHA-level record; `DEV_LOG.md` is the round-level summary.
+- **Forward-looking proposals**: continue under
+  `docs/PROPOSAL_YYYY-MM-DD.md`.
+
 ## Decision log
 
 Use this section to record decisions that change the architecture or scope.
