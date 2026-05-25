@@ -99,7 +99,26 @@ python -m rag.eval.run               # CLI: 7 metrics × 3 retrieval strategies
 python -m rag.eval.report            # HTML dashboard → docs/eval_report.html
 ```
 
-Backend URL is hardcoded in `client/AAALionApp/AAALionApp/Config.swift` (`defaultBackendURL`). **You can also change it at runtime via the in-app Settings (gear icon)** — no rebuild needed for LAN IP changes.
+### Backend URL: how each developer points the app at their own Mac
+
+Default in `Config.swift` is `http://localhost:8000` — that works for **everyone's
+simulator without any setup** (the simulator shares the Mac's network). For a
+physical iPhone over LAN you need your Mac's LAN IP, and there are three ways
+to set it (each `Config.swift` resolves in this order):
+
+| Scenario | What to do | Persistence |
+|---|---|---|
+| **Mac simulator** | Nothing. `localhost` already works. | — |
+| **Real iPhone, day-to-day** | Open the app → ⚙ Settings → enter `http://<your-mac-LAN-IP>:8000` → Test Connection → Save | UserDefaults, survives app relaunch |
+| **One-off testing** | Xcode → Product → Scheme → Edit Scheme → Run → Environment Variables → add `PUBLIC_BACKEND_URL=http://…:8000` | Only while debugging through Xcode |
+| **Rebuild-needed override** | Edit `defaultBackendURL` in `Config.swift` (NOT recommended — your change will collide with teammates') | Compile-time |
+
+Find your Mac's LAN IP: `ipconfig getifaddr en0`. The backend must be running
+bound to `0.0.0.0` (default in `aaalion backend`), not `127.0.0.1`.
+
+**Do not** commit a personal LAN IP into `Config.swift` — leave the default as
+`localhost`. Each developer / evaluator picks the right path above for their
+device.
 
 The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for current numbers and methodology.
 

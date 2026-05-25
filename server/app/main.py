@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import chat, products, health
+from app.routes import cache_stats, chat, products, health
 
 
 def create_app() -> FastAPI:
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(products.router)
+    app.include_router(cache_stats.router)
 
     # Serve seed images for the demo (production would put these behind a CDN).
     images_root = settings.repo_root / "data" / "seed"

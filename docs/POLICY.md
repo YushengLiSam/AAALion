@@ -100,6 +100,19 @@ The summary line stays under 70 chars when possible. Bullets in the body, not in
 - Product cards rendered on the client come from indexed JSON only.
 - If retrieval misses, the system prompt instructs the model to admit it.
 
+## Per-developer config (don't commit machine-specific values)
+
+- `client/AAALionApp/AAALionApp/Config.swift` `defaultBackendURL` **stays as
+  `http://localhost:8000`** in the repo. This works for every dev's
+  simulator with zero setup.
+- For a physical iPhone over LAN, each dev sets their Mac's IP via the
+  in-app **⚙ Settings sheet** (persists in `UserDefaults`). Do **not** push
+  your own LAN IP into `Config.swift` — it collides with other devs.
+- Other personal config lives in gitignored files only: `server/.env`,
+  `~/.config/lionpick/credentials.env`, `docs/POLICY_LOCAL.md`.
+- Full backend-URL resolution matrix: see [`README.md`](../README.md)
+  §"Backend URL: how each developer points the app at their own Mac".
+
 ## Bonus feature commitments
 
 - We commit to **two** bonus tracks (per the PDF "做精一项胜过浅尝三项" guidance):

@@ -23,15 +23,41 @@ import re
 import urllib.request
 
 
+def _local_country_keywords(text: str) -> list[str]:
+    """Local-only fallback: scan raw user text for country-trigger keywords
+    so `apply_negation` → `excluded_countries` can still work when no
+    TokenRouter key is configured (e.g. when LLM_PROVIDER=doubao).
+
+    Returns the matched trigger phrases (e.g. ['日系']) so
+    `excluded_countries(...)` resolves them to ISO codes via
+    `brand_origin.COUNTRY_KEYWORDS`.
+    """
+    try:
+        from rag.retrieve.brand_origin import COUNTRY_KEYWORDS
+    except Exception:
+        return []
+    found: list[str] = []
+    for kws in COUNTRY_KEYWORDS.values():
+        for kw in kws:
+            if kw in text and kw not in found:
+                found.append(kw)
+    return found
+
+
 def extract_negation(text: str) -> dict:
     """Best-effort extraction. Silent fallback to {} on any error
     (the prompt still has a fallback rule, so behavior degrades gracefully)."""
     if not text or not any(neg in text for neg in ("不要", "不含", "不带", "除了", "排除")):
         return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
 
+    # Always include locally-detected country triggers ("日系"/"美系"/...) so
+    # the brand-origin filter works even without an LLM call. The LLM-
+    # extracted keywords are union'd into this list when available.
+    local_kw = _local_country_keywords(text)
+
     key = os.getenv("TOKENROUTER_API_KEY")
     if not key:
-        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
+        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": local_kw}
 
     prompt = (
         "用户在做电商查询。从下面这段话中**只提取**用户明确说不要的内容。\n"
@@ -60,13 +86,17 @@ def extract_negation(text: str) -> dict:
         content = data["choices"][0]["message"]["content"].strip()
         content = re.sub(r"^```\w*\s*", "", content).rstrip("`").strip()
         result = json.loads(content)
+        llm_kw = [str(s).strip() for s in result.get("exclude_keywords", []) if s]
+        # Union LLM-extracted + local country triggers, preserving order, dedup.
+        merged_kw = list(dict.fromkeys(llm_kw + local_kw))
         return {
             "exclude_brands": [str(s).strip() for s in result.get("exclude_brands", []) if s],
             "exclude_categories": [str(s).strip() for s in result.get("exclude_categories", []) if s],
-            "exclude_keywords": [str(s).strip() for s in result.get("exclude_keywords", []) if s],
+            "exclude_keywords": merged_kw,
         }
     except Exception:
-        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
+        # LLM unavailable — fall back to local country detection at minimum.
+        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": local_kw}
 
 
 def apply_negation(products: list[dict], neg: dict) -> list[dict]:

@@ -158,8 +158,20 @@ struct ChatView: View {
                 }
                 .padding()
             }
-            .onChange(of: viewModel.messages.last?.text) { _, _ in
+            // Only auto-scroll when a new bubble appears (user just sent
+            // a message, or assistant placeholder shows up). Don't scroll
+            // on every streaming token — that yanks the user back to the
+            // bottom every time they try to scroll up to read history.
+            .onChange(of: viewModel.messages.count) { _, _ in
                 guard let last = viewModel.messages.last else { return }
+                withAnimation(.easeOut(duration: 0.15)) {
+                    proxy.scrollTo(last.id, anchor: .bottom)
+                }
+            }
+            // When streaming finishes, do a final scroll so the user lands
+            // at the end of the now-complete reply.
+            .onChange(of: viewModel.isStreaming) { oldVal, newVal in
+                guard oldVal, !newVal, let last = viewModel.messages.last else { return }
                 withAnimation(.easeOut(duration: 0.15)) {
                     proxy.scrollTo(last.id, anchor: .bottom)
                 }
