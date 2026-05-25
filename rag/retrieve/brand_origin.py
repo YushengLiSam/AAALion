@@ -124,7 +124,126 @@ BRAND_ORIGIN: dict[str, str] = {
     "北京十月文艺出版社": "CN",
     "商务印书馆": "CN",
     "吉林美术出版社": "CN",
+    # --- Round 7 PM: brands that AI-gen catalog products use but were
+    # missing from this dict — found via leak audit on the eval dashboard.
+    # 数码电子
+    "苹果": "US",
+    "oppo": "CN",
+    "vivo": "CN",
+    "联想": "CN",
+    # 服饰运动
+    "nike": "US",
+    "耐克": "US",
+    "阿迪达斯": "DE",
+    "adidas": "DE",
+    "优衣库": "JP",
+    "uniqlo": "JP",
+    "北面": "US",          # The North Face Chinese name
+    "始祖鸟": "CA",        # Arc'teryx
+    "arc'teryx": "CA",
+    "arcteryx": "CA",
+    "萨洛蒙": "FR",        # Salomon
+    "salomon": "FR",
+    "迈乐": "US",          # Merrell
+    "merrell": "US",
+    "露露乐蒙": "CA",      # Lululemon
+    "lululemon": "CA",
+    "hoka": "US",          # founded FR 2009, Deckers US since 2013
+    "osprey": "US",
+    "安踏": "CN",
+    "李宁": "CN",
+    "特步": "CN",
+    # 美妆护肤
+    "ahc": "KR",
+    "玉兰油": "US",        # Olay (P&G)
+    "olay": "US",
+    "科颜氏": "US",        # Kiehl's
+    "kiehl's": "US",
+    "kiehls": "US",
+    "芳珂": "JP",          # FANCL
+    "fancl": "JP",
+    "方里": "CN",          # Funny Elves
+    # 食品饮料
+    "三只松鼠": "CN",
+    "三顿半": "CN",
+    "东方树叶": "CN",      # 农夫山泉 sub-brand
+    "东鹏": "CN",          # 东鹏特饮
+    "伊利": "CN",
+    "金典": "CN",          # 伊利 sub-brand
+    "蒙牛": "CN",
+    "纯甄": "CN",          # 蒙牛 sub-brand
+    "元气森林": "CN",
+    "农夫山泉": "CN",
+    "可口可乐": "US",
+    "coca-cola": "US",
+    "康师傅": "TW",
+    "统一": "TW",          # 统一企业
+    "日清": "JP",
+    "nissin": "JP",
+    "李锦记": "CN",
+    "lee kum kee": "CN",
+    "海天": "CN",
+    "百草味": "CN",
+    "良品铺子": "CN",
+    "红牛": "TH",          # Krating Daeng Thai origin
+    "雀巢": "CH",          # Nestlé Swiss HQ
 }
+
+# Brand alias clusters. Each set holds names that refer to the SAME brand
+# across languages / capitalizations. Used by negation extraction so that
+# "不要 Nike" also catches Chinese-labelled "耐克" products and vice-versa.
+# Add a cluster whenever a Chinese vernacular brand has an English alias
+# (or vice-versa) and both appear in the catalog.
+BRAND_ALIASES: tuple[frozenset[str], ...] = (
+    frozenset({"nike", "耐克"}),
+    frozenset({"apple", "苹果", "apple 苹果"}),
+    frozenset({"sony", "索尼"}),
+    frozenset({"adidas", "阿迪达斯"}),
+    frozenset({"shiseido", "资生堂"}),
+    frozenset({"anessa", "安热沙"}),
+    frozenset({"sk-ii", "sk2"}),
+    frozenset({"the north face", "北面"}),
+    frozenset({"merrell", "迈乐"}),
+    frozenset({"salomon", "萨洛蒙"}),
+    frozenset({"decathlon", "迪卡侬"}),
+    frozenset({"arc'teryx", "arcteryx", "始祖鸟"}),
+    frozenset({"lululemon", "露露乐蒙"}),
+    frozenset({"uniqlo", "优衣库"}),
+    frozenset({"olay", "玉兰油"}),
+    frozenset({"kiehl's", "kiehls", "科颜氏"}),
+    frozenset({"fancl", "芳珂"}),
+    frozenset({"l'oréal paris", "巴黎欧莱雅"}),
+    frozenset({"la roche-posay", "理肤泉"}),
+    frozenset({"lancôme", "兰蔻"}),
+    frozenset({"estée lauder", "estee lauder", "雅诗兰黛"}),
+    frozenset({"coca-cola", "可口可乐"}),
+    frozenset({"nestlé", "nestle", "雀巢"}),
+    frozenset({"nissin", "日清"}),
+    frozenset({"lee kum kee", "李锦记"}),
+    frozenset({"calpico", "calpis", "可尔必思"}),
+    frozenset({"sulwhasoo", "雪花秀"}),
+    frozenset({"pampers", "帮宝适"}),
+    frozenset({"gerber", "嘉宝"}),
+    frozenset({"huggies", "好奇"}),
+)
+
+
+def expand_brand_aliases(brand: str) -> set[str]:
+    """Return all known aliases of a brand (lowercased). If the input isn't
+    in any known cluster, returns just {brand_lower}.
+
+    Example:
+        expand_brand_aliases("Nike") → {"nike", "耐克"}
+        expand_brand_aliases("某不知名牌") → {"某不知名牌"}
+    """
+    if not brand:
+        return set()
+    b = brand.lower().strip()
+    for cluster in BRAND_ALIASES:
+        if b in cluster:
+            return set(cluster)
+    return {b}
+
 
 # Country code → trigger keywords users might type when excluding.
 # Match is case-insensitive and substring-based; small set keeps it precise.

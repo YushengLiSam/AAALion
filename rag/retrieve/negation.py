@@ -23,6 +23,11 @@ import re
 import urllib.request
 
 
+_NEG_PHRASE_RE = re.compile(
+    r"(?:不要|除了|不含|不带|不是|排除|也不要|没有|别要)\s*([^,，。;；！!?？]+)"
+)
+
+
 def _local_country_keywords(text: str) -> list[str]:
     """Local-only fallback: scan raw user text for country-trigger keywords
     so `apply_negation` → `excluded_countries` can still work when no
@@ -44,6 +49,41 @@ def _local_country_keywords(text: str) -> list[str]:
     return found
 
 
+def _local_brand_mentions(text: str) -> list[str]:
+    """Local-only fallback: scan negation phrases ("不要 X" / "除了 X") for
+    explicit brand mentions and return matched canonical brand names.
+
+    Why: without a TokenRouter key the LLM-based extract_negation never
+    fills `exclude_brands`, so queries like "不要 Apple" / "不要 Sony" /
+    "不要 雀巢" sneaked the named brand back into top-k. This fallback
+    catches them by intersecting the post-negation phrase against the
+    `brand_origin.BRAND_ORIGIN` known-brand set.
+
+    Only fires inside negation context (after 不要/除了/不含/etc.), so
+    queries like "推荐 Apple iPhone" don't accidentally exclude Apple.
+    """
+    try:
+        from rag.retrieve.brand_origin import BRAND_ORIGIN
+    except Exception:
+        return []
+    if not text:
+        return []
+    found: list[str] = []
+    seen: set[str] = set()
+    # Sort known brands by length descending so "Apple 苹果" matches before "Apple"
+    known = sorted(BRAND_ORIGIN.keys(), key=len, reverse=True)
+    for m in _NEG_PHRASE_RE.finditer(text):
+        phrase = m.group(1).lower()
+        for brand in known:
+            bl = brand.lower()
+            if not bl or bl in seen:
+                continue
+            if bl in phrase:
+                found.append(brand)
+                seen.add(bl)
+    return found
+
+
 def extract_negation(text: str) -> dict:
     """Best-effort extraction. Silent fallback to {} on any error
     (the prompt still has a fallback rule, so behavior degrades gracefully)."""
@@ -54,10 +94,15 @@ def extract_negation(text: str) -> dict:
     # the brand-origin filter works even without an LLM call. The LLM-
     # extracted keywords are union'd into this list when available.
     local_kw = _local_country_keywords(text)
+    local_brands = _local_brand_mentions(text)
 
     key = os.getenv("TOKENROUTER_API_KEY")
     if not key:
-        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": local_kw}
+        return {
+            "exclude_brands": local_brands,
+            "exclude_categories": [],
+            "exclude_keywords": local_kw,
+        }
 
     prompt = (
         "用户在做电商查询。从下面这段话中**只提取**用户明确说不要的内容。\n"
@@ -86,17 +131,23 @@ def extract_negation(text: str) -> dict:
         content = data["choices"][0]["message"]["content"].strip()
         content = re.sub(r"^```\w*\s*", "", content).rstrip("`").strip()
         result = json.loads(content)
+        llm_brands = [str(s).strip() for s in result.get("exclude_brands", []) if s]
         llm_kw = [str(s).strip() for s in result.get("exclude_keywords", []) if s]
-        # Union LLM-extracted + local country triggers, preserving order, dedup.
+        # Union LLM-extracted + local detection, preserving order, dedup.
+        merged_brands = list(dict.fromkeys(llm_brands + local_brands))
         merged_kw = list(dict.fromkeys(llm_kw + local_kw))
         return {
-            "exclude_brands": [str(s).strip() for s in result.get("exclude_brands", []) if s],
+            "exclude_brands": merged_brands,
             "exclude_categories": [str(s).strip() for s in result.get("exclude_categories", []) if s],
             "exclude_keywords": merged_kw,
         }
     except Exception:
-        # LLM unavailable — fall back to local country detection at minimum.
-        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": local_kw}
+        # LLM unavailable — fall back to local detection at minimum.
+        return {
+            "exclude_brands": local_brands,
+            "exclude_categories": [],
+            "exclude_keywords": local_kw,
+        }
 
 
 def apply_negation(products: list[dict], neg: dict) -> list[dict]:
@@ -114,7 +165,17 @@ def apply_negation(products: list[dict], neg: dict) -> list[dict]:
     if not neg or not (neg.get("exclude_brands") or neg.get("exclude_categories") or neg.get("exclude_keywords")):
         return products
 
-    excl_brands = {b.lower() for b in neg.get("exclude_brands", [])}
+    # Expand each excluded brand to its known aliases so "不要 Nike" also
+    # catches Chinese-labelled "耐克" products (and vice versa).
+    try:
+        from rag.retrieve.brand_origin import expand_brand_aliases
+        excl_brands: set[str] = set()
+        for b in neg.get("exclude_brands", []) or []:
+            if not b:
+                continue
+            excl_brands |= expand_brand_aliases(b)
+    except Exception:
+        excl_brands = {b.lower() for b in neg.get("exclude_brands", [])}
     excl_cats = {c for c in neg.get("exclude_categories", [])}
     excl_kw = [k for k in neg.get("exclude_keywords", []) if k]
 

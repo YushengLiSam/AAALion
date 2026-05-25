@@ -81,15 +81,15 @@ echo 'export CHROMA_TELEMETRY=False' >> ~/.zshrc && source ~/.zshrc
 
 ---
 
-## 当前数据(2026-05-25,Round 7,商品库 145 件 × 8 类目)
+## 当前数据(2026-05-25 PM,Round 7+,商品库 145 件 × 8 类目)
 
 ### 三策略整体对比
 
 | 策略 | recall@5 | recall@10 | MRR | precision@5 | **反选准确率** | 无匹配正确率 | 延迟 |
 |---|---|---|---|---|---|---|---|
-| Dense | 0.727 | 0.828 | 0.650 | 0.264 | 0.733 | 0.855 | 85 ms |
+| Dense | 0.727 | 0.828 | 0.650 | 0.264 | 0.733 | 0.855 | 79 ms |
 | Hybrid (Dense + BM25) | 0.712 | 0.824 | 0.607 | 0.259 | 0.733 | 0.849 | **20 ms** |
-| **Hybrid + Rerank ★生产路径** | **0.784** | **0.884** | **0.683** | 0.259 | **0.822** | 0.853 | 457 ms |
+| **Hybrid + Rerank ★生产路径** | **0.811** | **0.902** | **0.736** | 0.259 | **1.000** 🎯 | 0.853 | 423 ms |
 
 ★ 加粗 = 该列最优;**生产路径**(`server/app/services/rag_client.top_k`)走 Hybrid + Rerank。
 
@@ -130,23 +130,66 @@ echo 'export CHROMA_TELEMETRY=False' >> ~/.zshrc && source ~/.zshrc
 | R5(2026-05-24 上午) | 31 / 19 valid | 0.711 | 0.695 | — | — | 初版 hybrid+rerank 落地 |
 | R6 同义词扩展(2026-05-24 下午) | 31 / 19 valid | 0.816 | 0.705 | — | — | 加了 `synonyms.py` |
 | R6 扩 golden 集(2026-05-24 晚) | 56 / 41 valid | 0.780 | 0.701 | 0.733 | 1951ms | 加入 6 场景 |
-| **R7 brand-origin + fast-path(当前)** | **59 / 44 valid** | **0.784** | 0.683 | **0.822** | **457ms** | 反选 +0.089,延迟 −76% |
+| R7 brand-origin + fast-path(2026-05-25 下午) | 59 / 44 valid | 0.784 | 0.683 | 0.822 | 457ms | 反选 +0.089,延迟 −76% |
+| **R7+ negation leak audit(当前)** | **59 / 44 valid** | **0.811** | **0.736** | **1.000** 🎯 | **423ms** | 反选清零(+0.178),recall +0.027 |
 
 ### R7 这一步发生了什么
 
 1. **反选准确率 0.733 → 0.822(+0.089)** — Shufeng `brand_origin.py` + Yusheng `negation.py` 本地国别兜底,联合关掉"不要日系"漏安热沙的洞
 2. **延迟 1951ms → 457ms(−76%)** — Shufeng fast-path 在 spec 类查询自动跳过 rerank
 3. **场景 negation recall@5: 0.667 → 0.611** — 加了 3 个更难的 brand-origin case,数字微降但更真实
-4. **场景 multiturn recall@5: 0.900 持平** — contextual_query 稳定
+
+### R7+ 反选清零(2026-05-25 晚)
+
+看板把剩余的 6 个反选 leak 一个个抓出来,分两类修干净:
+
+| Leak | 根因 | 修法 |
+|---|---|---|
+| 不要 Apple / Sony / 兰蔻 / 雀巢 (4 leak) | 没 TR key 时 LLM 不提取 `exclude_brands` | `negation._local_brand_mentions()` 正则扫"不要 X"后的子串去 hit BRAND_ORIGIN |
+| 不要 Nike → 漏 "耐克" 品牌 1 leak | "nike" 字符串不匹配 "耐克" | `brand_origin.BRAND_ALIASES` 加 Nike↔耐克 等 30 个跨语言别名;`apply_negation` 自动展开 |
+| 不要韩系 → 漏雪花秀 1 leak | Round 6 把 KR 真品错标 origin_country=CN | 修 7 个 real 商品 JSON(雪花秀 KR、Pampers US、Decathlon FR、SK-II JP、DJI CN、Estée Lauder US) |
+| 雀巢 product_origin = None | brand_origin.py 漏了 43 个 AI-gen 常见品牌 | 补字典(雀巢=CH、Apple/Nike/Sony/OPPO/伊利/可口可乐 等) |
+
+执行后:**neg_acc 0.822 → 1.000**(9/9 完全清白),recall@5 0.784 → 0.811(反选清干净后真正相关的商品上位),MRR 0.683 → 0.736。
+
+---
+
+## 性能 / 压力测试(2026-05-25)
+
+跑法:
+```bash
+source .venv/bin/activate
+python tools/stress_test.py --workers 20 --secs 30
+```
+
+结果(against `http://localhost:8000/chat/stream`,LLM = Doubao):
+
+| 指标 | 值 |
+|---|---|
+| Concurrent workers | 20 |
+| Duration | 46 秒 |
+| Total requests | 44 |
+| Success rate | **100.0%** ✓ 无超时 / 无 5xx / 无 SSE 解析失败 |
+| Throughput | 1.0 req/s(LLM 调用是瓶颈) |
+| End-to-end latency | p50 = 17.2s · p95 = 26.3s · p99 = 26.8s · mean = 15.4s |
+| First-delta latency | p50 = 17.2s · p95 = 24.6s · p99 = 25.7s · mean = 13.4s |
+
+**怎么读这些数字**:
+
+- 100% 成功率 = 关键卖点 — 20 并发下 SSE 流没有断、错误处理稳定
+- 17 秒 p50 ≈ Doubao 在 20 并发下生成完整中文长回复 + RAG 检索 + 流式发送的端到端时间
+- **缓存命中后这条链路降到 ~300ms first_delta**(单线程测量,见 `/cache/stats`)
+- 1 req/s 的吞吐**不是缺陷**:这个项目是单用户 demo,不是 web 服务
 
 ---
 
 ## 看板亮点(答辩可讲)
 
-1. **反选准确率 dense 0.733 → rerank 0.822(+12%)** + **场景 recall@5 0.463 → 0.611(+32%)** — 这是 Round 7 brand-origin + 同义词 + rerank pipeline 的硬证据。
-2. **延迟 1951ms → 457ms(-76%)** + **rerank 路径有 `/cache/stats` 实时监控** — 工程优化 4.4 ⭐ 的可观测证据。
-3. **6 场景全覆盖,弱项暴露而非隐藏** — basic / filter rerank 略弱 / negation / multiturn rerank 大胜,真实 tradeoff 拍在评委脸上。
-4. **honest gap**:negation_accuracy 0.822 != 1.0,17.8% forbidden 还会漏。golden 里点开"逐 case 明细 → 反选/排除"可以指给评委看具体是哪几个 case。
+1. **反选准确率 dense 0.733 → rerank 1.000(+27pp)** — 这一晚从看板 audit 出 6 个 leak,把它们一个个修到 9/9 清白。**这是把"我们做了反选"从主张变成证据的最关键一步**。
+2. **recall@5 0.784 → 0.811 / MRR 0.683 → 0.736** — 反选清干净后,真正相关的商品上位,**精度同步涨**。
+3. **延迟 1951ms → 423ms(-78%)** + **`/cache/stats` 实时命中率** — 工程优化 4.4 ⭐ 的可观测证据。
+4. **6 场景全覆盖,弱项暴露而非隐藏** — basic / filter rerank 略弱 / negation / multiturn rerank 大胜,真实 tradeoff 拍在评委脸上。
+5. **100% SSE 成功率 @ 20 并发** — 压测说明错误处理 / SSE 流框架 / 缓存 / RAG 链路全栈稳定。
 
 ---
 
