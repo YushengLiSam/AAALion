@@ -30,25 +30,26 @@ booted screenshot`.
 | Per-scenario eval dashboard | not in repo | merged on `main` ([`docs/eval_report.html`](../eval_report.html)) | Sam |
 | Foreign-price display / totals | source-currency hint and per-currency totals | RMB primary display with dated reference-rate trace; original amount retained | Tujie (R7.2) |
 
-## Headline numbers (R7.2, hybrid+rerank on audited 59-case set)
+## Headline numbers (merged R7.3, hybrid+rerank on audited 59-case set)
 
 | Metric | Value | Note |
 |---|---|---|
-| recall@5 | **0.830** | corrected 19 catalog-mismatched or incomplete golden labels |
-| recall@10 | **0.936** | post-audit baseline |
-| MRR | **0.778** | CNY-aware price ordering; R7.1 post-audit baseline was 0.771 |
-| 反选准确率 | **0.780** | 10 cases carry `forbidden_product_ids`; brand-origin demos verified live |
+| recall@5 | **0.880** | golden audit + merged negation/origin fixes |
+| recall@10 | **0.965** | post-merge full run |
+| MRR | **0.828** | merged result; CNY-only branch moved 0.771 to 0.778 |
+| 反选准确率 | **1.000** | 10 cases carry `forbidden_product_ids` |
 | no-match correctness | **0.902** | 10 total empty-expected cases |
-| mean latency | 4,489 ms | Docker full evaluation run; includes the first-rate lookup path |
+| mean latency | 4,346 ms | Docker full evaluation run; includes the first-rate lookup path |
 
 The audit changes answer labels, not the retrieval pipeline. These values are
 the new baseline and are not presented as a pure algorithm delta from the
 pre-audit Round 7 report.
 
 R7.2 adds latest-reference-rate CNY display and CNY-aware price-intent ordering:
-recall@5 remains 0.830 while MRR rises from 0.771 to 0.778. The images above
-were captured before the FX UI addition, so the conversion behavior is verified
-through the API/test run rather than claimed from those screenshots.
+on that branch MRR rises from 0.771 to 0.778. After merging the teammate
+negation/origin audit, the combined run reaches recall@5 0.880 and MRR 0.828.
+The images above were captured before the FX UI addition, so conversion behavior
+is verified through the API/test run rather than claimed from those screenshots.
 
 See [`docs/EVAL_RESULTS.md`](../EVAL_RESULTS.md) (Sam) and
 [`docs/QUALITY_REPORT_2026-05-25.md`](../QUALITY_REPORT_2026-05-25.md)

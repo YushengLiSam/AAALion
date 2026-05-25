@@ -70,7 +70,7 @@ Slide 5 — 检索质量量化 (measured retrieval quality)
 - 生产路径 (hybrid+rerank) 整体指标:
   | recall@5 | recall@10 | MRR | 反选准确率 | 无匹配正确率 | 平均延迟 |
   |---|---|---|---|---|---|
-  | 0.830 | 0.936 | 0.778 | 0.780 | 0.902 | 4,489 ms |
+  | 0.880 | 0.965 | 0.828 | 1.000 | 0.902 | 4,346 ms |
 - 指标口径: 2026-05-25 按商品目录审计并修正 19 条 golden 标签后的新基线，
   不将审计前后差值宣称为纯算法增益
 - 分场景亮点:
@@ -78,6 +78,7 @@ Slide 5 — 检索质量量化 (measured retrieval quality)
   - compare: recall@5 = 0.917
   - basic: recall@5 = 0.903
   - filter: MRR 0.469 → 0.576 (外币按人民币比较后排序改善)
+  - negation: 反选准确率 = 1.000 (最新 main 品牌别名/产地审计合入后)
 
 Slide 6 — 现场 Demo (live demos)
 - 6 个场景全过一遍，每个场景对应 docs/demos/2026-05-25/<NN>.md 的详细日志:

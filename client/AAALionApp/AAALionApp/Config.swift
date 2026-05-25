@@ -12,7 +12,7 @@ enum Config {
     ///
     /// Update `defaultBackendURL` only when you redeploy; users change the
     /// runtime URL via the in-app Settings sheet (no rebuild needed).
-    static let defaultBackendURL = "http://192.168.22.50:8000"
+    static let defaultBackendURL = "http://localhost:8000"
 
     static var backendURL: URL {
         if let raw = ProcessInfo.processInfo.environment["PUBLIC_BACKEND_URL"],

@@ -125,11 +125,27 @@ First install on the iPhone: tap **Settings → General → VPN & Device Managem
 
 > ⚠️ **Free Apple ID certs expire in 7 days.** Run `aaalion resign` once a week (or before any demo) to refresh. Schedule a calendar reminder. There's no way around this on the free tier; the $99/year Apple Developer Program would give 1-year certs but isn't worth it for this competition.
 
-Connect the iPhone to your Mac's LAN backend:
+Connect the iPhone to your Mac's LAN backend. The app defaults to
+`http://localhost:8000` (works on the simulator out of the box). For a real
+iPhone you need your Mac's LAN IP. **Three options, in order of cleanliness:**
+
 ```bash
 ipconfig getifaddr en0   # your Mac's LAN IP, e.g. 192.168.1.42
 ```
-In Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables: add `PUBLIC_BACKEND_URL=http://192.168.1.42:8000`. Re-run.
+
+1. **In-app Settings sheet (recommended for day-to-day):** open the app on the
+   iPhone, tap ⚙ in the top-right, paste `http://192.168.1.42:8000`, hit
+   **Test Connection**, then **Save**. Persists in `UserDefaults`, survives
+   app relaunches, no rebuild. This is what we expect every dev to use.
+2. **Xcode scheme env var (one-off testing):** Xcode → Product → Scheme →
+   Edit Scheme → Run → Arguments → Environment Variables, add
+   `PUBLIC_BACKEND_URL=http://192.168.1.42:8000`. Only applies while you run
+   from Xcode.
+3. **Edit `Config.swift` (NOT recommended):** changing `defaultBackendURL`
+   collides with other devs' commits. Don't push that change.
+
+The repo default (`localhost`) is intentional — it means a fresh clone runs on
+anyone's simulator with zero config.
 
 ## 5. Common errors and fixes
 

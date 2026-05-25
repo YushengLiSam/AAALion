@@ -77,14 +77,15 @@ ipconfig getifaddr en0     # → e.g. 10.76.138.67
 # 3. Self-test: curl that IP from the Mac itself (catches firewall problems)
 curl http://10.76.138.67:8000/health     # → {"status":"ok",…}
 
-# 4. Update Config.swift `defaultBackendURL` constant to that LAN IP:8000
-#    Open client/AAALionApp/AAALionApp/Config.swift, change the line:
-#    private static let defaultBackendURL = "http://<MAC-LAN-IP>:8000"
+# 4. Point the iPhone app at that IP — DON'T edit Config.swift
+#    Open the app, tap ⚙ (top-right) → Settings → URL field → type
+#    http://<MAC-LAN-IP>:8000 → Test Connection → Save.
+#    UserDefaults persists across launches; no rebuild needed.
 
-# 5. Rebuild + reinstall
+# 5. (If app isn't installed yet) build + install
 aaalion ios-device
 
-# 6. On iPhone: open the 狮选 app. Should now work.
+# 6. Open 狮选 on iPhone, do step 4, query something. Should now work.
 ```
 
 **Mac firewall**: usually off on dev macs (`/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate`). If on, allow Python:
