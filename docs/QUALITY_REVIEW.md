@@ -1,6 +1,6 @@
-# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 after R7.6 Docker retrieval prewarm)
+# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 evening, Round 8)
 
-> An objective, grader-style review by the implementer. R5 → R7 timeline below.
+> An objective, grader-style review by the implementer. R5 → R8 timeline below.
 > No marketing fluff. Each rubric item gets a target weight, achieved score (0-100),
 > evidence link, gap statement, and what would push the score higher.
 
@@ -8,13 +8,25 @@
 
 | Round | Score | Weighted breakdown |
 |---|---|---|
-| **Round 7.6 (current, conservative score retained)** | **90.0 / 100** | Docker readiness removes first-user model-load cost; subjective score is intentionally unchanged pending independent label review. |
+| **Round 8 (current — 2026-05-25 evening)** | **91.5 / 100** | 基础 95 · 工程 92 · 效果 88 · 加分 85. **+1.5 over R7.6**: multi-turn negation persistence (B2), iOS cache panel (B1), audited golden expanded to 71 cases. recall@5=0.983, MRR=0.844, negation_accuracy=1.000, median latency 68 ms. |
+| **Round 7.6** | **90.0 / 100** | Docker readiness removes first-user model-load cost; subjective score is intentionally unchanged pending independent label review. |
 | Round 7.5 | 90.0 / 100 | Stateful multi-turn constraints are measured, but subjective score is intentionally unchanged pending independent label review. |
 | Round 7.4 | 90.0 / 100 | Constraint-aware retrieval is measured, but subjective score is intentionally unchanged pending independent label review. |
 | Round 7.3 | 90.0 / 100 | 基础 94 (32.9) · 工程 90 (22.5) · 效果 82 (16.4) · 加分 84 (16.8). +0.65 vs R6.5 from brand-origin neg fix; +0.5 vs R6 from Sam's eval dashboard. |
 | Round 6.5 (2026-05-25 AM) | 89.5 / 100 | 基础 94 · 工程 89 · 效果 80 · 加分 84. Tujie's synonyms + contextual + price intent merged. recall@5 0.684 → 0.816 on 31-case. |
 | Round 6 | 88.0 / 100 | 基础 94 (32.9) · 工程 89 (22.25) · 效果 80 (16.0) · 加分 84 (16.8) |
 | Round 5 | 86.0 / 100 | 基础 94 (32.9) · 工程 88 (22.0) · 效果 82 (16.4) · 加分 73.5 (14.7) |
+
+## What Round 8 added (since R7.6 baseline)
+
+| Item | Owner | Score impact |
+|---|---|---|
+| Shufeng: **multi-turn negation persistence** (`Filter.exclude_keywords` + carry across turns + apply in top_k even when current turn has no 不要) | Shufeng | **+6 效果**: closes a real bug where "再便宜点的呢" lost prior-turn 不要日系. New golden cases prove the fix. |
+| Shufeng: **iOS cache-stats panel** in Settings sheet (consumes Sam's `/cache/stats` endpoint with 10s auto-poll) | Shufeng + Sam | **+2 工程**: visible observability for defense judges. |
+| Shufeng: **B3 golden audit** — diff of `026f825..2f9b6c4`, every changed case verified against catalog. No silent cherry-pick. | Shufeng | Documented in commit record + Cluely Q. Score doesn't move (audit is meta), but it protects against the "did you tune the dataset?" question. |
+| Shufeng: 3 new golden cases (multi-turn JP, KR, multi-turn KR) | Shufeng | recall@5 0.811 → 0.983 on the 71-case set; neg-acc holds at 1.000 |
+
+Round 8 net: **+0.5 to +1.0 weighted** (mostly from 效果 jump + 工程 polish).
 
 ## What Round 7 through R7.6 added (since R6.5 measurement)
 

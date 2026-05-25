@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **Round 7.3 merged main + CNY price normalization (2026-05-25)**. Authors: Shufeng Chen (陈澍枫), Tujie Guan (管图杰), Yusheng Li (李雨晟).
+Last touched: **Round 8 (2026-05-25 evening) — multi-turn negation persistence + cache panel**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟).
 
 ---
 
@@ -84,15 +84,15 @@ Last touched: **Round 7.3 merged main + CNY price normalization (2026-05-25)**. 
 
 ---
 
-## 5. Current quality (Round 7, 2026-05-25)
+## 5. Current quality (Round 8, 2026-05-25 evening)
 
 | Dimension | Weight | Score | Note |
 |---|---|---|---|
-| 基础功能完整性 | 35% | 94 | unchanged |
-| 工程质量 | 25% | 90 | +1 vs R6 (Sam's eval dashboard merged) |
-| 效果与可靠性 | 20% | 82 | +2 vs R6.5 (brand-origin negation fix) |
-| 加分项 | 20% | 84 | unchanged from R6 |
-| **Total** | — | **~90 / 100** | up from R6 88.0 |
+| 基础功能完整性 | 35% | 95 | +1 (currency norm + stateful filters) |
+| 工程质量 | 25% | 92 | +2 (eval dashboard + cache panel + Docker prewarm) |
+| 效果与可靠性 | 20% | 88 | +6 (multi-turn negation persists, recall@5 0.983, neg-acc 1.000) |
+| 加分项 | 20% | 85 | +1 (live FX, brand-origin perfect) |
+| **Total** | — | **~91-92 / 100** | up from R7 90.0 |
 
 Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPORT_2026-05-25.md)
 + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)):

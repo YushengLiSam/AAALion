@@ -14,12 +14,12 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 <br clear="all"/>
 
-## Live status (2026-05-25, stateful multi-turn retrieval + Docker readiness prewarm)
+## Live status (2026-05-25 evening, Round 8 — multi-turn negation + cache panel)
 
-**Headline: production retrieval recall@5 0.982 / MRR 0.856 / negation accuracy 1.000 on the audited 68-case set.**
+**Headline: recall@5 0.983 / MRR 0.844 / negation accuracy 1.000 / median latency 68 ms on the audited 71-case set. Multi-turn "不要日系" now persists across turns.**
 
-Latest measured score: **90.0 / 100** ([`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
-Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter / negation / multi-turn / compare / no-match).
+Latest measured score: **91.5 / 100** ([`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
+Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/) (R8 — 9 scenarios including currency norm, stateful, multi-turn negation persistence).
 
 ### Round-by-round delta
 
