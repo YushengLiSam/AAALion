@@ -102,6 +102,33 @@ SUDO_ASKPASS=$HOME/.config/lionpick/askpass sudo -A /usr/libexec/ApplicationFire
 
 **Same Wi-Fi required**: iPhone and Mac must be on the same network. Phone's "Personal Hotspot" or guest networks can be isolated. Check both show the same network name in their Wi-Fi settings.
 
+### "无法连接服务器" even on same Wi-Fi → use a Cloudflare Tunnel (R8.D)
+
+If the above fix sequence doesn't unblock you (e.g. router has AP / client isolation, hotel / cafe network, iPhone fell back to cellular silently), skip LAN entirely and put the backend on a public URL via Cloudflare Tunnel. Works from any network, no LAN setup, free.
+
+**One-time setup**:
+```bash
+brew install cloudflared
+```
+
+**Each session** (run while uvicorn is up):
+```bash
+tools/start-tunnel.sh
+# → captures the URL like https://reader-missile-absolute-memphis.trycloudflare.com
+```
+
+**Bake into the iOS app**:
+1. Open `client/AAALionApp/AAALionApp/Config.swift`.
+2. Replace `defaultBackendURL` with the captured tunnel URL.
+3. `aaalion ios-device` to rebuild + reinstall (Xcode auto-renews the cert).
+4. Force-quit and reopen 狮选 on the iPhone. **No Settings tap needed** — the URL just works.
+
+**Dev mode override** (advanced): long-press the gear icon on the chat screen for 1.5 s. A toast appears, and the Backend-URL editor reappears in Settings. Use this only when swapping between tunnel / LAN / cloud during testing.
+
+**Caveats**:
+- The tunnel URL changes every `cloudflared` restart. Either re-bake the app, or set up a named Cloudflare Tunnel (`cloudflared tunnel login` once → `cloudflared tunnel create lionpick` → DNS-route it to a stable subdomain).
+- For defense day, we'll migrate to a real cloud VM (Hetzner CX22 €4.5/mo) so the Mac isn't required. See `docs/DEPLOY_GUIDE.md §Cloud VM (Phase 2)`.
+
 ---
 
 ## Xcode / signing

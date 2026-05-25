@@ -6,6 +6,12 @@ struct SettingsView: View {
     @State private var probeResult: ProbeResult?
     @AppStorage("lionpick.autoTTS") private var autoTTS: Bool = false
 
+    // R8.D: dev-mode gate — long-press the gear icon for 1.5s on ChatView
+    // to toggle this. When false (default), the backend-URL editor is
+    // hidden so users don't have to think about IPs. Cache panel + Auto-TTS
+    // remain visible for everyone.
+    @AppStorage("lionpick.devMode") private var devMode: Bool = false
+
     // R8: cache observability panel (consumes Sam's /cache/stats endpoint).
     @State private var cacheStats: CacheStats?
     @State private var cacheError: String?
@@ -19,41 +25,44 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("http://192.168.0.1:8000", text: $backendURLText)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .disableAutocorrection(true)
-                    Button("测试连接 / Test connection") { Task { await probe() } }
-                    if let result = probeResult {
-                        switch result {
-                        case .ok(let version):
-                            Label("已连接 / Connected (v\(version))", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .font(.footnote)
-                        case .failed(let msg):
-                            Label(msg, systemImage: "xmark.circle.fill")
-                                .foregroundStyle(.red)
-                                .font(.footnote)
+                if devMode {
+                    Section {
+                        TextField("https://your-tunnel.trycloudflare.com or http://192.168.0.1:8000", text: $backendURLText)
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .disableAutocorrection(true)
+                        Button("测试连接 / Test connection") { Task { await probe() } }
+                        if let result = probeResult {
+                            switch result {
+                            case .ok(let version):
+                                Label("已连接 / Connected (v\(version))", systemImage: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .font(.footnote)
+                            case .failed(let msg):
+                                Label(msg, systemImage: "xmark.circle.fill")
+                                    .foregroundStyle(.red)
+                                    .font(.footnote)
+                            }
                         }
+                    } header: {
+                        Text("后端地址 / Backend URL  (dev)")
+                    } footer: {
+                        Text("默认走公网 Cloudflare 隧道,不需要配置 LAN IP。" +
+                             "切换为本地后端或换隧道时改这里。\n" +
+                             "Default routes through the public Cloudflare Tunnel — no LAN IP setup needed. Change here only to point at a different backend.")
                     }
-                } header: {
-                    Text("后端地址 / Backend URL")
-                } footer: {
-                    Text("Mac 上的服务器地址。同一 Wi-Fi 下用 `ipconfig getifaddr en0` 拿到 LAN IP。" +
-                         "\nServer running on the Mac (same Wi-Fi). Get the LAN IP via `ipconfig getifaddr en0`.")
-                }
 
-                Section {
-                    Button("恢复默认 / Reset to default") {
-                        backendURLText = Config.defaultBackendURL
-                        probeResult = nil
+                    Section {
+                        Button("恢复默认 / Reset to default") {
+                            backendURLText = Config.defaultBackendURL
+                            probeResult = nil
+                        }
+                        .foregroundStyle(.orange)
+                    } footer: {
+                        Text("默认 / default: \(Config.defaultBackendURL)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(.orange)
-                } footer: {
-                    Text("默认 / default: \(Config.defaultBackendURL)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section {

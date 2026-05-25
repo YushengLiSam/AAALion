@@ -12,6 +12,12 @@ struct ChatView: View {
     @State private var showCart = false
     @FocusState private var inputFocused: Bool
 
+    // R8.D: dev-mode toggle. Long-press the gear icon for 1.5 s to flip
+    // this — that unlocks the backend-URL editor in Settings. Default
+    // OFF so users never see infra config.
+    @AppStorage("lionpick.devMode") private var devMode: Bool = false
+    @State private var devModeToast: String?
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -29,6 +35,17 @@ struct ChatView: View {
             }
             .navigationTitle("狮选")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay(alignment: .top) {
+                if let toast = devModeToast {
+                    Text(toast)
+                        .font(.appCaption)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 14) {
@@ -53,9 +70,23 @@ struct ChatView: View {
                         Button {
                             showSettings = true
                         } label: {
-                            Image(systemName: "gearshape")
+                            Image(systemName: devMode ? "gearshape.fill" : "gearshape")
+                                .foregroundStyle(devMode ? Color.appAccent : .primary)
                         }
                         .accessibilityLabel("Settings")
+                        // Long-press 1.5 s to toggle developer mode (exposes
+                        // the backend-URL editor in Settings).
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 1.5)
+                                .onEnded { _ in
+                                    devMode.toggle()
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    devModeToast = devMode ? "开发者模式已开启 / Dev mode ON" : "开发者模式已关闭 / Dev mode OFF"
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                                        withAnimation { devModeToast = nil }
+                                    }
+                                }
+                        )
                     }
                 }
             }

@@ -46,10 +46,15 @@ struct CacheStatsService {
     }
 
     /// Fetch current cache stats. Lightweight; safe to poll every 5-10s.
+    /// Timeout = 15s because the iPhone's first call over LAN may hit a
+    /// fresh TCP socket and a cold backend response path (model isn't on
+    /// the hot path so prewarm doesn't pay forward to /cache/stats). After
+    /// the first successful call URLSession reuses the connection and
+    /// follow-up polls return in <200ms.
     func fetch() async throws -> CacheStats {
         let url = baseURL.appendingPathComponent("cache/stats")
         var req = URLRequest(url: url)
-        req.timeoutInterval = 5
+        req.timeoutInterval = 15
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
             guard let http = response as? HTTPURLResponse else {

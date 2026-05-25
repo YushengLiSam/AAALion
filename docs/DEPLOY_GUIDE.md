@@ -182,3 +182,83 @@ anyone's simulator with zero config.
 Run the 6 scripted demos from [`docs/demos/2026-05-22/README.md`](demos/2026-05-22/README.md) to confirm parity with the reference results. If your screenshots look different, post them — we may have fixed something or regressed.
 
 After that, you're set up to develop your area. See [`PIPELINE.md`](PIPELINE.md) for the dev SOP.
+
+---
+
+## 7. Public backend via Cloudflare Tunnel (R8.D, recommended for any non-LAN testing)
+
+For iPhone testing on a different Wi-Fi, on cellular, or at any venue where LAN-based discovery fails, expose the Mac's `localhost:8000` on a public HTTPS URL via Cloudflare Tunnel. **Free**, no account required for quick tunnels, supports HTTPS.
+
+### One-time install
+
+```bash
+brew install cloudflared
+```
+
+### Each session
+
+```bash
+tools/start-tunnel.sh
+# → Tunnel URL:  https://reader-missile-absolute-memphis.trycloudflare.com
+```
+
+The script captures the URL into `/tmp/cloudflared.log` and prints it. URL changes each restart.
+
+### Bake into the app
+
+1. Open `client/AAALionApp/AAALionApp/Config.swift`.
+2. Replace `defaultBackendURL` with the captured tunnel URL.
+3. `aaalion ios-device` to rebuild + reinstall on iPhone (Xcode auto-renews the cert via `-allowProvisioningUpdates`).
+4. Force-quit and reopen 狮选 on the iPhone. **No Settings tap needed.**
+
+### Dev mode override (advanced)
+
+Long-press the **gear icon** on the chat screen for 1.5 s. A toast says "开发者模式已开启 / Dev mode ON" and the icon fills to amber. Now Settings exposes the Backend URL editor — use this when swapping between tunnel / LAN / cloud during testing. Long-press again to hide it.
+
+### Named tunnel for stable URL
+
+For longer testing windows where a stable URL matters (e.g. a multi-day defense rehearsal), set up a Cloudflare account once + named tunnel:
+
+```bash
+cloudflared tunnel login                    # one-time browser auth
+cloudflared tunnel create lionpick          # creates a long-lived tunnel
+cloudflared tunnel route dns lionpick api.<your-domain>
+cloudflared tunnel run lionpick
+```
+
+URL becomes `https://api.<your-domain>` and stays stable across `cloudflared` restarts.
+
+---
+
+## 8. Cloud VM (Phase 2, defense-day robust, ≈ ¥35/mo)
+
+Cloudflare Tunnel still requires the Mac to be running. For defense day at the venue (where laptop battery, Wi-Fi switching, hands-free demo all matter), deploy the backend to a real cloud VM so the Mac is irrelevant.
+
+### Recommended: Hetzner CX22
+
+- 4 vCPU, 8 GB RAM, 80 GB SSD = comfortable for Chroma + BGE-zh + bge-reranker-base (~2 GB resident).
+- €4.51/month (≈ ¥35) — best price/spec ratio.
+- Regions: Singapore for lowest latency to Mainland China, Frankfurt as backup.
+
+### Alternatives evaluated
+
+| Provider | Plan | Specs | Verdict |
+|---|---|---|---|
+| Hetzner CX22 | shared | 4 vCPU / 8 GB / 80 GB | **Recommended** — best price |
+| DigitalOcean | basic droplet $6 | 1 vCPU / 1 GB / 25 GB | Tight RAM; reranker may OOM |
+| AWS Lightsail | $5 | 1 vCPU / 0.5 GB | Too small |
+| Vultr | $6 | 1 vCPU / 1 GB | Same as DO |
+| Fly.io | free | 3 × 256 MB | Too small for our model footprint |
+| Render | free | shared, sleeps after 15 min idle | Cold start 30 s = bad demo optics |
+
+### Deploy steps (planned for 2026-06-05 → 06-08)
+
+1. Provision Hetzner CX22 (Singapore).
+2. Push the existing `server/Dockerfile` image to `ghcr.io`.
+3. `docker compose up -d` on the VM with `.env` (mode 0600) containing the TokenRouter key.
+4. DNS via Cloudflare: `api.lionpick.<domain>` → VM public IP.
+5. Update `Config.swift::defaultBackendURL` to the VM's domain.
+6. Rebuild iPhone app. Mac no longer needed.
+7. UptimeRobot free monitor (5-min checks) → Slack alert on downtime.
+
+For up-to-the-moment progress on Phase 2, see `docs/PROPOSAL_2026-05-25.md` Tier 2 backlog.
