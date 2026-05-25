@@ -14,32 +14,45 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 <br clear="all"/>
 
-## Live status (2026-05-23, Round 3 shipped)
+## Live status (2026-05-25, Round 6.5 — team merges landed)
 
-| Capability | Status | Proof |
-|---|---|---|
-| iOS chat UI + streaming responses | ✅ | [`docs/demos/2026-05-23/01-basic-themed.png`](docs/demos/2026-05-23/01-basic-themed.png) |
-| Real LLM via TokenRouter (claude-haiku-4-5) | ✅ | All demos |
-| Chroma + sentence-transformers RAG (992 chunks) | ✅ | All demos |
-| Anti-hallucination (honest "no match") | ✅ | [`02-conditional-filter.md`](docs/demos/2026-05-22/02-conditional-filter.md) |
-| Multi-turn dialogue (4.3 ⭐) | ✅ API + edit-message UX | [`03-multi-turn.md`](docs/demos/2026-05-22/03-multi-turn.md) |
-| Negation / exclusion (4.3 ⭐⭐) | ✅ | [`04-negation.md`](docs/demos/2026-05-22/04-negation.md) |
-| Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | [`05-comparison.md`](docs/demos/2026-05-22/05-comparison.md) |
-| Photo-to-product via vision LLM (4.2 ⭐⭐⭐) | ✅ | [`06-photo-clip.png`](docs/demos/2026-05-23/06-photo-clip.png) |
-| **OpenCLIP image retrieval on A100 (4.2 depth)** | ✅ | 100 images indexed; image-first retrieval in backend |
-| **Voice input (4.2 ⭐)** | ✅ | Speech.framework, mic button, zh-CN |
-| **TTS playback (4.2 ⭐⭐)** | ✅ | AVSpeechSynthesizer, long-press → Speak |
-| **Settings screen (runtime backend URL)** | ✅ | gear icon → URL + Test Connection |
-| **Edit / Copy / Speak context menu** | ✅ | long-press any message |
-| **Camera + Files attachment** | ✅ | `+` menu → Photos / Camera / Files |
-| **New theme + app icon** | ✅ | Claude-designed palette, TokenRouter-generated lion icon |
-| Simulator (iPhone 17 Pro) | ✅ | `aaalion ios-sim` |
-| Physical iPhone 13 Pro deploy | ✅ | weekly `aaalion resign` (free-tier 7-day cert) |
-| Hot-query cache | 🟡 file ready; integration deferred | `server/app/services/cache.py` |
-| Real product data | ⏳ AI-gen seed + manual curation in progress | [`docs/research/`](docs/research/) |
-| Shopping cart / ordering (4.1) | ⏳ out of scope v1 | per [`docs/POLICY.md`](docs/POLICY.md) |
+**Headline: recall@5 = 0.816 (+19% over R6), multi-turn now perfect, books query no longer regresses.**
 
-> 📋 **Next iteration up for team review**: [`docs/PROPOSAL_2026-05-24.md`](docs/PROPOSAL_2026-05-24.md). Sam / Tujie please comment before solo execution kicks back in.
+Latest measured score: **89.5 / 100** ([`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPORT_2026-05-25.md)).
+
+### Round-by-round delta
+
+| Round | What landed | recall@5 | MRR |
+|---|---|---:|---:|
+| R3 (2026-05-23) | Theme + icon + voice/TTS + settings + camera + A100 CLIP | — | — |
+| R4 (2026-05-23) | Files importer fix, README polish, IMPLEMENTATION_GUIDE | — | — |
+| R5 (2026-05-24 AM) | Hybrid+rerank + cart+checkout + grader self-assessment | 0.711 | 0.695 |
+| R6 (2026-05-24 PM) | 45 real products + provenance UI + funny loading + CLAUDE.md | 0.684 | 0.647 |
+| **R6.5 (2026-05-25, now)** | **Tujie: synonyms + contextual + price intent merged** | **0.816** | **0.705** |
+| ⏳ Pending merge | **Sam: 56-case eval dashboard** (Yusheng branch) | 0.780 on 56-case | 0.701 |
+
+### Capability matrix
+
+| Capability | Status | Owner | Proof |
+|---|---|---|---|
+| iOS chat UI + streaming SSE | ✅ | Shufeng | [`docs/demos/`](docs/demos/) |
+| Real LLM via TokenRouter (claude-haiku-4-5) | ✅ | Shufeng | all demos |
+| Hybrid retrieval (dense + BM25 + cross-encoder rerank) | ✅ | Shufeng (R5) | [`rag/retrieve/`](rag/retrieve/) |
+| **Curated synonym expansion** | ✅ NEW | **Tujie (R6.5)** | [`rag/retrieve/synonyms.py`](rag/retrieve/synonyms.py) |
+| **Multi-turn contextual query** ("再便宜点的呢" inherits anchor) | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/contextual_query.py`](server/app/services/contextual_query.py) |
+| **Price intent parsing + sort** ("200元以下", "便宜") | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/price_intent.py`](server/app/services/price_intent.py) |
+| Negation / exclusion (4.3 ⭐⭐) | ✅ (brand-origin gap) | Shufeng | [`docs/demos/2026-05-24/02-negation-filter.png`](docs/demos/2026-05-24/02-negation-filter.png) |
+| Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-24/03-comparison.png`](docs/demos/2026-05-24/03-comparison.png) |
+| OpenCLIP image retrieval on A100 (4.2 ⭐⭐⭐) | ✅ | Shufeng (R3) | 100 images indexed |
+| Voice input + TTS (4.2 ⭐ + ⭐⭐) | ✅ | Shufeng (R3) | Speech / AVSpeechSynthesizer |
+| **4.1 Cart + inline-add + multi-currency totals + 去原页** | ✅ | Shufeng (R5+R6) | [`docs/demos/2026-05-24/04-cart-intent.png`](docs/demos/2026-05-24/04-cart-intent.png) |
+| **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
+| **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
+| **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
+| **Eval dashboard (56-case golden, per-scenario, HTML)** | 🟡 on `Yusheng` branch | **Sam — ready to merge** | [`docs/eval_report.html`](https://github.com/YushengLiSam/AAALion-/blob/Yusheng/docs/eval_report.html) |
+| Physical iPhone 13 Pro deploy | ✅ | Shufeng | weekly `aaalion resign` |
+
+> 📋 **R7 plan up for team review**: [`docs/PROPOSAL_2026-05-25.md`](docs/PROPOSAL_2026-05-25.md) — Sam / Tujie please comment before execution.
 
 ---
 
