@@ -173,6 +173,14 @@ final class ChatViewModel {
             SpeechService.shared.onError = { [weak self] msg in
                 self?.errorMessage = msg
             }
+            // R8.E-VOICE-FIX: SpeechService can stop itself via the idle
+            // timer (1.8 s of silence). When that happens the UI-bound
+            // `isRecording` flag here MUST be cleared too, otherwise the
+            // red mic icon and "正在听…" hint stay on even though the
+            // audio engine is already shut down.
+            SpeechService.shared.onStop = { [weak self] in
+                self?.isRecording = false
+            }
             do {
                 try SpeechService.shared.start()
                 self.isRecording = true
