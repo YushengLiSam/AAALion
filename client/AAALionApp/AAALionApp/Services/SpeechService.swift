@@ -15,6 +15,15 @@ final class SpeechService {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
 
+    /// Monotonic session ID. Bumped on each `start()`. Callbacks from
+    /// older sessions check this guard before delivering transcripts,
+    /// so a stale partial-result from the previous tap can't pollute
+    /// the new recording's draft text. This fixes the "I said 'toy',
+    /// sent it; then said 'cosmetic' but it shows 'toy and cosmetic'"
+    /// bug: that was the prior task's delayed callback racing with
+    /// the new task's first partial.
+    private var sessionID: UInt64 = 0
+
     private(set) var isRecording = false
     var onTranscript: ((String) -> Void)?
     var onError: ((String) -> Void)?
@@ -34,11 +43,22 @@ final class SpeechService {
     }
 
     func start() throws {
-        guard !isRecording else { return }
+        // Defensive: if a previous session is still half-alive
+        // (audio engine running, task not yet fully cancelled), tear it
+        // down before we open a new one. Idempotent.
+        if isRecording {
+            stop()
+        }
+
         guard let recognizer, recognizer.isAvailable else {
             onError?("zh-CN 语音识别不可用")
             return
         }
+
+        // Bump session ID so any late callbacks from the previous task
+        // can detect they're stale and exit without firing onTranscript.
+        sessionID &+= 1
+        let mySession = sessionID
 
         // Configure audio session.
         let session = AVAudioSession.sharedInstance()
@@ -53,13 +73,18 @@ final class SpeechService {
 
         task = recognizer.recognitionTask(with: request!) { [weak self] result, error in
             guard let self else { return }
-            if let result {
-                Task { @MainActor in
+            // R8.D-FIX: drop callbacks that arrive after a newer session started.
+            // Without this guard, the prior task can fire one last partial
+            // result AFTER the user taps mic again, polluting the new draft
+            // with stale text like "toy and cosmetic".
+            Task { @MainActor in
+                guard self.sessionID == mySession else { return }
+                if let result {
                     self.onTranscript?(result.bestTranscription.formattedString)
                 }
-            }
-            if error != nil || (result?.isFinal ?? false) {
-                Task { @MainActor in self.stop() }
+                if error != nil || (result?.isFinal ?? false) {
+                    self.stop()
+                }
             }
         }
 
@@ -77,9 +102,16 @@ final class SpeechService {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         request?.endAudio()
-        task?.cancel()
+        // R8.D-FIX: finish() lets the recognizer flush any in-flight audio
+        // gracefully; cancel() can leave the task in a state that fires
+        // one more callback. Bump sessionID first so any such late callback
+        // hits the staleness guard and no-ops.
+        sessionID &+= 1
+        task?.finish()
         request = nil
         task = nil
         isRecording = false
+        // Release the audio session so subsequent sessions start clean.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }

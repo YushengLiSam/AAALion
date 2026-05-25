@@ -135,6 +135,13 @@ final class ChatViewModel {
                 self.errorMessage = "麦克风 / 语音权限未授权"
                 return
             }
+            // R8.D-FIX: clear the draft before recording. Without this,
+            // any leftover text from a previous send (or a typed prefix)
+            // remains, and stale partial-results from prior sessions
+            // can append onto it. Combined with the SpeechService
+            // session-ID guard, this makes each tap-to-record start
+            // from a clean slate.
+            self.draft = ""
             SpeechService.shared.onTranscript = { [weak self] text in
                 self?.draft = text
             }
