@@ -24,11 +24,38 @@ final class SpeechService {
     /// the new task's first partial.
     private var sessionID: UInt64 = 0
 
+    /// R8.E-VOICE: auto-stop on silence. SFSpeechRecognizer doesn't release
+    /// itself when the user stops talking; without this the red mic stays
+    /// on forever and the draft picks up garbage (or carries stale text
+    /// from a prior turn). We reset this timer every time a new partial
+    /// arrives; if 1.8 s pass without any new partial we treat it as
+    /// "user stopped" and stop the session. Matches ChatGPT/Claude UX.
+    private var idleTimer: Timer?
+    private let idleTimeout: TimeInterval = 1.8
+
     private(set) var isRecording = false
     var onTranscript: ((String) -> Void)?
     var onError: ((String) -> Void)?
 
     private init() {}
+
+    /// Schedule (or re-schedule) the silence-timeout. Called once at
+    /// `start()` so a tap-with-no-speech still releases, and again on
+    /// every partial result so an active speaker doesn't get cut off.
+    private func resetIdleTimer() {
+        idleTimer?.invalidate()
+        idleTimer = Timer.scheduledTimer(withTimeInterval: idleTimeout, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                // Guard against firing after an explicit stop or after
+                // a newer session started — in either case `isRecording`
+                // is already false and `stop()` would be a no-op anyway.
+                if self.isRecording {
+                    self.stop()
+                }
+            }
+        }
+    }
 
     /// Asks for mic + speech recognition permission. Call before first start.
     func requestAuthorization() async -> Bool {
@@ -81,6 +108,10 @@ final class SpeechService {
                 guard self.sessionID == mySession else { return }
                 if let result {
                     self.onTranscript?(result.bestTranscription.formattedString)
+                    // R8.E-VOICE: speech is active → push the silence
+                    // timeout out. If no further partial arrives within
+                    // idleTimeout, we'll auto-stop.
+                    self.resetIdleTimer()
                 }
                 if error != nil || (result?.isFinal ?? false) {
                     self.stop()
@@ -95,10 +126,16 @@ final class SpeechService {
         audioEngine.prepare()
         try audioEngine.start()
         isRecording = true
+        // Tap-without-speech still releases the mic after idleTimeout.
+        resetIdleTimer()
     }
 
     func stop() {
         guard isRecording else { return }
+        // R8.E-VOICE: tear down the silence-timeout first so it can't fire
+        // a redundant stop() while we're already stopping.
+        idleTimer?.invalidate()
+        idleTimer = nil
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         request?.endAudio()

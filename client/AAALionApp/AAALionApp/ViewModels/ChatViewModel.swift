@@ -7,13 +7,38 @@ final class ChatViewModel {
     var draft: String = ""
     var isStreaming: Bool = false
     var errorMessage: String?
-    /// JPEG bytes of the image the user has staged for the next send.
-    /// Set by the PhotosPicker / Camera / Files flows. Cleared after a send.
-    var pendingImage: Data?
+    /// R8.E: up to `Attachment.maxCount` items the user has staged for the
+    /// next send. Replaces the R6-era single `pendingImage: Data?`. Set
+    /// by the PhotosPicker (plural) / CameraPicker (append per tap) /
+    /// FileImporter (multi) flows. Cleared after a send.
+    var pendingAttachments: [Attachment] = []
     /// True while the mic is active.
     var isRecording: Bool = false
     /// Most recent cart intent emitted by the backend (consumed by ChatView).
     var cartIntent: String? = nil
+
+    /// Remaining slots in the composer. Surfaced to ChatView so the
+    /// PhotosPicker can ask for `maxSelectionCount: remaining` and the
+    /// "+" menu can grey itself out when 0.
+    var remainingAttachmentSlots: Int {
+        max(0, Attachment.maxCount - pendingAttachments.count)
+    }
+
+    /// Append a single attachment, truncating gracefully if the user
+    /// somehow asked for more than `maxCount` (e.g. a multi-select that
+    /// races with state). Sets `errorMessage` once on overflow so the
+    /// UI can show "已达上限".
+    func appendAttachment(_ attachment: Attachment) {
+        guard remainingAttachmentSlots > 0 else {
+            errorMessage = "已达上限 \(Attachment.maxCount) / Max \(Attachment.maxCount) attachments reached"
+            return
+        }
+        pendingAttachments.append(attachment)
+    }
+
+    func removeAttachment(id: UUID) {
+        pendingAttachments.removeAll { $0.id == id }
+    }
 
     private var streamTask: Task<Void, Never>?
     private let service: ChatService
@@ -40,7 +65,7 @@ final class ChatViewModel {
             if let urlStr = imageURLString, let url = URL(string: urlStr) {
                 do {
                     let (data, _) = try await URLSession.shared.data(from: url)
-                    self.pendingImage = data
+                    self.appendAttachment(.init(data: data, kind: .photo))
                 } catch {
                     self.errorMessage = "test-image fetch failed: \(error.localizedDescription)"
                 }
@@ -57,12 +82,12 @@ final class ChatViewModel {
 
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (!text.isEmpty || pendingImage != nil), !isStreaming else { return }
+        guard (!text.isEmpty || !pendingAttachments.isEmpty), !isStreaming else { return }
         draft = ""
-        let imageData = pendingImage
-        pendingImage = nil
+        let staged = pendingAttachments
+        pendingAttachments = []
 
-        let userMessage = Message(role: .user, text: text, imageData: imageData)
+        let userMessage = Message(role: .user, text: text, attachments: staged)
         messages.append(userMessage)
 
         let assistantMessage = Message(role: .assistant, text: "", isStreaming: true)
@@ -107,14 +132,14 @@ final class ChatViewModel {
     // MARK: - Edit last user message (ChatGPT/Claude-style).
 
     /// Roll back history to just before the given user message and refill
-    /// the composer with its text. Discards any assistant reply that
-    /// followed.
+    /// the composer with its text + attachments. Discards any assistant
+    /// reply that followed.
     func editMessage(id: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         let target = messages[index]
         guard target.role == .user else { return }
         draft = target.text
-        pendingImage = target.imageData
+        pendingAttachments = target.attachments
         messages.removeSubrange(index..<messages.count)
         cancel()
     }

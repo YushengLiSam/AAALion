@@ -124,15 +124,23 @@ struct ChatService {
         let wire = ChatRequest(
             messages: messages.map { msg in
                 let content: ChatRequest.Content
-                if let imageData = msg.imageData {
-                    // Multimodal: text + base64 image part.
-                    let b64 = imageData.base64EncodedString()
-                    let dataURL = "data:image/jpeg;base64,\(b64)"
+                // R8.E: send up to `Attachment.maxCount` image parts. Vision-
+                // capable LLMs (Claude / GPT-4o / Doubao Vision) handle
+                // multi-image content arrays natively; the backend forwards
+                // the entire list to the provider, while the CLIP retriever
+                // currently uses only attachments[0] (see chat.py
+                // `_extract_image_bytes_list`).
+                let imageAttachments = msg.attachments.filter { $0.isImage }
+                if !imageAttachments.isEmpty {
                     var parts: [ChatRequest.ContentPart] = []
                     if !msg.text.isEmpty {
                         parts.append(.text(.init(text: msg.text)))
                     }
-                    parts.append(.image(.init(image_url: .init(url: dataURL))))
+                    for attachment in imageAttachments {
+                        let b64 = attachment.data.base64EncodedString()
+                        let dataURL = "data:\(attachment.mime);base64,\(b64)"
+                        parts.append(.image(.init(image_url: .init(url: dataURL))))
+                    }
                     content = .parts(parts)
                 } else {
                     content = .plain(msg.text)

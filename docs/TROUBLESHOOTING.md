@@ -131,6 +131,36 @@ tools/start-tunnel.sh
 
 ---
 
+## Voice + attachment UX (R8.E)
+
+### Mic stays "red" forever; draft picks up stale text from a previous turn
+
+**Why**: `SFSpeechRecognizer` does NOT auto-release on silence. Before R8.E, the recognizer stayed alive until the user manually tapped mic again. While alive, the last partial-result (which could be from a prior turn that never finalised) sat in `draft`.
+
+**Fix** (R8.E in `SpeechService.swift`): idle timer with a 1.8 s threshold, keyed on partial-result cadence:
+- Every fresh partial bumps the timer out.
+- 1.8 s of no new partial → automatic `stop()`. Mic releases, draft holds the final transcript, user reviews and taps Send.
+- Matches ChatGPT / Claude iOS app UX. The composer shows a "正在听… / Listening — auto-stops on silence" hint while recording.
+
+**To override** (e.g. for very slow speakers): tweak `idleTimeout` in `SpeechService.swift`. Don't drop below 1.0 s — that cuts off natural Chinese phrase pauses.
+
+### Can only attach one photo
+
+**Why**: pre-R8.E, `ChatViewModel.pendingImage: Data?` was a single Optional and every picker overwrote it. Backend was already multi-image capable via `content: list[ContentPart]`; only the iOS data model was the bottleneck.
+
+**Fix** (R8.E): `pendingImage` → `pendingAttachments: [Attachment]` with `Attachment.maxCount = 10`. Composer shows a horizontal scroll-row of 64×64 chips with `x` delete buttons + "N / 10" counter. Pickers are all bounded by `remainingAttachmentSlots`:
+- PhotosPicker is plural (`[PhotosPickerItem]`, `maxSelectionCount: remaining`).
+- FileImporter is `allowsMultipleSelection: true`.
+- Camera appends per-shot; tap repeatedly until cap.
+
+The message bubble renders attachments as a 2-row LazyVGrid (5 per row, 96×96) above the text — same pattern as ChatGPT.
+
+**On the wire**: each image becomes one `image_url` part with the right MIME (JPEG / PNG / HEIC / PDF) sniffed from magic bytes. Backend `_extract_image_bytes_list` returns the list; cache key uses `hash_image_bytes_list` (sorted SHA concat, capped at 10) so order doesn't matter and the key stays bounded.
+
+**CLIP retriever** only sees attachments[0] (single-image visual retriever); the LLM still sees all N images via the content array. Documented in `server/app/routes/chat.py::_extract_image_bytes_list` docstring.
+
+---
+
 ## Xcode / signing
 
 ### `error: No Account for Team "XXXXXXXXXX"`

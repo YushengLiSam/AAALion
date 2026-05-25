@@ -11,10 +11,12 @@ struct Message: Identifiable, Hashable {
     var text: String
     var products: [ProductCard]
     var isStreaming: Bool
-    /// Optional JPEG bytes attached to a user message (拍照找货). Rendered
-    /// inline above the text bubble; sent to the backend as a base64
-    /// image_url part inside the OpenAI-style content array.
-    var imageData: Data?
+    /// R8.E: up to `Attachment.maxCount` images / files attached to a user
+    /// message. Replaces the single `imageData` from R6. Rendered above
+    /// the text bubble as a 2-row grid (ChatGPT pattern); sent to the
+    /// backend as multiple `image_url` parts inside the OpenAI-style
+    /// content array.
+    var attachments: [Attachment]
 
     init(
         id: UUID = UUID(),
@@ -22,13 +24,22 @@ struct Message: Identifiable, Hashable {
         text: String = "",
         products: [ProductCard] = [],
         isStreaming: Bool = false,
-        imageData: Data? = nil
+        attachments: [Attachment] = []
     ) {
         self.id = id
         self.role = role
         self.text = text
         self.products = products
         self.isStreaming = isStreaming
-        self.imageData = imageData
+        self.attachments = attachments
+    }
+}
+
+extension Message {
+    /// Convenience: bytes of the first image attachment, for legacy paths
+    /// that still expect a single Data? (e.g. the message-edit flow that
+    /// rolls back the composer state).
+    var firstImageData: Data? {
+        attachments.first(where: { $0.isImage })?.data
     }
 }

@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 from app.schemas.chat import ChatMessage, ChatFilters
 from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
-from app.services.cache import cache, make_key, hash_image_bytes
+from app.services.cache import cache, make_key, hash_image_bytes_list
 from app.services.constraint_state import build_conversation_filter
 from app.services.contextual_query import build_retrieval_query
 from app.services.currency import normalize_product_prices, pricing_cache_token
@@ -193,24 +193,44 @@ def _has_image(messages) -> bool:
     return False
 
 #iPhone 上传图片时，不是直接传文件，而是把图片转成 Base64 字符串塞在 JSON 里。 找原始图片的二进制数据
-def _extract_image_bytes(messages) -> bytes | None:
+def _extract_image_bytes_list(messages, cap: int = 10) -> list[bytes]:
+    """R8.E: return ALL inline image bytes from the last user message,
+    not just the first. iOS now sends up to `Attachment.maxCount`
+    image_url parts; vision-LLMs handle multi-image natively. CLIP
+    retrieval still uses imgs[0] (single-image visual retriever); the
+    full list goes to the LLM via the content array.
+
+    Capped at `cap` to bound payload size and match the iOS limit.
+    """
     import base64
+
+    out: list[bytes] = []
     for m in reversed(messages):
         if m.role != "user":
             continue
         if not isinstance(m.content, list):
-            return None
+            return out
         for part in m.content:
-            if getattr(part, "type", None) == "image_url":
-                url = getattr(getattr(part, "image_url", None), "url", "") or ""
-                if url.startswith("data:") and ";base64," in url:
-                    try:
-                        b64 = url.split(";base64,", 1)[1]
-                        return base64.b64decode(b64)
-                    except Exception:
-                        return None
-        return None
-    return None
+            if getattr(part, "type", None) != "image_url":
+                continue
+            url = getattr(getattr(part, "image_url", None), "url", "") or ""
+            if url.startswith("data:") and ";base64," in url:
+                try:
+                    b64 = url.split(";base64,", 1)[1]
+                    out.append(base64.b64decode(b64))
+                except Exception:
+                    continue
+            if len(out) >= cap:
+                break
+        return out
+    return out
+
+
+def _extract_image_bytes(messages) -> bytes | None:
+    """Legacy single-image accessor — kept for paths that haven't migrated
+    to the list form. Returns the FIRST image only."""
+    imgs = _extract_image_bytes_list(messages, cap=1)
+    return imgs[0] if imgs else None
 
 #调 LLM 失败了不直接报错，等一会儿再试
 async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: int = 3):
@@ -240,11 +260,13 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
     # Retrieval ----------------------------------------------------------------
     products: list[dict] = []
-    img_bytes: bytes | None = None
+    img_bytes_list: list[bytes] = []
     if _has_image(req.messages):
-        img_bytes = _extract_image_bytes(req.messages)
-        if img_bytes:
-            products = top_k_image(img_bytes, k=3)
+        img_bytes_list = _extract_image_bytes_list(req.messages)
+        # CLIP retriever is single-image; use the first attachment as the
+        # visual query. The LLM still sees all images via the content array.
+        if img_bytes_list:
+            products = top_k_image(img_bytes_list[0], k=3)
     if not products:
         explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
         conversation_filter = build_conversation_filter(req.messages, explicit_filters)
@@ -262,10 +284,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     cart_event = _detect_cart_intent(user_text)
 
     # Cache --------------------------------------------------------------------
+    # R8.E: multi-attachment messages now hash the SORTED concat of all
+    # image SHAs so the cache key is order-invariant and bounded.
     cache_key = make_key(
         system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}",
         messages_json=req.model_dump_json(),
-        image_sha=hash_image_bytes(img_bytes),
+        image_sha=hash_image_bytes_list(img_bytes_list),
     )
     cached_events = cache.get(cache_key)
 

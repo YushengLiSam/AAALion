@@ -5,7 +5,10 @@ import UniformTypeIdentifiers
 struct ChatView: View {
     @Bindable var viewModel: ChatViewModel
     @State private var cart = CartStore.shared
-    @State private var pickerItem: PhotosPickerItem?
+    // R8.E: PhotosPicker selection is now plural — user can pick up to
+    // `remaining` images in one go, and the picker stays usable until
+    // the message hits `Attachment.maxCount`.
+    @State private var pickerItems: [PhotosPickerItem] = []
     @State private var showCamera = false
     @State private var showFileImporter = false
     @State private var showSettings = false
@@ -114,51 +117,64 @@ struct ChatView: View {
             }
             .sheet(isPresented: $showCamera) {
                 CameraPicker { data in
-                    viewModel.pendingImage = data
+                    // R8.E: append (not replace) — user can tap camera
+                    // repeatedly until the 10-attachment cap.
+                    viewModel.appendAttachment(.init(data: data, kind: .camera))
                     showCamera = false
                 }
                 .ignoresSafeArea()
             }
             .fileImporter(
                 isPresented: $showFileImporter,
-                allowedContentTypes: [.image, .jpeg, .png, .heic],
-                allowsMultipleSelection: false
+                allowedContentTypes: [.image, .jpeg, .png, .heic, .pdf],
+                allowsMultipleSelection: true
             ) { result in
                 Task { @MainActor in
                     switch result {
                     case .failure(let error):
                         viewModel.errorMessage = "文件选择失败 / File pick failed: \(error.localizedDescription)"
                     case .success(let urls):
-                        guard let url = urls.first else {
+                        guard !urls.isEmpty else {
                             viewModel.errorMessage = "未选中任何文件 / No file selected"
                             return
                         }
-                        let access = url.startAccessingSecurityScopedResource()
-                        defer { if access { url.stopAccessingSecurityScopedResource() } }
-                        // NSFileCoordinator handles iCloud-Drive files that aren't yet downloaded.
-                        let coordinator = NSFileCoordinator()
-                        var coordError: NSError?
-                        var loaded: Data?
-                        var readError: Error?
-                        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordError) { effectiveURL in
-                            do {
-                                loaded = try Data(contentsOf: effectiveURL)
-                            } catch {
-                                readError = error
+                        // R8.E: iterate all picked files, respecting the
+                        // remaining-slots cap. NSFileCoordinator still
+                        // needed per-file for iCloud-Drive lazy downloads.
+                        for url in urls {
+                            guard viewModel.remainingAttachmentSlots > 0 else { break }
+                            let access = url.startAccessingSecurityScopedResource()
+                            defer { if access { url.stopAccessingSecurityScopedResource() } }
+                            let coordinator = NSFileCoordinator()
+                            var coordError: NSError?
+                            var loaded: Data?
+                            var readError: Error?
+                            coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordError) { effectiveURL in
+                                do {
+                                    loaded = try Data(contentsOf: effectiveURL)
+                                } catch {
+                                    readError = error
+                                }
                             }
-                        }
-                        if let coordError {
-                            viewModel.errorMessage = "文件读取失败 / Coordinator: \(coordError.localizedDescription)"
-                            return
-                        }
-                        if let readError {
-                            viewModel.errorMessage = "文件读取失败 / \(readError.localizedDescription)"
-                            return
-                        }
-                        if let data = loaded {
-                            viewModel.pendingImage = data
-                        } else {
-                            viewModel.errorMessage = "文件为空 / file empty"
+                            if let coordError {
+                                viewModel.errorMessage = "文件读取失败 / Coordinator: \(coordError.localizedDescription)"
+                                continue
+                            }
+                            if let readError {
+                                viewModel.errorMessage = "文件读取失败 / \(readError.localizedDescription)"
+                                continue
+                            }
+                            guard let data = loaded, !data.isEmpty else {
+                                viewModel.errorMessage = "文件为空 / file empty: \(url.lastPathComponent)"
+                                continue
+                            }
+                            let mime = Attachment.sniffMIME(from: data)
+                            viewModel.appendAttachment(.init(
+                                data: data,
+                                kind: .file,
+                                filename: url.lastPathComponent,
+                                mime: mime
+                            ))
                         }
                     }
                 }
@@ -226,25 +242,27 @@ struct ChatView: View {
 
     private var composer: some View {
         VStack(spacing: 8) {
-            if let data = viewModel.pendingImage,
-               let uiImage = UIImage(data: data) {
-                HStack {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 64, height: 64)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+            // R8.E-VOICE: "正在听..." hint mirrors the ChatGPT/Claude mic
+            // affordance. Combined with the SpeechService 1.8s idle-timer,
+            // this tells the user the app is actively listening and that
+            // they can simply stop talking — the mic will release itself.
+            if viewModel.isRecording {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                    Text("正在听… / Listening")
+                        .font(.caption)
+                        .foregroundStyle(Color.red)
                     Spacer()
-                    Button {
-                        viewModel.pendingImage = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                            .font(.title3)
-                    }
+                    Text("停顿 ~2 秒自动结束 / auto-stops on silence")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 4)
+                .transition(.opacity)
             }
+            attachmentPreviewRow
             HStack(spacing: 10) {
                 attachmentMenu
                 TextField("输入你的问题…", text: $viewModel.draft, axis: .vertical)
@@ -260,13 +278,80 @@ struct ChatView: View {
                         .padding(8)
                 }
                 .disabled(
-                    (viewModel.draft.trimmingCharacters(in: .whitespaces).isEmpty && viewModel.pendingImage == nil)
+                    (viewModel.draft.trimmingCharacters(in: .whitespaces).isEmpty && viewModel.pendingAttachments.isEmpty)
                     || viewModel.isStreaming
                 )
             }
         }
         .padding()
         .background(.bar)
+    }
+
+    /// Horizontally-scrolling row of staged attachment chips with delete
+    /// buttons. Hidden when there are no staged items. Each chip is 64x64
+    /// (image thumbnail or doc-icon + filename) with a small `x` button
+    /// at top-right. Mirrors ChatGPT's composer.
+    @ViewBuilder
+    private var attachmentPreviewRow: some View {
+        if !viewModel.pendingAttachments.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.pendingAttachments) { attachment in
+                            attachmentChip(attachment)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                HStack {
+                    Spacer()
+                    Text(viewModel.remainingAttachmentSlots == 0
+                         ? "已达上限 \(Attachment.maxCount) / Max reached"
+                         : "\(viewModel.pendingAttachments.count) / \(Attachment.maxCount)")
+                        .font(.caption2)
+                        .foregroundStyle(viewModel.remainingAttachmentSlots == 0 ? Color.red : .secondary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func attachmentChip(_ attachment: Attachment) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if attachment.isImage, let uiImage = UIImage(data: attachment.data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                } else {
+                    VStack(spacing: 2) {
+                        Image(systemName: "doc.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Color.appAccent)
+                        Text(attachment.filename ?? "文件")
+                            .font(.system(size: 9))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .padding(.horizontal, 2)
+                    }
+                    .frame(width: 64, height: 64)
+                    .background(Color.gray.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+            Button {
+                viewModel.removeAttachment(id: attachment.id)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, Color.black.opacity(0.6))
+                    .font(.system(size: 18))
+                    .padding(2)
+            }
+            .accessibilityLabel("Remove attachment")
+        }
     }
 
     private var micButton: some View {
@@ -286,7 +371,14 @@ struct ChatView: View {
 
     private var attachmentMenu: some View {
         Menu {
-            PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
+            // R8.E: plural PhotosPicker — user can multi-select up to the
+            // remaining-slot count in one go. Stays usable until 10/10.
+            PhotosPicker(
+                selection: $pickerItems,
+                maxSelectionCount: viewModel.remainingAttachmentSlots,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
                 Label("照片库 / Photo library", systemImage: "photo.on.rectangle")
             }
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
@@ -295,23 +387,32 @@ struct ChatView: View {
                 } label: {
                     Label("相机 / Camera", systemImage: "camera")
                 }
+                .disabled(viewModel.remainingAttachmentSlots == 0)
             }
             Button {
                 showFileImporter = true
             } label: {
                 Label("文件 / Files", systemImage: "folder")
             }
+            .disabled(viewModel.remainingAttachmentSlots == 0)
         } label: {
             Image(systemName: "plus.circle.fill")
                 .font(.title2)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(viewModel.remainingAttachmentSlots == 0 ? Color.gray : Color.accentColor)
         }
-        .onChange(of: pickerItem) { _, newItem in
+        .disabled(viewModel.remainingAttachmentSlots == 0)
+        .onChange(of: pickerItems) { _, newItems in
+            guard !newItems.isEmpty else { return }
             Task { @MainActor in
-                guard let item = newItem,
-                      let data = try? await item.loadTransferable(type: Data.self) else { return }
-                viewModel.pendingImage = data
-                pickerItem = nil
+                // Load each picked photo sequentially and append. The
+                // PhotosPicker enforces `maxSelectionCount` already, but
+                // we still bail at the cap defensively.
+                for item in newItems {
+                    guard viewModel.remainingAttachmentSlots > 0 else { break }
+                    guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+                    viewModel.appendAttachment(.init(data: data, kind: .photo))
+                }
+                pickerItems = []
             }
         }
     }
