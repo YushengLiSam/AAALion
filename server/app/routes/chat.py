@@ -242,7 +242,8 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         if img_bytes:
             products = top_k_image(img_bytes, k=3)
     if not products:
-        products = top_k(retrieval_query, k=5)
+        explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
+        products = top_k(retrieval_query, k=5, filters=explicit_filters)
     products = await asyncio.to_thread(normalize_product_prices, products)
     t_retrieval = time.perf_counter()
 
@@ -252,7 +253,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # Cache --------------------------------------------------------------------
     cache_key = make_key(
         system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}",
-        messages_json=req.model_dump_json(exclude={"filters"}),
+        messages_json=req.model_dump_json(),
         image_sha=hash_image_bytes(img_bytes),
     )
     cached_events = cache.get(cache_key)

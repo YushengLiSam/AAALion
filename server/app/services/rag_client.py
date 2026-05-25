@@ -2,14 +2,16 @@
 optional query rewriting, negation filtering, and cross-encoder reranking.
 
 The default path is:
-  user_text → curated synonyms → (optional) rewrite → hybrid retrieve top-20
-            → apply negation → rerank → apply price intent → top-k products.
+  user_text → parse hard constraints → curated synonyms → (optional) rewrite
+            → filtered hybrid retrieve top-20 → apply negation → rerank
+            → enforce converted-CNY budget / price preference → top-k products.
 
 Toggle via env vars:
   RAG_SYNONYMS=1 enable curated local query expansion (default on)
   RAG_REWRITE=1   enable LLM query expansion (default off — costs API calls)
   RAG_NEGATION=1  enable LLM negation extraction (auto-on when 不要/除了/不含 in query)
   RAG_RERANK=1    enable cross-encoder rerank (default on)
+  RAG_HARD_FILTERS=1 enable inferred category/brand/CNY-budget retrieval filters (default on)
 """
 
 from __future__ import annotations
@@ -50,13 +52,18 @@ def _is_specific_query(text: str) -> bool:
     return False
 
 
-def top_k(text: str, k: int = 5) -> list[dict]:
+def top_k(text: str, k: int = 5, filters: dict | None = None) -> list[dict]:
     """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products."""
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
     rerank_on = os.getenv("RAG_RERANK", "1") == "1"
     negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
     price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
+    hard_filters_on = os.getenv("RAG_HARD_FILTERS", "1") == "1"
+
+    from rag.retrieve.constraints import build_retrieval_filter
+
+    retrieval_filter = build_retrieval_filter(text if hard_filters_on else "", filters)
 
     # 1) Curated local expansion, then optional LLM rewrite to multi-query.
     queries: list[str] = [text]
@@ -80,17 +87,18 @@ def top_k(text: str, k: int = 5) -> list[dict]:
         from rag.retrieve.hybrid import hybrid_topk
         seen: dict[str, dict] = {}
         for q in queries:
-            for h in hybrid_topk(q, k=20):
+            for h in hybrid_topk(q, k=20, f=retrieval_filter):
                 if h.product_id not in seen:
                     seen[h.product_id] = h.product
         candidates = list(seen.values())
     except Exception:
         try:
             from rag.retrieve.query import query
-            candidates = [h.product for h in query(text, k=20)]
+            candidates = [h.product for h in query(text, k=20, f=retrieval_filter)]
         except Exception:
             from rag.retrieve.query import _keyword_fallback  # type: ignore
-            return [h.product for h in _keyword_fallback(text, k=k)]
+
+            candidates = [h.product for h in _keyword_fallback(text, k=20, f=retrieval_filter)]
 
     # 3) Negation filter (drops violating candidates).
     if negation_on:
@@ -108,7 +116,8 @@ def top_k(text: str, k: int = 5) -> list[dict]:
     # IMPORTANT: never skip rerank when the query is a negation. Negation
     # cases mention brands to EXCLUDE, and rerank is what pushes the right
     # alternatives to the top (eval shows neg-acc 0.733 → 0.667 if we skip).
-    rerank_limit = max(k, 10) if price_on else k
+    has_price_filter = bool(retrieval_filter and retrieval_filter.has_price_constraint)
+    rerank_limit = max(k, 20) if has_price_filter else (max(k, 10) if price_on else k)
     fast_path_on = os.getenv("RAG_FAST_PATH", "1") == "1"
     skip_rerank = fast_path_on and _is_specific_query(text) and not negation_on
     if rerank_on and len(candidates) > k and not skip_rerank:
@@ -120,8 +129,17 @@ def top_k(text: str, k: int = 5) -> list[dict]:
     else:
         candidates = candidates[:rerank_limit]
 
-    # 5) Price intent is a final preference layer, after semantic relevance.
-    # Normalize foreign prices before comparing against a CNY user budget.
+    # 5) Re-check hard constraints after retrieval. Foreign-source products
+    # receive live CNY values only here, so RMB budgets become strict now.
+    if retrieval_filter:
+        from rag.retrieve.query import apply_product_filter
+        if has_price_filter:
+            from app.services.currency import normalize_product_prices
+
+            candidates = normalize_product_prices(candidates)
+        candidates = apply_product_filter(candidates, retrieval_filter, strict_cny_price=True)
+
+    # 6) Price intent is a preference layer after hard constraints.
     if price_on:
         try:
             from app.services.price_intent import apply_price_intent, parse_price_intent

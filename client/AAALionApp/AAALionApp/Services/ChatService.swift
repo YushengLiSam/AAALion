@@ -48,12 +48,18 @@ struct ChatService {
         }
         struct Filters: Encodable {
             var category: String?
+            var subCategory: String?
+            var priceMin: Double?
             var priceMax: Double?
+            var includeBrands: [String]?
             var excludeBrands: [String]?
 
             enum CodingKeys: String, CodingKey {
                 case category
+                case subCategory = "sub_category"
+                case priceMin = "price_min"
                 case priceMax = "price_max"
+                case includeBrands = "include_brands"
                 case excludeBrands = "exclude_brands"
             }
         }

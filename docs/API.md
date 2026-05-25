@@ -33,13 +33,19 @@ Multi-turn chat with streaming response.
   ],
   "filters": {
     "category": "美妆护肤",
+    "sub_category": "洁面",
+    "price_min": 0,
     "price_max": 200,
+    "include_brands": ["珂润"],
     "exclude_brands": []
   }
 }
 ```
 
-`filters` is optional. The backend may also infer filters from the message text.
+`filters` is optional. Supported fields are `category`, `sub_category`,
+`price_min`, `price_max`, `include_brands`, and `exclude_brands`. The backend
+also infers positive constraints from text such as `3500元以下的 Sony 降噪耳机`;
+explicit request fields override inferred values.
 
 **Response**: `text/event-stream`. Each event is a JSON object, one per `data:` line:
 
@@ -77,6 +83,9 @@ Foreign conversion uses the latest available reference rate from
 hour. It supports comparable display and RMB budget filtering; it is not a
 payment settlement quote. If neither a fresh nor cached quote is available,
 the client shows the original currency instead of fabricating a CNY value.
+For retrieval, CNY catalog items are budget-filtered at candidate recall time.
+Foreign-source items are retained until conversion and then checked strictly
+against the same RMB range.
 
 ---
 

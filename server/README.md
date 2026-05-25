@@ -12,7 +12,7 @@ cp ../.env.example .env   # fill in DOUBAO_API_KEY
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Run with Docker (includes Qdrant)
+## Run with Docker
 
 ```bash
 cd server
@@ -20,7 +20,9 @@ cp ../.env.example .env
 docker compose up --build
 ```
 
-Backend at `http://localhost:8000`, Qdrant dashboard at `http://localhost:6333/dashboard`.
+Backend at `http://localhost:8000`. The current text-retrieval path persists
+Chroma under `data/.chroma/`; rebuild that index with `python -m rag.ingest.run`
+after changing indexed metadata.
 
 ## Layout
 
@@ -49,6 +51,8 @@ app/
 - Foreign-source prices are displayed in CNY using the latest available
   Frankfurter reference quote, while original price/currency and rate date
   remain in the payload.
+- Text queries and optional request filters constrain category, subcategory,
+  included/excluded brands and RMB price bounds before hybrid retrieval.
 
 ## Currency conversion
 
@@ -65,6 +69,17 @@ response-time fields used by the iOS display and CNY price-intent logic. The
 rate is informational, not a payment settlement quote. If neither a live nor
 cached quote is available, the foreign source amount remains visible and is
 not treated as satisfying a RMB budget filter.
+
+## Retrieval constraints
+
+`/chat/stream` accepts optional `filters` fields: `category`, `sub_category`,
+`price_min`, `price_max`, `include_brands`, and `exclude_brands`. The backend
+also infers positive constraints from text such as `3500元以下的 Sony 降噪耳机`.
+Both dense and BM25 retrieval see the same constraint object.
+
+`RAG_HARD_FILTERS=1` is enabled by default. Set it to `0` only for evaluation
+or diagnosis. When a query supplies a RMB budget, foreign-source items are
+converted using the current FX quote before the final strict range check.
 
 ## Quick smoke
 

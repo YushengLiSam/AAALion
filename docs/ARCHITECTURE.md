@@ -6,9 +6,9 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 
 ```
  ┌──────────────┐   text+image   ┌─────────────┐   query    ┌──────────┐
- │ iOS App      │ ─────────────► │  FastAPI    │ ─────────► │  Qdrant  │
- │ (SwiftUI)    │                │  /chat      │            │ (text +  │
- │              │ ◄────────────  │  /stream    │ ◄────────  │  image)  │
+ │ iOS App      │ ─────────────► │  FastAPI    │ ─────────► │ Chroma   │
+ │ (SwiftUI)    │                │  /chat      │            │ text +   │
+ │              │ ◄────────────  │  /stream    │ ◄────────  │ image    │
  └──────────────┘  SSE tokens    └─────────────┘   top-k    └──────────┘
                                        │  ▲
                                   prompt│  │ deltas
@@ -37,28 +37,34 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 - **FX normalization**: `services/currency.py` fetches and caches latest
   reference quotes for non-CNY source prices, enriches response payloads with
   `price_cny` + `exchange_rate`, and leaves original catalog prices intact.
-- **Orchestration**: RAG (call `rag.retrieve.query`) → assemble prompt (system + retrieved context + history) → stream Doubao response → emit `delta` events; when product ids are mentioned, emit a `product_card` event.
+- **Orchestration**: infer/API-merge retrieval constraints → hybrid RAG → rerank
+  → strict converted-CNY budget check → assemble prompt and stream model
+  response; product cards are emitted from returned catalog records.
 - **Doubao client**: thin wrapper around the ARK API (OpenAI-compatible). Reads key from `.env`.
 - **Hardening**: timeout (30s end-to-end), retry on 5xx (backoff 0.5s × 2), per-IP rate limit (defer to v2).
 
 ### 3. RAG (`rag/`)
 - **Ingest**:
-  - `chunk.py`: each product JSON → multiple chunks: `marketing_description`, each `official_faq` entry, each `user_reviews` entry. Each chunk carries `product_id`, `category`, `brand`, `base_price`, chunk type.
-  - `embed_text.py`: Doubao embedding for chunks → Qdrant `products_text`.
-  - `embed_image.py`: OpenCLIP ViT-B/32 on A100 for each product main image → Qdrant `products_image`.
+  - `chunk.py`: each product JSON → multiple chunks: `marketing_description`, each `official_faq` entry, each `user_reviews` entry. Each chunk carries `product_id`, `category`, `sub_category`, `brand`, `base_price`, and source `currency`.
+  - `embed_text.py`: `BAAI/bge-small-zh-v1.5` embeddings stored in Chroma `products_text`.
+  - `embed_image.py`: OpenCLIP ViT-B/32 on A100 for each product main image → Chroma `products_image`.
 - **Retrieve**:
-  - `query.py`: text query → embed → Qdrant top-k with optional metadata filter (category, brand-exclude, price-range).
-  - `rerank.py`: optional reranking (cross-encoder or LLM-judge) for top-20 → top-5.
+  - `constraints.py`: query text and optional API fields → `Filter` for category, subcategory, brand include/exclude, and RMB budget.
+  - `query.py` + `bm25.py` + `hybrid.py`: dense and sparse candidate retrieval use the same filter before reciprocal-rank fusion.
+  - `rerank.py`: cross-encoder reranking for top-20 → top-5.
 - **Prompts**: `prompts/system.md` enforces "answer only from retrieved products, never invent prices/coupons/skus".
-- **Eval**: `eval/golden.jsonl` is 20-30 queries with expected product ids; `python -m rag.eval` reports recall@5 + manual judge column.
+- **Eval**: `eval/golden.jsonl` contains 64 audited/regression cases; `python -m rag.eval.report` writes HTML/JSON metrics including scenario slices.
 
 ## Data flow per turn
 
 1. iOS sends `{messages: [...], filters?: {}}` to `/chat/stream`.
-2. Backend extracts last user message → optionally classifies intent (browse vs purchase) → builds Qdrant filter.
-3. RAG returns top-k products with their chunks.
-4. Backend normalizes any foreign-priced candidates to CNY for display and
-   RMB budget handling, preserving original price and dated FX metadata.
+2. Backend extracts the retrieval query, parses positive constraints and merges
+   explicit filter fields. `RAG_HARD_FILTERS=0` disables inference for A/B.
+3. Chroma dense retrieval and BM25 apply the same filter, then hybrid fusion
+   and reranking produce the candidate list.
+4. For an RMB range, indexed CNY prices are filtered early; foreign-priced
+   candidates are converted at response time and then checked strictly,
+   preserving original price and dated FX metadata.
 5. Backend builds prompt: `system_prompt` + `retrieved_context_block` + `conversation_history`.
 6. Backend streams Doubao response. Two event types:
    - `data: {"type":"delta","text":"..."}`
@@ -69,7 +75,7 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 
 1. iOS picks/captures image, posts to `/chat/multimodal`.
 2. Backend runs the image through OpenCLIP (mode depends on deployment: A100 over RPC, or local CPU fallback).
-3. Image vector → Qdrant `products_image` collection → top-k.
+3. Image vector → Chroma `products_image` collection → top-k.
 4. Same prompt assembly + streaming as text path, with retrieved products as context.
 
 ## Anti-hallucination guarantees
@@ -82,7 +88,10 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 
 ## Deployment
 
-- `docker compose up` brings Qdrant + FastAPI together (private deployment requirement).
+- Chroma persists locally under `data/.chroma/`; Docker provides a reproducible
+  Windows validation environment for ingest and evaluation.
+- Re-run text ingest after metadata changes such as the newly indexed
+  `currency` field required for RMB-aware retrieval filtering.
 - A100 used **only** for index-build (CLIP) and batch eval — not the request path.
 - iOS client points at the laptop running `uvicorn` (LAN dev) or any host the backend is deployed on.
 

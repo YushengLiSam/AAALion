@@ -56,13 +56,13 @@ def reciprocal_rank_fusion(
     ]
 
 
-def hybrid_topk(text: str, k: int = 10, dense_k: int = 20, bm25_k: int = 20) -> list[HybridHit]:
+def hybrid_topk(text: str, k: int = 10, dense_k: int = 20, bm25_k: int = 20, f=None) -> list[HybridHit]:
     """Convenience: run dense + BM25 + fuse."""
     from rag.retrieve.query import query
     from rag.retrieve.bm25 import bm25_topk
 
-    dense = query(text, k=dense_k)
-    bm25 = bm25_topk(text, k=bm25_k)
+    dense = query(text, k=dense_k, f=f)
+    bm25 = bm25_topk(text, k=bm25_k, f=f)
 
     dense_pairs = [(h.product_id, h.product) for h in dense]
     bm25_pairs = [(pid, prod) for pid, _, prod in bm25]

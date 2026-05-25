@@ -26,12 +26,14 @@ class Chunk:
 
 
 def _meta(product: dict) -> dict:
+    provenance = product.get("provenance") or {}
     return {
         "product_id": product.get("product_id"),
         "category": product.get("category"),
         "sub_category": product.get("sub_category"),
         "brand": product.get("brand"),
         "base_price": product.get("base_price"),
+        "currency": provenance.get("currency", "CNY"),
     }
 
 

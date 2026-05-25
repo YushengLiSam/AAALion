@@ -1,4 +1,4 @@
-# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 after merged R7.3 evaluation)
+# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 after R7.4 retrieval-filter evaluation)
 
 > An objective, grader-style review by the implementer. R5 → R7 timeline below.
 > No marketing fluff. Each rubric item gets a target weight, achieved score (0-100),
@@ -8,12 +8,13 @@
 
 | Round | Score | Weighted breakdown |
 |---|---|---|
-| **Round 7 (current)** | **90.0 / 100** | 基础 94 (32.9) · 工程 90 (22.5) · 效果 82 (16.4) · 加分 84 (16.8). +0.65 vs R6.5 from brand-origin neg fix; +0.5 vs R6 from Sam's eval dashboard. |
+| **Round 7.4 (current, conservative score retained)** | **90.0 / 100** | Constraint-aware retrieval is measured, but subjective score is intentionally unchanged pending independent label review. |
+| Round 7.3 | 90.0 / 100 | 基础 94 (32.9) · 工程 90 (22.5) · 效果 82 (16.4) · 加分 84 (16.8). +0.65 vs R6.5 from brand-origin neg fix; +0.5 vs R6 from Sam's eval dashboard. |
 | Round 6.5 (2026-05-25 AM) | 89.5 / 100 | 基础 94 · 工程 89 · 效果 80 · 加分 84. Tujie's synonyms + contextual + price intent merged. recall@5 0.684 → 0.816 on 31-case. |
 | Round 6 | 88.0 / 100 | 基础 94 (32.9) · 工程 89 (22.25) · 效果 80 (16.0) · 加分 84 (16.8) |
 | Round 5 | 86.0 / 100 | 基础 94 (32.9) · 工程 88 (22.0) · 效果 82 (16.4) · 加分 73.5 (14.7) |
 
-## What Round 7 added (since R6.5 measurement)
+## What Round 7 and R7.4 added (since R6.5 measurement)
 
 | Item | Owner | Score impact |
 |---|---|---|
@@ -23,26 +24,26 @@
 | Tujie: catalog-backed audit of 19 golden annotations + regenerated report | Tujie | Measurement validity; no score bump claimed |
 | Tujie: dated latest-reference CNY normalization for foreign catalog prices (`server/app/services/currency.py`) | Tujie | Display/price-intent correctness; MRR 0.771 → 0.778 |
 | Yusheng: negation alias/origin audit merged with the audited golden set | Yusheng | Production negation accuracy now 1.000; combined MRR 0.828 |
+| Tujie: category/brand/RMB retrieval filters shared by dense and BM25, plus five regression cases | Tujie | Same-64-case hard-filter A/B: filter MRR 0.635 → 0.917 |
 
 **Net**: +3.5 dimension points → +0.5 to +1.0 weighted total, **89.5 → 90.0**.
 
-## Live numbers (hybrid+rerank, merged R7.3 audited 59-case set)
+## Live numbers (hybrid+rerank, R7.4 audited 64-case set)
 
 ```
-recall@5             0.880
-recall@10            0.965
-MRR                  0.828
+recall@5             0.981
+recall@10            0.994
+MRR                  0.846
 negation_accuracy    1.000  (10 cases with forbidden ids)
-no_match_correctness 0.902
-mean latency         4346 ms (Docker full evaluation run)
+no_match_correctness 0.941
+mean latency         881 ms (Docker full evaluation run)
 ```
 
-Note: the 59-case set includes harder scenarios than the earlier 31-case set,
-and this audit also changed 19 incorrect or incomplete labels. The post-audit
-numbers became the label-aligned baseline. On the Tujie branch, CNY-aware
-price ordering lifted MRR from 0.771 to 0.778; after merging the teammate
-negation/origin audit, the combined report reaches MRR 0.828 and zero measured
-forbidden-product leakage.
+Note: the earlier 59-case set includes harder scenarios than the first
+31-case set, and its audit changed 19 incorrect or incomplete labels. R7.4
+adds five targeted constraint-filter regressions. On the same 64-case set,
+turning hard filters on raises filter MRR from 0.635 to 0.917; the production
+report reaches MRR 0.846 with zero measured forbidden-product leakage.
 
 ### Round 6 delta — what moved and why
 
@@ -67,7 +68,7 @@ forbidden-product leakage.
 
 ### What still pushes the score higher (Round 7+ candidate work)
 
-1. **+2 效果**: attack the audited set's remaining `brand-origin` recall weakness (`recall@5=0.500`) with constraint-aware candidate refill.
+1. **+2 效果**: expand judged constraint cases beyond the current five regressions; `brand-origin` now reaches `recall@5=1.000` on its small 3-case slice.
 2. **+2 基础**: each new category currently has only 5 products; grow to 15-20 each for richer top-5 candidates.
 3. **+1-2 加分**: defense slide deck + demo video — PDF explicitly weights backup video as a 加分 signal.
 4. **+1-2 工程**: stress test, observability dashboard, real Docker compose `up` from a clean clone verified by a teammate.
@@ -130,7 +131,7 @@ forbidden-product leakage.
 
 | Sub-item | Score | Evidence | Gap | Push higher |
 |---|---|---|---|---|
-| 检索准确率 (recall@5) | 88 | Merged R7.3 59-case set: dense=0.803, hybrid=0.755, **hybrid+rerank=0.880**; production MRR=0.828 and negation accuracy=1.000. | labels now single-auditor; brand-origin recall remains weaker than aggregate | double-judge labels; tune constraint-aware retrieval |
+| 检索准确率 (recall@5) | 88 | R7.4 64-case set: dense=0.804, hybrid=0.769, **hybrid+rerank=0.981**; production MRR=0.846 and negation accuracy=1.000. | labels now single-auditor; hard-filter rules cover only clear catalog concepts | double-judge labels; add regression cases with each new rule |
 | 无幻觉输出 | 90 | System prompt enforces; demo 02 proves; Round 5 vision-prompt tightening | no automated hallucination check | LLM-as-judge nightly |
 | 复杂场景 (negation, comparison) | 90 | demos 04 + 05; Round 5 added structured negation extraction → filter | rare LLM still hedges | tighten more |
 | First-screen response (<1s target) | 80 | Cache hit: ~300ms first_delta. Cache miss: ~3000-8000ms first_delta (mostly LLM-side, not our overhead) | cache miss path doesn't meet <1s target | prefetch on app focus, preload model weights |
@@ -138,7 +139,7 @@ forbidden-product leakage.
 | Voice input quality | 80 | Apple Speech.framework zh-CN; works in demos | no continuous listening; no interrupt | streaming partial results during recognition |
 | TTS quality | 75 | AVSpeechSynthesizer zh-CN system voice | flat prosody; no SSML | use a neural TTS if budget allows |
 
-**Weakness**: aggregate recall@5 is now credible, but `brand-origin` recall@5 is only 0.500. The next quality lift should target constrained retrieval rather than hide behind a stronger aggregate.
+**Weakness**: aggregate and constrained recall are now much stronger on this catalog, but the parser intentionally handles only clear category/brand/budget language. Broader rules need new judged cases first.
 
 ---
 
@@ -214,13 +215,13 @@ In priority order, if defense were 7 days further out:
 ## What I'm certain of vs uncertain of
 
 **Certain**:
-- Merged R7.3 production recall@5 = 0.880, MRR = 0.828, and negation accuracy = 1.000 on 59 audited cases. Reproducible with `python -m rag.eval.report`.
+- R7.4 production recall@5 = 0.981, MRR = 0.846, and negation accuracy = 1.000 on 64 audited/regression cases. Reproducible with `python -m rag.eval.report`.
 - Cache hit drops first_delta ≥ 10×. Measured.
 - iPhone 13 Pro deploy works. Hands-on tested.
 - All listed 4.x bonus items have a working code path.
 
 **Uncertain**:
-- Whether 0.880 recall@5 transfers beyond this small 145-product catalog; the current labels still need independent second-pass judging.
+- Whether 0.981 recall@5 transfers beyond this small 145-product catalog; the current labels still need independent second-pass judging.
 - Whether the cart's regex-based intent detection holds against weird phrasings — robust would be a proper intent classifier.
 - Whether the cross-encoder reranker's first-call latency (~3s model load) will surface as a bad first-impression in the demo.
 

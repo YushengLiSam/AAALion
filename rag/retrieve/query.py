@@ -17,9 +17,40 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 @dataclass
 class Filter:
     category: str | None = None
+    sub_category: str | None = None
+    sub_categories: list[str] | None = None
+    brand_include: list[str] | None = None
     brand_exclude: list[str] | None = None
+    price_max_cny: float | None = None
+    price_min_cny: float | None = None
+    # Kept for callers created before CNY semantics were made explicit.
     price_max: float | None = None
     price_min: float | None = None
+
+    @property
+    def effective_price_max_cny(self) -> float | None:
+        return self.price_max_cny if self.price_max_cny is not None else self.price_max
+
+    @property
+    def effective_price_min_cny(self) -> float | None:
+        return self.price_min_cny if self.price_min_cny is not None else self.price_min
+
+    @property
+    def has_price_constraint(self) -> bool:
+        return self.effective_price_min_cny is not None or self.effective_price_max_cny is not None
+
+    @property
+    def active(self) -> bool:
+        return any(
+            (
+                self.category,
+                self.sub_category,
+                self.sub_categories,
+                self.brand_include,
+                self.brand_exclude,
+                self.has_price_constraint,
+            )
+        )
 
 
 @dataclass
@@ -49,13 +80,75 @@ def _build_where(f: Filter | None) -> dict | None:
     parts: list[dict] = []
     if f.category:
         parts.append({"category": f.category})
-    if f.price_min is not None:
-        parts.append({"base_price": {"$gte": f.price_min}})
-    if f.price_max is not None:
-        parts.append({"base_price": {"$lte": f.price_max}})
+    sub_categories = f.sub_categories or ([f.sub_category] if f.sub_category else None)
+    if sub_categories:
+        parts.append({"sub_category": {"$in": sub_categories}})
+    if f.brand_include:
+        parts.append({"brand": {"$in": f.brand_include}})
+    if f.brand_exclude:
+        parts.append({"brand": {"$nin": f.brand_exclude}})
+    if f.has_price_constraint:
+        cny_price_parts: list[dict] = [{"currency": "CNY"}]
+        if f.effective_price_min_cny is not None:
+            cny_price_parts.append({"base_price": {"$gte": f.effective_price_min_cny}})
+        if f.effective_price_max_cny is not None:
+            cny_price_parts.append({"base_price": {"$lte": f.effective_price_max_cny}})
+        # Foreign-source amounts cannot be compared with a RMB budget until
+        # response-time FX normalization. Keep them in the candidate pool.
+        parts.append(
+            {
+                "$or": [
+                    {"$and": cny_price_parts},
+                    {"currency": {"$ne": "CNY"}},
+                ]
+            }
+        )
     if not parts:
         return None
     return {"$and": parts} if len(parts) > 1 else parts[0]
+
+
+def product_matches_filter(product: dict, f: Filter | None, *, strict_cny_price: bool = False) -> bool:
+    """Apply product-level filtering shared by dense/BM25 and final results.
+
+    During retrieval, foreign-source products pass RMB price bounds because
+    their live CNY value is not indexed. After currency normalization,
+    ``strict_cny_price=True`` enforces that budget with ``price_cny``.
+    """
+    if f is None:
+        return True
+    if f.category and product.get("category") != f.category:
+        return False
+    sub_categories = f.sub_categories or ([f.sub_category] if f.sub_category else None)
+    if sub_categories and product.get("sub_category") not in sub_categories:
+        return False
+
+    brand = str(product.get("brand", "")).casefold()
+    if f.brand_include and brand not in {item.casefold() for item in f.brand_include}:
+        return False
+    if f.brand_exclude and brand in {item.casefold() for item in f.brand_exclude}:
+        return False
+
+    if not f.has_price_constraint:
+        return True
+    provenance = product.get("provenance") or {}
+    currency = str(provenance.get("currency", "CNY")).upper()
+    if currency != "CNY" and not strict_cny_price:
+        return True
+    raw_price = product.get("price_cny") if currency != "CNY" else product.get("price_cny", product.get("base_price"))
+    try:
+        price = float(raw_price)
+    except (TypeError, ValueError):
+        return False
+    if f.effective_price_min_cny is not None and price < f.effective_price_min_cny:
+        return False
+    if f.effective_price_max_cny is not None and price > f.effective_price_max_cny:
+        return False
+    return True
+
+
+def apply_product_filter(products: Iterable[dict], f: Filter | None, *, strict_cny_price: bool = False) -> list[dict]:
+    return [product for product in products if product_matches_filter(product, f, strict_cny_price=strict_cny_price)]
 
 
 def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
@@ -77,7 +170,7 @@ def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
         pid = raw_hit.metadata.get("product_id") if raw_hit.metadata else None
         if not pid or pid not in products:
             continue
-        if f and f.brand_exclude and products[pid].get("brand") in f.brand_exclude:
+        if not product_matches_filter(products[pid], f):
             continue
         if pid not in seen or raw_hit.score > seen[pid].score:
             seen[pid] = Hit(product_id=pid, score=raw_hit.score, product=products[pid])
@@ -110,16 +203,7 @@ def query_image(image_bytes: bytes, k: int = 5) -> list[Hit]:
 
 
 def _keyword_fallback(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
-    products = list(_product_index().values())
-    if f:
-        if f.category:
-            products = [p for p in products if p.get("category") == f.category]
-        if f.brand_exclude:
-            products = [p for p in products if p.get("brand") not in f.brand_exclude]
-        if f.price_min is not None:
-            products = [p for p in products if (p.get("base_price") or 0) >= f.price_min]
-        if f.price_max is not None:
-            products = [p for p in products if (p.get("base_price") or 0) <= f.price_max]
+    products = apply_product_filter(_product_index().values(), f)
     if not text.strip():
         return [Hit(p["product_id"], 0.0, p) for p in products[:k]]
     scored = []

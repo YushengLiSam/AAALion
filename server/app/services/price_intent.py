@@ -73,7 +73,9 @@ def apply_price_intent(products: Sequence[dict], text: str) -> list[dict]:
             (i, p) for i, p in with_index
             if (price := _price(p)) is not None and price <= intent.price_max
         ]
-    if not with_index:
+    # A declared RMB range is a hard constraint. Returning over-budget items
+    # would contradict the user; an empty set lets the answer say no match.
+    if not with_index and intent.price_min is None and intent.price_max is None:
         with_index = [(i, p) for i, p in enumerate(ranked)]
 
     dominant_category = _dominant_category([p for _, p in with_index])

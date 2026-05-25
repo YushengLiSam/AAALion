@@ -31,5 +31,8 @@ class ChatMessage(BaseModel):
 
 class ChatFilters(BaseModel):
     category: str | None = None
+    sub_category: str | None = None
+    price_min: float | None = Field(default=None, ge=0)
     price_max: float | None = Field(default=None, ge=0)
+    include_brands: list[str] | None = None
     exclude_brands: list[str] | None = None

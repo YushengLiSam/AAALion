@@ -14,9 +14,9 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 <br clear="all"/>
 
-## Live status (2026-05-25, merged main + CNY price normalization)
+## Live status (2026-05-25, constraint-aware retrieval + CNY normalization)
 
-**Headline: production retrieval recall@5 0.880 / MRR 0.828 / negation accuracy 1.000 on the audited 59-case set.**
+**Headline: production retrieval recall@5 0.981 / MRR 0.846 / negation accuracy 1.000 on the audited 64-case set.**
 
 Latest measured score: **90.0 / 100** ([`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
 Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter / negation / multi-turn / compare / no-match).
@@ -34,6 +34,7 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | **R7 + golden audit (2026-05-25, Tujie)** | **Correct wrong labels against catalog; regenerate dashboard** | **0.830 (59-case / 49 positive)** | **0.771** |
 | R7.2 (2026-05-25, Tujie branch) | Live reference-rate CNY display for foreign products + CNY-aware budgets | 0.830 | 0.778 |
 | **R7.3 (2026-05-25, merged main, now)** | **R7.2 + teammate negation/brand-origin audit combined** | **0.880** | **0.828** |
+| **R7.4 (2026-05-25, Tujie)** | **Category / brand / RMB-budget filters applied during dense + BM25 retrieval** | **0.981 (64-case)** | **0.846** |
 
 ### Capability matrix
 
@@ -46,6 +47,7 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | **Multi-turn contextual query** ("再便宜点的呢" inherits anchor) | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/contextual_query.py`](server/app/services/contextual_query.py) |
 | **Price intent parsing + sort** ("200元以下", "便宜") | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/price_intent.py`](server/app/services/price_intent.py) |
 | **Foreign-price CNY normalization** (latest reference FX + original-price trace) | ✅ NEW | **Tujie (R7.2)** | [`server/app/services/currency.py`](server/app/services/currency.py) |
+| **Constraint-aware retrieval** (category / subcategory / brand / RMB budget) | ✅ NEW | **Tujie (R7.4)** | [`rag/retrieve/constraints.py`](rag/retrieve/constraints.py) + [`query.py`](rag/retrieve/query.py) |
 | Negation / exclusion (4.3 ⭐⭐) | ✅ **audited: accuracy 1.000** | Shufeng + Yusheng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
 | Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-24/03-comparison.png`](docs/demos/2026-05-24/03-comparison.png) |
 | OpenCLIP image retrieval on A100 (4.2 ⭐⭐⭐) | ✅ | Shufeng (R3) | 100 images indexed |
@@ -54,10 +56,10 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
 | **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
 | **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
-| **Eval dashboard (59-case audited golden, per-scenario, HTML)** | ✅ refreshed after merge | Sam + Tujie | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
+| **Eval dashboard (64-case audited golden, per-scenario, HTML)** | ✅ refreshed after retrieval filters | Sam + Tujie | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
 | Physical iPhone 13 Pro deploy | ✅ | Shufeng | weekly `aaalion resign` |
 
-> **R7.3 merged**: audited golden labels, CNY normalization, cache instrumentation, and the follow-up negation/brand-origin audit are now measured together. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md).
+> **R7.4 measured**: positive constraints are parsed before retrieval and applied consistently to dense and BM25 candidates. Foreign-price candidates are retained until live CNY conversion can enforce a RMB budget. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md).
 
 ---
 
@@ -76,7 +78,7 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 - **客户端 / Client**: Swift 5.9, SwiftUI, iOS 17+. Speech.framework + AVSpeechSynthesizer + PhotosPicker + UIImagePickerController + .fileImporter.
 - **后端 / Backend**: Python 3.12, FastAPI, SSE, Pydantic v2 multimodal content union.
 - **汇率 / FX display**: Frankfurter v2 latest reference rates (keyless; cached server-side; original source price retained).
-- **向量库 / Vector DB**: Chroma in-process. Two collections: `products_text` (992 chunks via `BAAI/bge-small-zh-v1.5`) + `products_image` (100 vectors via OpenCLIP ViT-B/32 on A100).
+- **向量库 / Vector DB**: Chroma in-process. Two collections: `products_text` (1082 chunks via `BAAI/bge-small-zh-v1.5`) + `products_image` (100 vectors via OpenCLIP ViT-B/32 on A100).
 - **LLM**: `claude-haiku-4-5` (vision-capable) via TokenRouter. Swappable to Doubao, OpenAI, Anthropic, or local echo via `LLM_PROVIDER` env.
 - **Design tokens**: Claude-designed warm-ivory + amber-gold + deep-espresso palette (see [`client/AAALionApp/design-tokens.json`](client/AAALionApp/design-tokens.json)).
 
@@ -93,7 +95,7 @@ $EDITOR server/.env   # set TOKENROUTER_API_KEY
 # 3. Backend + Chroma text index
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r server/requirements.txt
-aaalion ingest                       # 992 text chunks (one time, ~90 sec)
+aaalion ingest                       # 1082 text chunks; rerun after metadata changes
 aaalion backend                      # uvicorn on 0.0.0.0:8000
 
 # 4. iOS simulator
@@ -127,7 +129,9 @@ device.
 
 Foreign-source products retain their original amount (for example `$398.00 USD`) and are displayed/totaled in RMB using the latest available reference rate fetched by the backend. This is a shopping-display conversion, not a payment settlement quote; the card detail exposes the rate date and provider.
 
-The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. After the 2026-05-25 golden audit and the merge with the latest negation fixes, the current production-path result is **recall@5 0.880 / MRR 0.828 / negation accuracy 1.000**. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for methodology and comparison caveats.
+Text retrieval now extracts category, subcategory, named-brand and RMB-budget constraints before candidate recall. The same filter is used by dense and BM25 retrieval; foreign-priced products pass the first price gate and are tested strictly only after current CNY conversion. Set `RAG_HARD_FILTERS=0` to run an A/B baseline.
+
+The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. The current production-path result is **recall@5 0.981 / MRR 0.846 / negation accuracy 1.000** on 64 cases; the `filter` slice reaches **MRR 0.917**. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for methodology and the filter A/B comparison.
 
 For iPhone device deploy, see [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md). For the A100 CLIP image index, see [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md).
 

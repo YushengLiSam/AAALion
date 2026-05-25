@@ -55,7 +55,7 @@ def _index():
     return bm25, ids, by_id
 
 
-def bm25_topk(query: str, k: int = 10) -> list[tuple[str, float, dict]]:
+def bm25_topk(query: str, k: int = 10, f=None) -> list[tuple[str, float, dict]]:
     """Return [(product_id, score, product_dict), …] sorted by BM25 score."""
     if not query.strip():
         return []
@@ -64,5 +64,11 @@ def bm25_topk(query: str, k: int = 10) -> list[tuple[str, float, dict]]:
     if not q_tokens:
         return []
     scores = bm25.get_scores(q_tokens)
-    ranked = sorted(zip(ids, scores), key=lambda x: x[1], reverse=True)[:k]
+    if f is not None:
+        from rag.retrieve.query import product_matches_filter
+
+        scored = [(pid, score) for pid, score in zip(ids, scores) if product_matches_filter(by_id[pid], f)]
+    else:
+        scored = list(zip(ids, scores))
+    ranked = sorted(scored, key=lambda x: x[1], reverse=True)[:k]
     return [(pid, float(s), by_id[pid]) for pid, s in ranked if s > 0]

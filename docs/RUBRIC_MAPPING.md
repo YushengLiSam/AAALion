@@ -9,7 +9,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 | Sub-item | Status | Artifact |
 |---|---|---|
 | 客户端对话 | ✅ | `client/AAALionApp/AAALionApp/Views/ChatView.swift` |
-| 后端 RAG 检索 | ✅ | `rag/retrieve/query.py` + Chroma `products_text` (992 chunks) |
+| 后端 RAG 检索 | ✅ | `rag/retrieve/constraints.py` + `query.py` + Chroma `products_text` (1082 chunks; category/brand/RMB filters) |
 | 模型生成 | ✅ | `server/app/services/llm_provider.py` — TokenRouter `claude-haiku-4-5` |
 | 流式返回 | ✅ | SSE in `server/app/routes/chat.py` + `client/.../ChatService.swift` |
 | 商品卡片展示 | ✅ | `client/.../Views/ProductCardView.swift` + relative-URL resolution in `Models/ProductCard.swift` |
@@ -29,7 +29,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 |---|---|---|
 | 运行流畅 | ✅ | All 6 Round 2 demos + 3 Round 3 demos PASS |
 | 界面美观 | ✅ | Claude-designed tokens (`design-tokens.json`), warm-ivory theme, generated lion icon, SF Pro Rounded |
-| 检索准确率 | ✅ | bge-small-zh + CLIP; recall@5 measurable via `aaalion eval` |
+| 检索准确率 | ✅ | bge-small-zh + hybrid rerank; audited 64-case production recall@5 = 0.981 via `python -m rag.eval.report` |
 | 无幻觉输出 | ✅ | `rag/prompts/system.md` + demo 02 (`02-conditional-filter.md`) shows honest "no match" |
 | 复杂场景处理 | ✅ | demos 04 (negation), 05 (comparison), 06 (photo) — all Round 2 |
 
@@ -87,7 +87,7 @@ make install-cli      # OR: ln -sf $(pwd)/tools/aaalion ~/.local/bin/aaalion
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r server/requirements.txt
 cp .env.example server/.env   # set TOKENROUTER_API_KEY
-aaalion ingest                # 992 text chunks + (optional A100) 100 image vectors
+aaalion ingest                # 1082 text chunks + (optional A100) 100 image vectors
 aaalion backend &             # http://localhost:8000
 aaalion ios-sim               # iPhone 17 Pro simulator
 ```
