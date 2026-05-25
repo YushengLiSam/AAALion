@@ -21,24 +21,25 @@
 | Shufeng: brand-origin negation fix (`rag/retrieve/brand_origin.py` + extended `apply_negation`) | Shufeng | +2.0 效果 (closes 安热沙 "不要日系" leak) |
 | Shufeng: re-recorded demos under `docs/demos/2026-05-25/` covering all 6 scenarios | Shufeng | +0.5 加分 (verifiable defense material) |
 | Tujie: catalog-backed audit of 19 golden annotations + regenerated report | Tujie | Measurement validity; no score bump claimed |
+| Tujie: dated latest-reference CNY normalization for foreign catalog prices (`server/app/services/currency.py`) | Tujie | Display/price-intent correctness; MRR 0.771 → 0.778 |
 
 **Net**: +3.5 dimension points → +0.5 to +1.0 weighted total, **89.5 → 90.0**.
 
-## Live numbers (hybrid+rerank, audited 59-case set)
+## Live numbers (hybrid+rerank, R7.2 CNY-normalized 59-case set)
 
 ```
 recall@5             0.830
 recall@10            0.936
-MRR                  0.771
+MRR                  0.778
 negation_accuracy    0.780  (10 cases with forbidden ids)
 no_match_correctness 0.902
-mean latency         3275 ms (Docker full evaluation run)
+mean latency         4489 ms (Docker full evaluation run)
 ```
 
 Note: the 59-case set includes harder scenarios than the earlier 31-case set,
 and this audit also changed 19 incorrect or incomplete labels. The post-audit
-numbers are the new baseline; they should not be claimed as a pure retrieval
-algorithm lift over the pre-audit report.
+numbers became the label-aligned baseline; R7.2 preserves recall@5 and its
+MRR lift from 0.771 to 0.778 is attributable to CNY-aware price ordering.
 
 ### Round 6 delta — what moved and why
 
@@ -126,7 +127,7 @@ algorithm lift over the pre-audit report.
 
 | Sub-item | Score | Evidence | Gap | Push higher |
 |---|---|---|---|---|
-| 检索准确率 (recall@5) | 88 | Audited 59-case set: dense=0.803, hybrid=0.755, **hybrid+rerank=0.830**; production MRR=0.771. | labels now single-auditor; brand-origin recall remains weak | double-judge labels; tune constraint-aware retrieval |
+| 检索准确率 (recall@5) | 88 | R7.2 59-case set: dense=0.803, hybrid=0.755, **hybrid+rerank=0.830**; production MRR=0.778 after CNY price normalization. | labels now single-auditor; brand-origin recall remains weak | double-judge labels; tune constraint-aware retrieval |
 | 无幻觉输出 | 90 | System prompt enforces; demo 02 proves; Round 5 vision-prompt tightening | no automated hallucination check | LLM-as-judge nightly |
 | 复杂场景 (negation, comparison) | 90 | demos 04 + 05; Round 5 added structured negation extraction → filter | rare LLM still hedges | tighten more |
 | First-screen response (<1s target) | 80 | Cache hit: ~300ms first_delta. Cache miss: ~3000-8000ms first_delta (mostly LLM-side, not our overhead) | cache miss path doesn't meet <1s target | prefetch on app focus, preload model weights |
@@ -210,7 +211,7 @@ In priority order, if defense were 7 days further out:
 ## What I'm certain of vs uncertain of
 
 **Certain**:
-- Audited production recall@5 = 0.830 and MRR = 0.771 on 59 cases. Reproducible with `python -m rag.eval.report`.
+- R7.2 production recall@5 = 0.830 and MRR = 0.778 on 59 cases. Reproducible with `python -m rag.eval.report`.
 - Cache hit drops first_delta ≥ 10×. Measured.
 - iPhone 13 Pro deploy works. Hands-on tested.
 - All listed 4.x bonus items have a working code path.

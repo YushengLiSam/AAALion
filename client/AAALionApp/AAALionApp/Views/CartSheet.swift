@@ -110,10 +110,14 @@ struct CartSheet: View {
                     .foregroundStyle(Color.appTextSecondary)
                     .lineLimit(1)
                 HStack(spacing: 4) {
-                    Text("\(item.provenance.currencySymbol)\(String(format: "%.0f", item.unitPrice))")
+                    Text("\(item.displayedCurrencySymbol)\(String(format: "%.0f", item.displayedUnitPrice))")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(Color.appAccent)
-                    if let hint = item.provenance.currencyHint {
+                    if let originalPrice = item.originalPriceText {
+                        Text("原价 \(originalPrice)")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.appTextSecondary)
+                    } else if item.unitPriceCNY == nil, let hint = item.provenance.currencyHint {
                         Text("(\(hint))")
                             .font(.system(size: 10))
                             .foregroundStyle(Color.appTextSecondary)
@@ -175,25 +179,27 @@ struct CartSheet: View {
         }
     }
 
-    // MARK: - Multi-currency summary.
+    // MARK: - CNY-normalized summary.
 
-    /// Subtotals grouped by currency symbol so a mixed-currency cart
-    /// shows e.g. "¥1,200 · $35.00" rather than a fake unified sum.
-    private var totalsByCurrency: [(symbol: String, hint: String?, total: Double)] {
+    private var cnyTotal: Double {
+        cart.items.compactMap(\.lineTotalCNY).reduce(0, +)
+    }
+
+    private var hasCNYTotal: Bool {
+        cart.items.contains { $0.lineTotalCNY != nil }
+    }
+
+    /// Only used when no live or cached FX quote could be obtained.
+    private var unresolvedTotalsByCurrency: [(symbol: String, hint: String?, total: Double)] {
         var sums: [String: (symbol: String, hint: String?, total: Double)] = [:]
-        for item in cart.items {
+        for item in cart.items where item.lineTotalCNY == nil {
             let key = item.provenance.currency.uppercased()
             let symbol = item.provenance.currencySymbol
             let hint = item.provenance.currencyHint
             sums[key, default: (symbol, hint, 0)].total += item.lineTotal
         }
-        // Stable display order: CNY first, then alphabetic.
         return sums
-            .sorted { lhs, rhs in
-                if lhs.key == "CNY" { return true }
-                if rhs.key == "CNY" { return false }
-                return lhs.key < rhs.key
-            }
+            .sorted { $0.key < $1.key }
             .map { $0.value }
     }
 
@@ -206,21 +212,30 @@ struct CartSheet: View {
                         .foregroundStyle(Color.appTextSecondary)
                     Spacer()
                 }
-                ForEach(totalsByCurrency, id: \.symbol) { entry in
+                if hasCNYTotal {
                     HStack {
-                        if let hint = entry.hint {
-                            Text(hint)
-                                .font(.appCaption)
-                                .foregroundStyle(Color.appTextSecondary)
-                        }
+                        Text("人民币")
+                            .font(.appCaption)
+                            .foregroundStyle(Color.appTextSecondary)
                         Spacer()
-                        Text("\(entry.symbol)\(String(format: "%.2f", entry.total))")
+                        Text("¥\(String(format: "%.2f", cnyTotal))")
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.appTextPrimary)
                     }
                 }
-                if totalsByCurrency.count > 1 {
-                    Text("⚠️ 多币种购物车不做汇率合计")
+                ForEach(unresolvedTotalsByCurrency, id: \.symbol) { entry in
+                    HStack {
+                        Text(entry.hint ?? "外币")
+                            .font(.appCaption)
+                            .foregroundStyle(Color.appTextSecondary)
+                        Spacer()
+                        Text("\(entry.symbol)\(String(format: "%.2f", entry.total))")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.appTextPrimary)
+                    }
+                }
+                if !unresolvedTotalsByCurrency.isEmpty {
+                    Text("部分外币汇率暂不可用，未计入人民币合计")
                         .font(.system(size: 10))
                         .foregroundStyle(Color.appTextSecondary)
                         .frame(maxWidth: .infinity, alignment: .trailing)

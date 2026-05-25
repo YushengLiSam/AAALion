@@ -60,12 +60,16 @@ struct ProductDetailView: View {
     }
 
     private var priceBlock: some View {
-        HStack(alignment: .lastTextBaseline, spacing: 6) {
-            Text("\(product.provenance.currencySymbol)\(String(format: "%.0f", product.basePrice))")
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(product.displayedCurrencySymbol)\(String(format: "%.2f", product.displayedPrice))")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.appAccent)
-            if let hint = product.provenance.currencyHint {
-                Text("(\(hint))")
+            if let originalPrice = product.originalPriceText {
+                Text("原价 \(originalPrice)")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextSecondary)
+            } else if product.priceCNY == nil, let hint = product.provenance.currencyHint {
+                Text("\(hint)原价，人民币汇率暂不可用")
                     .font(.appCaption)
                     .foregroundStyle(Color.appTextSecondary)
             }
@@ -84,7 +88,11 @@ struct ProductDetailView: View {
             .padding(.bottom, 2)
             row("origin",  "产地",        product.provenance.originCountry)
             row("storefront",  "平台",     product.provenance.sourcePlatform)
-            row("creditcard.fill",  "币种", "\(product.provenance.currency) (\(product.provenance.currencySymbol))")
+            row("creditcard.fill", "原始币种", "\(product.provenance.currency) (\(product.provenance.currencySymbol))")
+            if let quote = product.exchangeRate, let text = product.exchangeRateText {
+                row("arrow.triangle.2.circlepath", "参考汇率", text)
+                row("calendar", "汇率来源", quote.provider)
+            }
             if let ship = product.provenance.shippingNote {
                 row("shippingbox.fill", "配送", ship)
             }

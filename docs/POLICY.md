@@ -130,11 +130,21 @@ The summary line stays under 70 chars when possible. Bullets in the body, not in
 
 - Every product JSON carries a `provenance` block: `origin_country`,
   `source_platform`, `currency`, `external_url`, `shipping_note`.
+- Catalog `base_price` and SKU `price` remain in their source currency; they
+  are evidence fields and are never overwritten.
+- The backend adds `price_cny` and `exchange_rate` at response time for
+  foreign products. It queries the latest available Frankfurter reference
+  rate, caches it for one hour, and exposes its rate date/provider.
 - The iOS app renders:
   - flag emoji from `origin_country` (🇨🇳/🇺🇸/🇯🇵/🇩🇪/🇫🇷),
-  - currency-aware price (`¥` for CNY, `$` for USD with `(美元)` hint),
+  - RMB as the primary displayed price, with the original foreign amount and
+    dated reference rate visible for cross-border items,
   - source-platform-prefixed brand line ("Amazon US · Sony"),
-  - per-currency cart totals (no FX conversion — honest about cross-border).
+  - a unified CNY cart/checkout total where a reference quote is available.
+- This is an informative display conversion, not a payment or settlement
+  quote. If no live or cached FX quote is available, the app displays the
+  original currency, does not silently include it in a CNY total, and does
+  not treat it as satisfying a RMB budget filter.
 
 ## Documentation discipline
 
@@ -149,6 +159,7 @@ Use this section to record decisions that change the architecture or scope.
 |---|---|---|
 | 2026-05-22 | Switch client from Android (Sam's WeChat proposal) to **iOS**. | Shufeng owns the client and prefers iOS; iPhone 13 available for testing. |
 | 2026-05-22 | **Qdrant** as primary vector DB, Chroma as fallback. | Better multi-vector + filter support; still single-container Docker for private deployment. |
+| 2026-05-25 | Convert foreign product display prices to CNY using dated reference FX while retaining source amounts. | Chinese shoppers need comparable prices and CNY budget filters; retaining source price/rate avoids false precision. |
 | 2026-05-22 | A100 used for **index-build only**, not request-path serving. | Keeps the backend portable; A100 is overkill for serving. |
 | 2026-05-22 | Product name = **狮选 LionPick** (distinct from team name AAALion). | Bilingual, brandable, ties to lion identity, descriptive of "AI picks the right product." |
 | 2026-05-22 | Adopt Conventional Commits as the commit format. | Easier to scan history; supports future tooling (changelog generation). |

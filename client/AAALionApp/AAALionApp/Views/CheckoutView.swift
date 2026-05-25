@@ -21,22 +21,24 @@ struct CheckoutView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// Per-currency subtotal in the order's line items. Mirrors CartSheet's
-    /// multi-currency UX so we don't fake a unified sum across CNY + USD + JPY.
-    private var totalsByCurrency: [(symbol: String, hint: String?, total: Double)] {
+    private var cnyTotal: Double {
+        cart.items.compactMap(\.lineTotalCNY).reduce(0, +)
+    }
+
+    private var hasCNYTotal: Bool {
+        cart.items.contains { $0.lineTotalCNY != nil }
+    }
+
+    private var unresolvedTotalsByCurrency: [(symbol: String, hint: String?, total: Double)] {
         var sums: [String: (symbol: String, hint: String?, total: Double)] = [:]
-        for item in cart.items {
+        for item in cart.items where item.lineTotalCNY == nil {
             let key = item.provenance.currency.uppercased()
             let symbol = item.provenance.currencySymbol
             let hint = item.provenance.currencyHint
             sums[key, default: (symbol, hint, 0)].total += item.lineTotal
         }
         return sums
-            .sorted { lhs, rhs in
-                if lhs.key == "CNY" { return true }
-                if rhs.key == "CNY" { return false }
-                return lhs.key < rhs.key
-            }
+            .sorted { $0.key < $1.key }
             .map { $0.value }
     }
 
@@ -61,25 +63,35 @@ struct CheckoutView: View {
                             }
                         }
                         Spacer()
-                        Text("\(item.provenance.currencySymbol)\(String(format: "%.2f", item.lineTotal))")
+                        Text("\(item.displayedCurrencySymbol)\(String(format: "%.2f", item.lineTotalCNY ?? item.lineTotal))")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.appAccent)
                     }
                 }
             }
             Section("合计 / Total") {
-                ForEach(totalsByCurrency, id: \.symbol) { entry in
+                if hasCNYTotal {
                     HStack {
-                        Text(entry.hint ?? "人民币")
+                        Text("人民币")
                             .font(.appBody)
                         Spacer()
-                        Text("\(entry.symbol)\(String(format: "%.2f", entry.total))")
+                        Text("¥\(String(format: "%.2f", cnyTotal))")
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color.appAccent)
                     }
                 }
-                if totalsByCurrency.count > 1 {
-                    Text("跨境订单不做实时汇率合计")
+                ForEach(unresolvedTotalsByCurrency, id: \.symbol) { entry in
+                    HStack {
+                        Text(entry.hint ?? "外币")
+                            .font(.appBody)
+                        Spacer()
+                        Text("\(entry.symbol)\(String(format: "%.2f", entry.total))")
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.appAccent)
+                    }
+                }
+                if !unresolvedTotalsByCurrency.isEmpty {
+                    Text("部分外币汇率暂不可用，未计入人民币合计")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.appTextSecondary)
                 }

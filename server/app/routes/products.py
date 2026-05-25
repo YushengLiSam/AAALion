@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -9,6 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from app.config import settings
+from app.services.currency import normalize_product_price
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -33,4 +35,5 @@ async def get_product(product_id: str) -> dict:
     path = _index().get(product_id)
     if path is None:
         raise HTTPException(status_code=404, detail="product not found")
-    return json.loads(path.read_text(encoding="utf-8"))
+    product = json.loads(path.read_text(encoding="utf-8"))
+    return await asyncio.to_thread(normalize_product_price, product)

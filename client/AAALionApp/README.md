@@ -36,6 +36,14 @@ For real-device testing on the same Wi-Fi as your MacBook:
 - Set `PUBLIC_BACKEND_URL=http://<that-ip>:8000`.
 - In `Info.plist` (autogen by Xcode), add an App Transport Security exception for that IP if not on HTTPS.
 
+## Price display
+
+The backend returns `price_cny` for foreign-priced catalog items together
+with an `exchange_rate` record. Product cards, product detail, cart, and
+checkout use RMB as the primary displayed amount while preserving the
+original foreign price and rate date. If no reference quote is available,
+the item stays in its original currency and is excluded from the RMB total.
+
 ## File layout
 
 ```

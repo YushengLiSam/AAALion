@@ -134,15 +134,20 @@ struct ProductCardView: View {
 
     private var priceRow: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text("\(product.provenance.currencySymbol)\(String(format: "%.0f", product.basePrice))")
+            Text("\(product.displayedCurrencySymbol)\(String(format: "%.0f", product.displayedPrice))")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.appAccent)
-            if let hint = product.provenance.currencyHint {
-                Text(hint)
+            if let originalPrice = product.originalPriceText {
+                Text("原价 \(originalPrice)")
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.appTextSecondary)
+            } else if product.priceCNY == nil, let hint = product.provenance.currencyHint {
+                Text("(\(hint)，汇率暂不可用)")
                     .font(.system(size: 9, weight: .medium, design: .rounded))
                     .foregroundStyle(Color.appTextSecondary)
             }
         }
         .frame(width: 130, alignment: .leading)
+        .frame(minHeight: 34, alignment: .topLeading)
     }
 }

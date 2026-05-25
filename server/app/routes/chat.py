@@ -31,6 +31,7 @@ from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
 from app.services.cache import cache, make_key, hash_image_bytes
 from app.services.contextual_query import build_retrieval_query
+from app.services.currency import normalize_product_prices, pricing_cache_token
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 log = logging.getLogger("chat")
@@ -64,10 +65,28 @@ def _build_catalog(products: list[dict]) -> str:
     for p in products:
         rag = p.get("rag_knowledge", {}) or {}
         lines.append(
-            f"- {p.get('product_id')} | {p.get('title')} | {p.get('brand')} | ¥{p.get('base_price')} | "
+            f"- {p.get('product_id')} | {p.get('title')} | {p.get('brand')} | {_catalog_price(p)} | "
             f"{(rag.get('marketing_description') or '')[:120]}"
         )
     return "\n".join(lines) if lines else "(空)"
+
+
+def _catalog_price(product: dict) -> str:
+    """Price wording supplied to the LLM, matching the product card display."""
+    price_cny = product.get("price_cny")
+    if price_cny is not None:
+        text = f"¥{float(price_cny):.2f}"
+        rate = product.get("exchange_rate")
+        if isinstance(rate, dict):
+            provenance = product.get("provenance") or {}
+            source = provenance.get("currency", rate.get("source_currency", ""))
+            text += (
+                f" (原价 {source} {float(product.get('base_price', 0)):.2f}; "
+                f"参考汇率日期 {rate.get('rate_date', '')})"
+            )
+        return text
+    provenance = product.get("provenance") or {}
+    return f"{provenance.get('currency', 'CNY')} {product.get('base_price')} (汇率暂不可用)"
 
 
 def _image_url(p: dict) -> str | None:
@@ -125,6 +144,8 @@ def _product_card_event(p: dict) -> dict:
             "title": p.get("title"),
             "brand": p.get("brand"),
             "base_price": p.get("base_price"),
+            "price_cny": p.get("price_cny"),
+            "exchange_rate": p.get("exchange_rate"),
             "image_url": _image_url(p),
             "provenance": _provenance(p),
         },
@@ -222,6 +243,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             products = top_k_image(img_bytes, k=3)
     if not products:
         products = top_k(retrieval_query, k=5)
+    products = await asyncio.to_thread(normalize_product_prices, products)
     t_retrieval = time.perf_counter()
 
     # Cart-intent detection ----------------------------------------------------
@@ -229,7 +251,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
     # Cache --------------------------------------------------------------------
     cache_key = make_key(
-        system_prompt=_PROMPT[:128],
+        system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}",
         messages_json=req.model_dump_json(exclude={"filters"}),
         image_sha=hash_image_bytes(img_bytes),
     )

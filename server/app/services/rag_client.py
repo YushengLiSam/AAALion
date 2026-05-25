@@ -121,9 +121,14 @@ def top_k(text: str, k: int = 5) -> list[dict]:
         candidates = candidates[:rerank_limit]
 
     # 5) Price intent is a final preference layer, after semantic relevance.
+    # Normalize foreign prices before comparing against a CNY user budget.
     if price_on:
         try:
-            from app.services.price_intent import apply_price_intent
+            from app.services.price_intent import apply_price_intent, parse_price_intent
+            if parse_price_intent(text).active:
+                from app.services.currency import normalize_product_prices
+
+                candidates = normalize_product_prices(candidates)
             candidates = apply_price_intent(candidates, text)
         except Exception:
             pass

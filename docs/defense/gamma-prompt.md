@@ -57,10 +57,12 @@ Slide 3 — 三项核心创新 (top 3 engineering wins)
 Slide 4 — 真实商品 + 来源可验证 (real products + provenance)
 - 145 个商品 / 8 类目: 美妆 / 数码 / 服饰 / 食品 / 母婴 / 家居 / 图书 / 户外
 - 45 个真实商品 (Tmall / JD / Amazon US / Amazon JP)
-  - 每张卡片显示: 国旗 emoji (🇨🇳/🇺🇸/🇯🇵/🇫🇷)、币种符号 ($/¥/€)、来源平台
+  - 每张卡片显示: 国旗 emoji (🇨🇳/🇺🇸/🇯🇵/🇫🇷)、人民币主价格、外币原价与来源平台
   - 「去原页」按钮一点跳真实商品详情页 - 评委可现场验证
 - 100 个 AI-gen demo (用「演示」徽章标识，与真实商品视觉区分)
-- 多币种购物车: 按币种分组合计 (¥1200 + $35)，不做虚假汇率换算
+- 外币标准化: 后端查询 Frankfurter 最新参考汇率，美元商品展示为人民币，
+  商品详情披露原价、汇率日期与来源；购物车统一人民币合计
+- 诚实边界: 这是展示用参考换算而非支付结算价；若汇率不可用则保留原币并不计入人民币合计
 
 Slide 5 — 检索质量量化 (measured retrieval quality)
 - 评测体系: 59 audited cases (49 positive / 10 no-match) / 6 场景 / 3 策略 (dense, hybrid, hybrid+rerank)
@@ -68,13 +70,14 @@ Slide 5 — 检索质量量化 (measured retrieval quality)
 - 生产路径 (hybrid+rerank) 整体指标:
   | recall@5 | recall@10 | MRR | 反选准确率 | 无匹配正确率 | 平均延迟 |
   |---|---|---|---|---|---|
-  | 0.830 | 0.936 | 0.771 | 0.780 | 0.902 | 3,275 ms |
+  | 0.830 | 0.936 | 0.778 | 0.780 | 0.902 | 4,489 ms |
 - 指标口径: 2026-05-25 按商品目录审计并修正 19 条 golden 标签后的新基线，
   不将审计前后差值宣称为纯算法增益
 - 分场景亮点:
   - multiturn: recall@5 = 1.000 (contextual_query + price intent 推动)
   - compare: recall@5 = 0.917
   - basic: recall@5 = 0.903
+  - filter: MRR 0.469 → 0.576 (外币按人民币比较后排序改善)
 
 Slide 6 — 现场 Demo (live demos)
 - 6 个场景全过一遍，每个场景对应 docs/demos/2026-05-25/<NN>.md 的详细日志:

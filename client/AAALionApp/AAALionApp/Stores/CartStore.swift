@@ -20,7 +20,7 @@ final class CartStore {
 
     func add(_ product: ProductCard, quantity: Int = 1) {
         if let idx = items.firstIndex(where: { $0.productId == product.productId }) {
-            items[idx].quantity += quantity
+            items[idx] = CartItem(from: product, quantity: items[idx].quantity + quantity)
         } else {
             items.append(CartItem(from: product, quantity: quantity))
         }

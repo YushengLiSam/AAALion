@@ -14,7 +14,7 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 <br clear="all"/>
 
-## Live status (2026-05-25, Round 7 + golden audit)
+## Live status (2026-05-25, Round 7.2 + CNY price normalization)
 
 **Headline: 90.0 / 100, 6 demo scenarios re-recorded under R7 quality, "不要日系" → 安热沙 leak closed.**
 
@@ -32,6 +32,7 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | R6.5 (2026-05-25 AM) | Tujie: synonyms + contextual + price intent merged | 0.816 (31-case) | 0.705 |
 | R7 (2026-05-25 PM) | Sam's eval dashboard merged + brand-origin negation fix + re-recorded demos | 0.746 (59-case, pre-audit) | 0.674 |
 | **R7 + golden audit (2026-05-25, Tujie)** | **Correct wrong labels against catalog; regenerate dashboard** | **0.830 (59-case / 49 positive)** | **0.771** |
+| **R7.2 (2026-05-25, Tujie, now)** | **Live reference-rate CNY display for foreign products + CNY-aware budgets** | **0.830** | **0.778** |
 
 ### Capability matrix
 
@@ -43,11 +44,12 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | **Curated synonym expansion** | ✅ NEW | **Tujie (R6.5)** | [`rag/retrieve/synonyms.py`](rag/retrieve/synonyms.py) |
 | **Multi-turn contextual query** ("再便宜点的呢" inherits anchor) | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/contextual_query.py`](server/app/services/contextual_query.py) |
 | **Price intent parsing + sort** ("200元以下", "便宜") | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/price_intent.py`](server/app/services/price_intent.py) |
+| **Foreign-price CNY normalization** (latest reference FX + original-price trace) | ✅ NEW | **Tujie (R7.2)** | [`server/app/services/currency.py`](server/app/services/currency.py) |
 | Negation / exclusion (4.3 ⭐⭐) | ✅ **brand-origin gap CLOSED R7** | Shufeng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
 | Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-24/03-comparison.png`](docs/demos/2026-05-24/03-comparison.png) |
 | OpenCLIP image retrieval on A100 (4.2 ⭐⭐⭐) | ✅ | Shufeng (R3) | 100 images indexed |
 | Voice input + TTS (4.2 ⭐ + ⭐⭐) | ✅ | Shufeng (R3) | Speech / AVSpeechSynthesizer |
-| **4.1 Cart + inline-add + multi-currency totals + 去原页** | ✅ | Shufeng (R5+R6) | [`docs/demos/2026-05-24/04-cart-intent.png`](docs/demos/2026-05-24/04-cart-intent.png) |
+| **4.1 Cart + inline-add + CNY-normalized totals + 去原页** | ✅ | Shufeng + Tujie | [`docs/demos/2026-05-24/04-cart-intent.png`](docs/demos/2026-05-24/04-cart-intent.png) |
 | **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
 | **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
 | **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
@@ -72,6 +74,7 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 
 - **客户端 / Client**: Swift 5.9, SwiftUI, iOS 17+. Speech.framework + AVSpeechSynthesizer + PhotosPicker + UIImagePickerController + .fileImporter.
 - **后端 / Backend**: Python 3.12, FastAPI, SSE, Pydantic v2 multimodal content union.
+- **汇率 / FX display**: Frankfurter v2 latest reference rates (keyless; cached server-side; original source price retained).
 - **向量库 / Vector DB**: Chroma in-process. Two collections: `products_text` (992 chunks via `BAAI/bge-small-zh-v1.5`) + `products_image` (100 vectors via OpenCLIP ViT-B/32 on A100).
 - **LLM**: `claude-haiku-4-5` (vision-capable) via TokenRouter. Swappable to Doubao, OpenAI, Anthropic, or local echo via `LLM_PROVIDER` env.
 - **Design tokens**: Claude-designed warm-ivory + amber-gold + deep-espresso palette (see [`client/AAALionApp/design-tokens.json`](client/AAALionApp/design-tokens.json)).
@@ -101,6 +104,8 @@ python -m rag.eval.report            # HTML dashboard → docs/eval_report.html
 ```
 
 Backend URL is hardcoded in `client/AAALionApp/AAALionApp/Config.swift` (`defaultBackendURL`). **You can also change it at runtime via the in-app Settings (gear icon)** — no rebuild needed for LAN IP changes.
+
+Foreign-source products retain their original amount (for example `$398.00 USD`) and are displayed/totaled in RMB using the latest available reference rate fetched by the backend. This is a shopping-display conversion, not a payment settlement quote; the card detail exposes the rate date and provider.
 
 The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. The 2026-05-25 audit corrected 19 mismatched or incomplete golden labels, so its post-audit result is the new baseline rather than a pure algorithm improvement claim. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for current numbers and methodology.
 

@@ -46,7 +46,7 @@ Combined: **45 real products** added to the catalog. Each carries:
 |---|---|
 | 100 AI-gen products, 4 categories | 145 products (100 AI-gen + 45 real), 8 categories |
 | All `provenance.source_platform = AI-gen (demo)` | Mix of AI-gen (`演示` badge) + Amazon US/JP, JD |
-| Single-currency (CNY only) | Multi-currency (CNY + USD), iOS shows `(美元)` hint and per-currency cart totals |
+| Single-currency (CNY only) | Multi-currency source data (CNY + USD); from R7.2, iOS shows RMB using a dated latest-reference FX quote while retaining original USD prices |
 | `external_url = null` everywhere | 45 real product detail URLs surfaced via "去原页" button |
 
 ## Caveats and honest limits
@@ -78,6 +78,11 @@ Combined: **45 real products** added to the catalog. Each carries:
   visual retrieval (Round 3's path) still works for the 100 AI-gen
   products. Text retrieval (BM25 + dense) covers all 145. If we need
   visual retrieval over real-products, scrape and embed in a Round 7.
+- **Currency display update (R7.2)**: product seed prices stay in their
+  source currency for provenance. The backend derives `price_cny` at response
+  time from the latest available dated reference rate; the iOS UI displays RMB
+  first, keeps the original amount visible, and does not treat that reference
+  conversion as a checkout or settlement quote.
 
 ## Why this beats "expand catalog with more AI-gen"
 

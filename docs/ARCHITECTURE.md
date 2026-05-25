@@ -34,6 +34,9 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 - **`/chat/multimodal`** (POST, SSE): multipart (image + text) → same SSE.
 - **`/products/{id}`** (GET): detail by id, served from the indexed JSON.
 - **`/health`** (GET).
+- **FX normalization**: `services/currency.py` fetches and caches latest
+  reference quotes for non-CNY source prices, enriches response payloads with
+  `price_cny` + `exchange_rate`, and leaves original catalog prices intact.
 - **Orchestration**: RAG (call `rag.retrieve.query`) → assemble prompt (system + retrieved context + history) → stream Doubao response → emit `delta` events; when product ids are mentioned, emit a `product_card` event.
 - **Doubao client**: thin wrapper around the ARK API (OpenAI-compatible). Reads key from `.env`.
 - **Hardening**: timeout (30s end-to-end), retry on 5xx (backoff 0.5s × 2), per-IP rate limit (defer to v2).
@@ -54,11 +57,13 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 1. iOS sends `{messages: [...], filters?: {}}` to `/chat/stream`.
 2. Backend extracts last user message → optionally classifies intent (browse vs purchase) → builds Qdrant filter.
 3. RAG returns top-k products with their chunks.
-4. Backend builds prompt: `system_prompt` + `retrieved_context_block` + `conversation_history`.
-5. Backend streams Doubao response. Two event types:
+4. Backend normalizes any foreign-priced candidates to CNY for display and
+   RMB budget handling, preserving original price and dated FX metadata.
+5. Backend builds prompt: `system_prompt` + `retrieved_context_block` + `conversation_history`.
+6. Backend streams Doubao response. Two event types:
    - `data: {"type":"delta","text":"..."}`
    - `data: {"type":"product_card","product":{...}}` — emitted once per cited product, sourced from the indexed JSON (no hallucinated fields).
-6. iOS renders deltas into the streaming message bubble; on each `product_card` event, append a card.
+7. iOS renders deltas into the streaming message bubble; on each `product_card` event, append a card with CNY primary pricing and original-price traceability.
 
 ## Multimodal (拍照找货) path
 
@@ -71,7 +76,9 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 
 - The model never sees the full product DB; only retrieved context. If retrieval misses, the system_prompt instructs "tell the user you can't find a matching product" rather than guessing.
 - Product cards rendered on the client come from indexed JSON, not from model text — the model's job is the *reasoning text*, the cards are *programmatic*.
-- Prices, SKUs, image URLs always come from the indexed data.
+- Source prices, SKUs, image URLs always come from the indexed data; a
+  user-facing CNY amount is derived from a dated, identified FX quote and
+  does not overwrite the catalog evidence.
 
 ## Deployment
 

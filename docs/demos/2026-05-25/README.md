@@ -1,4 +1,4 @@
-# Demo Results — 2026-05-25 (Round 7)
+# Demo Results — 2026-05-25 (Round 7 / R7.2 backend follow-up)
 
 Re-recorded after Round 7 landed: Sam's eval dashboard merged + Tujie's
 synonym/contextual/price-intent work in production + my brand-origin
@@ -28,21 +28,27 @@ booted screenshot`.
 | Multi-turn ("再便宜点的呢") | inherited topic via `contextual_query.py` (Tujie R6.5) | unchanged, still perfect | Tujie |
 | Synonym expansion ("无线耳机" → "蓝牙耳机/TWS/降噪耳机") | unchanged from R6.5 | unchanged | Tujie |
 | Per-scenario eval dashboard | not in repo | merged on `main` ([`docs/eval_report.html`](../eval_report.html)) | Sam |
+| Foreign-price display / totals | source-currency hint and per-currency totals | RMB primary display with dated reference-rate trace; original amount retained | Tujie (R7.2) |
 
-## Headline numbers (Round 7, hybrid+rerank on audited 59-case set)
+## Headline numbers (R7.2, hybrid+rerank on audited 59-case set)
 
 | Metric | Value | Note |
 |---|---|---|
 | recall@5 | **0.830** | corrected 19 catalog-mismatched or incomplete golden labels |
 | recall@10 | **0.936** | post-audit baseline |
-| MRR | **0.771** | post-audit baseline |
+| MRR | **0.778** | CNY-aware price ordering; R7.1 post-audit baseline was 0.771 |
 | 反选准确率 | **0.780** | 10 cases carry `forbidden_product_ids`; brand-origin demos verified live |
 | no-match correctness | **0.902** | 10 total empty-expected cases |
-| mean latency | 3,275 ms | Docker full evaluation run; live/cache latency is measured separately |
+| mean latency | 4,489 ms | Docker full evaluation run; includes the first-rate lookup path |
 
 The audit changes answer labels, not the retrieval pipeline. These values are
 the new baseline and are not presented as a pure algorithm delta from the
 pre-audit Round 7 report.
+
+R7.2 adds latest-reference-rate CNY display and CNY-aware price-intent ordering:
+recall@5 remains 0.830 while MRR rises from 0.771 to 0.778. The images above
+were captured before the FX UI addition, so the conversion behavior is verified
+through the API/test run rather than claimed from those screenshots.
 
 See [`docs/EVAL_RESULTS.md`](../EVAL_RESULTS.md) (Sam) and
 [`docs/QUALITY_REPORT_2026-05-25.md`](../QUALITY_REPORT_2026-05-25.md)

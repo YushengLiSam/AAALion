@@ -35,22 +35,36 @@ app/
 ├── schemas/
 │   └── chat.py        # Pydantic request models
 └── services/
-    ├── doubao_client.py   # ARK / OpenAI-compatible client (stub)
-    └── rag_client.py      # Wrapper around rag/ — currently a keyword stub
+    ├── llm_provider.py    # TokenRouter / Anthropic / Doubao / OpenAI switch
+    ├── rag_client.py      # Hybrid retrieval + rerank + intent handling
+    └── currency.py        # Latest-reference foreign-price conversion to CNY
 ```
 
 ## What works today
 
 - `/health` returns 200.
-- `/chat/stream` streams a hard-coded fixture (lets the iOS team start).
-- `/products/{id}` returns the indexed JSON for any product in `data/seed/`.
+- `/chat/stream` runs RAG retrieval, streams LLM deltas, then sends product cards.
+- `/products/{id}` returns product details enriched with display pricing.
 - Static images served from `/static/...`.
+- Foreign-source prices are displayed in CNY using the latest available
+  Frankfurter reference quote, while original price/currency and rate date
+  remain in the payload.
 
-## What's stubbed
+## Currency conversion
 
-- `services/doubao_client.py` — `NotImplementedError` until Sam wires the real ARK call.
-- `services/rag_client.py` — currently a keyword-overlap heuristic. Tujie will swap in the real Qdrant retriever.
-- The chat route returns a fixture; will be replaced with `rag_client.stub_top_k(...)` → prompt assembly → `doubao_client.stream_chat(...)`.
+No API key is needed for FX. Optional `.env` settings:
+
+```bash
+FX_API_BASE_URL=https://api.frankfurter.dev/v2
+FX_RATE_TTL_SECONDS=3600
+FX_HTTP_TIMEOUT_SECONDS=3.0
+```
+
+`base_price` remains the source amount. `price_cny` and `exchange_rate` are
+response-time fields used by the iOS display and CNY price-intent logic. The
+rate is informational, not a payment settlement quote. If neither a live nor
+cached quote is available, the foreign source amount remains visible and is
+not treated as satisfying a RMB budget filter.
 
 ## Quick smoke
 
@@ -59,4 +73,7 @@ curl -s http://localhost:8000/health
 curl -s -N -X POST http://localhost:8000/chat/stream \
   -H 'content-type: application/json' \
   -d '{"messages":[{"role":"user","content":"推荐一款油皮的洗面奶"}]}'
+
+# Foreign-priced detail: shows base_price (USD), price_cny and exchange_rate
+curl -s http://localhost:8000/products/p_2_intl_01
 ```

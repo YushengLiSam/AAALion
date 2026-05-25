@@ -5,6 +5,8 @@ struct ProductCard: Codable, Hashable, Identifiable {
     let title: String
     let brand: String
     let basePrice: Double
+    let priceCNY: Double?
+    let exchangeRate: ExchangeRateQuote?
     let imageURL: URL?
     let provenance: Provenance
 
@@ -15,6 +17,8 @@ struct ProductCard: Codable, Hashable, Identifiable {
         case title
         case brand
         case basePrice = "base_price"
+        case priceCNY = "price_cny"
+        case exchangeRate = "exchange_rate"
         case imageURL = "image_url"
         case provenance
     }
@@ -25,6 +29,8 @@ struct ProductCard: Codable, Hashable, Identifiable {
         title = try c.decode(String.self, forKey: .title)
         brand = try c.decode(String.self, forKey: .brand)
         basePrice = try c.decode(Double.self, forKey: .basePrice)
+        priceCNY = try c.decodeIfPresent(Double.self, forKey: .priceCNY)
+        exchangeRate = try c.decodeIfPresent(ExchangeRateQuote.self, forKey: .exchangeRate)
 
         // Backend may send the image URL as either a relative path
         // (e.g. "/static/1_美妆护肤/images/p_beauty_001_live.jpg") or
@@ -44,18 +50,70 @@ struct ProductCard: Codable, Hashable, Identifiable {
         provenance = (try? c.decode(Provenance.self, forKey: .provenance)) ?? .demo
     }
 
-    init(productId: String, title: String, brand: String, basePrice: Double, imageURL: URL?, provenance: Provenance = .demo) {
+    init(
+        productId: String,
+        title: String,
+        brand: String,
+        basePrice: Double,
+        priceCNY: Double? = nil,
+        exchangeRate: ExchangeRateQuote? = nil,
+        imageURL: URL?,
+        provenance: Provenance = .demo
+    ) {
         self.productId = productId
         self.title = title
         self.brand = brand
         self.basePrice = basePrice
+        self.priceCNY = priceCNY
+        self.exchangeRate = exchangeRate
         self.imageURL = imageURL
         self.provenance = provenance
+    }
+
+    var displayedPrice: Double { priceCNY ?? basePrice }
+
+    var displayedCurrencySymbol: String {
+        if priceCNY != nil || provenance.currency.uppercased() == "CNY" { return "¥" }
+        return provenance.currencySymbol
+    }
+
+    var hasConvertedForeignPrice: Bool {
+        provenance.currency.uppercased() != "CNY" && priceCNY != nil
+    }
+
+    var originalPriceText: String? {
+        guard hasConvertedForeignPrice else { return nil }
+        return "\(provenance.currencySymbol)\(String(format: "%.2f", basePrice)) \(provenance.currency.uppercased())"
+    }
+
+    var exchangeRateText: String? {
+        guard let quote = exchangeRate else { return nil }
+        let suffix = quote.stale ? " · 缓存汇率" : ""
+        return "1 \(quote.sourceCurrency) = ¥\(String(format: "%.4f", quote.rate)) · \(quote.rateDate)\(suffix)"
+    }
+}
+
+/// The latest reference rate used for user-facing CNY conversion.
+struct ExchangeRateQuote: Codable, Hashable {
+    let sourceCurrency: String
+    let targetCurrency: String
+    let rate: Double
+    let rateDate: String
+    let provider: String
+    let stale: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case sourceCurrency = "source_currency"
+        case targetCurrency = "target_currency"
+        case rate
+        case rateDate = "rate_date"
+        case provider
+        case stale
     }
 }
 
 /// Where this product comes from — origin, platform, currency, shipping.
-/// Drives the flag badge + currency-aware price + brand-line in the UI.
+/// Drives the flag badge, original currency, and brand-line in the UI.
 struct Provenance: Codable, Hashable {
     let originCountry: String        // "CN", "US", "JP", "DE", "FR"...
     let sourcePlatform: String       // "Tmall", "JD", "Amazon US", "Amazon JP", "AI-gen (demo)"

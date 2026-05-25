@@ -4,15 +4,21 @@
 
 ## Current state
 
-`data/seed/` contains 100 product entries across four categories: 美妆护肤, 数码电子, 服饰运动, 食品生活. Each product has:
+`data/seed/` contains 145 product entries across eight categories. It includes AI-generated demo entries and 45 hand-curated real products, of which 20 Amazon entries are priced in USD. Each product has:
 
 - `product_id`, `title`, `brand`, `category`, `sub_category`
-- `base_price` (CNY) and a `skus` list (variants)
+- `base_price` in the source currency declared by `provenance.currency`, and a `skus` list (variants)
 - `image_path` (relative to `data/seed/<category>/images/`)
 - `rag_knowledge`:
   - `marketing_description` (~200 chars)
   - `official_faq`: 2-3 question/answer pairs
   - `user_reviews`: 3-5 entries with rating + content
+
+For API/UI responses, `server/app/services/currency.py` leaves these source
+amounts untouched and adds `price_cny`, per-SKU `price_cny`, and an
+`exchange_rate` record for foreign-priced items. Rates are fetched from the
+Frankfurter v2 latest-reference endpoint at request time and cached for one
+hour; the rate date is exposed in the UI.
 
 **Important**: this seed dataset was confirmed by the competition recruiters to be **AI-generated**. It works as a smoke-test set and to develop pipelines against, but the demo and final eval must use **real** product data — otherwise the judges may discount our work.
 

@@ -48,7 +48,7 @@ data: {"type":"delta","text":"为你推荐"}
 
 data: {"type":"delta","text":"这款洁面"}
 
-data: {"type":"product_card","product":{"product_id":"p_beauty_004","title":"...","brand":"...","base_price":89,"image_url":"..."}}
+data: {"type":"product_card","product":{"product_id":"p_2_intl_01","title":"索尼 WH-1000XM5 头戴降噪耳机 黑色","brand":"Sony","base_price":398.0,"price_cny":2703.06,"exchange_rate":{"source_currency":"USD","target_currency":"CNY","rate":6.7916,"rate_date":"2026-05-25","provider":"Frankfurter latest reference rate","stale":false},"provenance":{"currency":"USD","source_platform":"Amazon US"},"image_url":"..."}}
 
 data: {"type":"done"}
 ```
@@ -63,6 +63,20 @@ Event types:
 | `done` | `{}` | Stream complete, OK to finalize the bubble |
 
 Connection ends with a `data: {"type":"done"}` event followed by EOF.
+
+Price fields:
+
+| Field | Meaning |
+|---|---|
+| `base_price` | Original catalog amount in `provenance.currency`; never overwritten |
+| `price_cny` | User-facing RMB amount. Equal to `base_price` for CNY products; converted for foreign products when FX is available |
+| `exchange_rate` | Present for converted foreign items: source/target currency, rate, reference date, provider, and `stale` fallback flag |
+
+Foreign conversion uses the latest available reference rate from
+[Frankfurter v2](https://frankfurter.dev/) and is cached server-side for one
+hour. It supports comparable display and RMB budget filtering; it is not a
+payment settlement quote. If neither a fresh nor cached quote is available,
+the client shows the original currency instead of fabricating a CNY value.
 
 ---
 
@@ -86,14 +100,22 @@ Product detail by id. Used by the iOS `ProductDetailView` after a card tap.
 **Response 200**:
 ```json
 {
-  "product_id": "p_beauty_004",
-  "title": "...",
-  "brand": "...",
-  "category": "美妆护肤",
-  "sub_category": "...",
-  "base_price": 89.0,
-  "image_url": "http://localhost:8000/static/images/p_beauty_004_live.jpg",
-  "skus": [...],
+  "product_id": "p_2_intl_01",
+  "title": "索尼 WH-1000XM5 头戴降噪耳机 黑色",
+  "brand": "Sony",
+  "category": "数码电子",
+  "base_price": 398.0,
+  "price_cny": 2703.06,
+  "provenance": {"currency": "USD", "source_platform": "Amazon US"},
+  "exchange_rate": {
+    "source_currency": "USD",
+    "target_currency": "CNY",
+    "rate": 6.7916,
+    "rate_date": "2026-05-25",
+    "provider": "Frankfurter latest reference rate",
+    "stale": false
+  },
+  "skus": [{"price": 398.0, "price_cny": 2703.06}],
   "rag_knowledge": {
     "marketing_description": "...",
     "official_faq": [...],
@@ -101,6 +123,10 @@ Product detail by id. Used by the iOS `ProductDetailView` after a card tap.
   }
 }
 ```
+
+The response above is an illustrative captured quote. `price_cny` and
+`exchange_rate.rate` depend on the provider's latest available quote and can
+be refreshed even within the same rate date; they are not fixed catalog data.
 
 **Response 404**:
 ```json

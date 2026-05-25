@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **Round 7 + golden audit (2026-05-25)**. Authors: Shufeng Chen (陈澍枫), Tujie Guan (管图杰).
+Last touched: **Round 7.2 + CNY price normalization (2026-05-25)**. Authors: Shufeng Chen (陈澍枫), Tujie Guan (管图杰).
 
 ---
 
@@ -75,9 +75,10 @@ Last touched: **Round 7 + golden audit (2026-05-25)**. Authors: Shufeng Chen (�
 | Chat route | Shufeng (impl) | `server/app/routes/chat.py` | event taxonomy in [`docs/API.md`](docs/API.md) |
 | LLM provider | Shufeng | `server/app/services/llm_provider.py` | multi-provider switch via `.env` |
 | Cache | Shufeng | `server/app/services/cache.py` | wired into chat route |
+| Currency display | Tujie | `server/app/services/currency.py` | foreign catalog prices converted to CNY with dated reference FX; source price retained |
 | RAG ingest | (Tujie, currently solo Shufeng) | `rag/ingest/chunk.py`, `embed_text.py`, `embed_image.py` | `rag/README.md` |
 | RAG retrieve | Shufeng | `rag/retrieve/query.py` (orchestrator) | hybrid `hybrid.py`, BM25 `bm25.py`, rewrite `rewrite.py`, negation `negation.py`, rerank `rerank.py` |
-| Eval | Shufeng + Tujie | `rag/eval/core.py` + `rag/eval/golden.jsonl` (59 cases, 49 positive, 10 no-match, 5 multi-turn) | audited report: recall@5=0.830, MRR=0.771 |
+| Eval | Shufeng + Tujie | `rag/eval/core.py` + `rag/eval/golden.jsonl` (59 cases, 49 positive, 10 no-match, 5 multi-turn) | R7.2 report: recall@5=0.830, MRR=0.778 |
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
 
@@ -104,6 +105,10 @@ Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPOR
 - Tujie's golden audit aligns 19 mislabeled or incomplete cases with the
   145-product catalog; corrected production baseline is recall@5 0.830,
   MRR 0.771. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md).
+- Tujie's CNY normalization fetches the latest available Frankfurter
+  reference rate for foreign products, shows RMB across cards/cart/checkout,
+  and preserves original currency plus rate date for auditability. R7.2
+  retains recall@5 0.830 while improving MRR from 0.771 to 0.778.
 - Re-recorded demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/).
 
 ---
@@ -121,6 +126,7 @@ Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPOR
 | 6.5 | **Tujie**: synonyms + contextual multi-turn + price intent. recall@5 0.684 → 0.816 on 31-case. | merge commits |
 | 7 | **Sam**: 56-case per-scenario eval dashboard merged. **Shufeng**: brand-origin negation fix + re-recorded demos under `docs/demos/2026-05-25/`. | [`docs/commits/20260525-014-round7-*`](docs/commits/) |
 | 7.1 | **Tujie**: audit and repair 19 incorrect/incomplete golden annotations; regenerate 59-case report. | [`rag/eval/golden.jsonl`](rag/eval/golden.jsonl), [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
+| 7.2 | **Tujie**: normalize foreign prices to CNY for display and CNY budget filtering using cached latest reference FX. | [`server/app/services/currency.py`](server/app/services/currency.py), [`docs/API.md`](docs/API.md) |
 
 Full archived plan from rounds 1-6: [`docs/PLAN_ARCHIVE.md`](docs/PLAN_ARCHIVE.md).
 
