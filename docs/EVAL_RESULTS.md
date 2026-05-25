@@ -152,6 +152,22 @@ echo 'export CHROMA_TELEMETRY=False' >> ~/.zshrc && source ~/.zshrc
 
 执行后:**neg_acc 0.822 → 1.000**(9/9 完全清白),recall@5 0.784 → 0.811(反选清干净后真正相关的商品上位),MRR 0.683 → 0.736。
 
+### R7++ 数据正确性 audit(2026-05-25 深夜)
+
+负责人:Sam(联网核对每个品牌的真实国别)。这一步专门检查 `brand_origin.py` 字典里是否有漏标 / 错标(因为反选准确率 1.000 是基于*这个字典*的——字典错了,数字也只是好看)。
+
+| 错误 | 位置 | 修法 |
+|---|---|---|
+| `gerber → JP` | brand_origin.py L33 注释写 "Japanese co-brand" | 改 `gerber → US`(Founded Fremont, Michigan 1927;Nestlé 2007 收购但品牌起源 US) |
+| `nestlé / nestle / kit kat → JP` | brand_origin.py L40-42 | 改成 `CH`(Nestlé HQ Vevey, Switzerland;KitKat 全球 Nestlé 品牌、仅 US 由 Hershey 授权)|
+| 别名集 `{nestle, nestlé, 雀巢}` 内部国别不一致 | BRAND_ALIASES L220 | 修完上一行自动一致(雀巢已是 CH) |
+| `p_5_real_05 嘉宝` JSON origin_country=CN | data/seed/母婴健康/data/ | 改 US(嘉宝 Gerber 美国品牌) |
+| 别名集引用 3 个 BRAND_ORIGIN 不存在的 key:`索尼` / `可尔必思` / `apple 苹果` | BRAND_ALIASES | 补 `索尼: JP`、`可尔必思: JP`,删除多余的 `apple 苹果` 字面拼接 |
+
+audit 完成后跑了 `expand_brand_aliases()` 一致性检查:30 个 cluster 全部映射到单一 ISO code,无未注册别名。
+
+**结果**:neg_acc 仍 1.000、recall@5 仍 0.811(无回归)。这一步*没改任何分数*,但把"反选准确率 100%"从纸面合规升级为**数据正确性可追溯**——评委可拉出 brand_origin.py 跟实事核对。
+
 ---
 
 ## 性能 / 压力测试(2026-05-25)
@@ -198,7 +214,7 @@ python tools/stress_test.py --workers 20 --secs 30
 1. **precision@5 ~0.26** — 看上去低,实际是 expected 多为单/双商品的自然下限。要拉高需要扩 expected 到每 case 3-5 个相似商品。这属于 golden 集设计取舍,非检索 bug。
 2. **rerank 延迟 ~500ms** — Cross-encoder 是主要成本(`BAAI/bge-reranker-base`)。生产路径靠 LRU 缓存抵消,看 `/cache/stats`。
 3. **no_match_correctness 是启发式**(query-title 字符 Jaccard),不是绝对真理。真正的"反幻觉"由 LLM-side system prompt 守门(`rag/prompts/system.md` + demo 02)。
-4. **negation 还有 17.8% 漏网** — 多数是 brand_origin 字典还没收录的偏冷品牌。下一轮可扩到 ~100 个品牌。
+4. **negation 在 hybrid_rerank 已 1.000(R7+ 清零)** — dense / hybrid 基线还停在 0.733 是预期的:它们没经过 R7+ 加的 brand-origin 过滤层,负责暴露"如果不带 rerank+brand_origin 这一层会漏多少"。生产路径走的就是 hybrid_rerank,所以用户看到的反选准确率 = 100%。
 5. **filter MRR 在 rerank 档低于 hybrid** — rerank 找到了 expected 商品但没排到 top-3。price_intent 后置排序在 rerank 之后跑,弥补了一部分。
 
 ---

@@ -30,16 +30,21 @@ BRAND_ORIGIN: dict[str, str] = {
     "muji": "JP",
     "kewpie": "JP",
     "pigeon": "JP",
-    "gerber": "JP",  # owned by Nestlé but original Japanese Gerber co-brand in CN catalog
+    "gerber": "US",  # Founded Fremont, Michigan 1927; owned by Nestlé (CH) since 2007 but brand origin = US
     "nintendo": "JP",
     "sony": "JP",
+    "索尼": "JP",
     "dji": "CN",
     "calpico": "JP",
     "calpis": "JP",
+    "可尔必思": "JP",
     "glico": "JP",
-    "kit kat": "JP",
-    "nestlé": "JP",
-    "nestle": "JP",
+    # Nestlé family — Swiss HQ (Vevey). KitKat is a Nestlé brand worldwide
+    # except in the US (where Hershey licenses it). Treat as CH for negation
+    # so "不要瑞士的" filters it out, and "不要日系" does not.
+    "kit kat": "CH",
+    "nestlé": "CH",
+    "nestle": "CH",
     "uniqlo": "JP",
     # American 美系
     "雅诗兰黛": "US",
@@ -196,7 +201,7 @@ BRAND_ORIGIN: dict[str, str] = {
 # (or vice-versa) and both appear in the catalog.
 BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"nike", "耐克"}),
-    frozenset({"apple", "苹果", "apple 苹果"}),
+    frozenset({"apple", "苹果"}),
     frozenset({"sony", "索尼"}),
     frozenset({"adidas", "阿迪达斯"}),
     frozenset({"shiseido", "资生堂"}),
