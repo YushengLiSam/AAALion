@@ -16,9 +16,19 @@ from typing import Iterable
 
 
 def _product_id(image_path: Path) -> str | None:
-    # filename format: p_<cat>_<NNN>_live.jpg
-    m = re.match(r"^(p_[a-z]+_\d+)_live\.(jpg|jpeg|png)$", image_path.name)
-    return m.group(1) if m else None
+    # Two naming conventions live in data/seed/:
+    #   * AI-gen seed:        p_<cat>_NNN_live.jpg   → strip _live  → p_<cat>_NNN
+    #   * Round 6 real prods: p_<cat>_real_NN.jpg
+    #                         p_<cat>_intl_NN.jpg    → use stem directly
+    # Before the second pattern was added, 45 real-product images were silently
+    # skipped by image ingest, leaving "拍照找货" non-functional on the Round 6
+    # additions that the demo actually shows. Bug fix: R8.F.
+    stem = image_path.stem
+    if stem.endswith("_live"):
+        stem = stem[: -len("_live")]
+    if re.match(r"^p_[a-z0-9_]+$", stem):
+        return stem
+    return None
 
 
 @lru_cache(maxsize=1)

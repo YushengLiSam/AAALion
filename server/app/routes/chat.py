@@ -232,6 +232,77 @@ def _extract_image_bytes(messages) -> bytes | None:
     imgs = _extract_image_bytes_list(messages, cap=1)
     return imgs[0] if imgs else None
 
+
+# Bug 2 fix (R8.F): iPhone uploads are 12MP (~4032×3024) Base64 data URLs.
+# Anthropic / Doubao vision LLMs tile by pixel area; a 4032×3024 image costs
+# ~12 tiles ≈ 13k tokens, vs ~1 tile ≈ 1.1k tokens at 1024×768. Brand /
+# category recognition does NOT need 12MP — downscaling on the server side
+# cuts multi-image latency by roughly an order of magnitude. The CLIP
+# retriever upstream still embeds the original bytes (img_bytes_list[0]),
+# which we hash for the cache key, so visual search precision is unaffected.
+def _downscale_image_data_url(url: str, max_edge: int = 1024) -> str:
+    """Resize a base64 ``data:image/...`` URL so the longer side is ``max_edge``.
+
+    Returns the input unchanged on any of:
+      * non-data URL (remote https — let the LLM fetch its own),
+      * image already ≤ ``max_edge`` on both sides,
+      * decode / encode error (we never want to drop a request over a resize).
+    """
+    import base64
+    import io
+
+    if not url.startswith("data:") or ";base64," not in url:
+        return url
+    try:
+        from PIL import Image
+    except Exception:  # PIL missing — degrade gracefully, send original.
+        return url
+    try:
+        _mime_header, b64 = url.split(";base64,", 1)
+        raw = base64.b64decode(b64)
+        img = Image.open(io.BytesIO(raw))
+        img.load()
+        w, h = img.size
+        if max(w, h) <= max_edge:
+            return url
+        if w >= h:
+            new_w, new_h = max_edge, max(1, int(h * max_edge / w))
+        else:
+            new_w, new_h = max(1, int(w * max_edge / h)), max_edge
+        img = img.convert("RGB").resize((new_w, new_h), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85, optimize=True)
+        new_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        log.debug(f"downscale: {w}×{h} → {new_w}×{new_h} ({len(raw)} → {buf.tell()} bytes)")
+        return f"data:image/jpeg;base64,{new_b64}"
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"image downscale failed, sending original: {e}")
+        return url
+
+
+def _downscale_message_content(content, max_edge: int = 1024):
+    """Walk a list-form chat content payload and downscale any image_url
+    data URLs. String / non-list content passes through unchanged so the
+    text-only paths are untouched. Used right before handoff to the LLM.
+    """
+    if not isinstance(content, list):
+        return content
+    out = []
+    for part in content:
+        if isinstance(part, dict) and part.get("type") == "image_url":
+            iu = part.get("image_url") or {}
+            url = iu.get("url", "")
+            new_url = _downscale_image_data_url(url, max_edge=max_edge)
+            if new_url is url:
+                out.append(part)
+            else:
+                new_part = dict(part)
+                new_part["image_url"] = {**iu, "url": new_url}
+                out.append(new_part)
+        else:
+            out.append(part)
+    return out
+
 #调 LLM 失败了不直接报错，等一会儿再试
 async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: int = 3):
     """Async-iterate provider.stream_chat with exponential backoff on early errors."""
@@ -297,9 +368,14 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     system = _PROMPT.format(catalog=_build_catalog(products))
     if _has_image(req.messages):
         last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
+        user_content = last_user.model_dump()["content"] if last_user else user_text
+        # Bug 2 fix (R8.F): downscale full-res iPhone photos to 1024px before
+        # the vision-LLM call. Token cost is ~12× lower for the typical 12MP
+        # iPhone upload, which is what drove 3-image requests past 30s.
+        user_content = _downscale_message_content(user_content, max_edge=1024)
         history = [
             {"role": "system", "content": system},
-            {"role": "user", "content": last_user.model_dump()["content"] if last_user else user_text},
+            {"role": "user", "content": user_content},
         ]
     else:
         history = [
