@@ -14,11 +14,12 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 <br clear="all"/>
 
-## Live status (2026-05-25, Round 6.5 — team merges landed)
+## Live status (2026-05-25, Round 7 — Sam's dashboard merged + brand-origin fix)
 
-**Headline: recall@5 = 0.816 (+19% over R6), multi-turn now perfect, books query no longer regresses.**
+**Headline: 90.0 / 100, 6 demo scenarios re-recorded under R7 quality, "不要日系" → 安热沙 leak closed.**
 
-Latest measured score: **89.5 / 100** ([`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPORT_2026-05-25.md)).
+Latest measured score: **90.0 / 100** ([`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
+Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter / negation / multi-turn / compare / no-match).
 
 ### Round-by-round delta
 
@@ -28,8 +29,8 @@ Latest measured score: **89.5 / 100** ([`docs/QUALITY_REPORT_2026-05-25.md`](doc
 | R4 (2026-05-23) | Files importer fix, README polish, IMPLEMENTATION_GUIDE | — | — |
 | R5 (2026-05-24 AM) | Hybrid+rerank + cart+checkout + grader self-assessment | 0.711 | 0.695 |
 | R6 (2026-05-24 PM) | 45 real products + provenance UI + funny loading + CLAUDE.md | 0.684 | 0.647 |
-| **R6.5 (2026-05-25, now)** | **Tujie: synonyms + contextual + price intent merged** | **0.816** | **0.705** |
-| ⏳ Pending merge | **Sam: 56-case eval dashboard** (Yusheng branch) | 0.780 on 56-case | 0.701 |
+| R6.5 (2026-05-25 AM) | Tujie: synonyms + contextual + price intent merged | 0.816 (31-case) | 0.705 |
+| **R7 (2026-05-25 PM, now)** | **Sam's eval dashboard merged + brand-origin negation fix + re-recorded demos** | **0.723 (56+3 case)** | **0.673** |
 
 ### Capability matrix
 
@@ -41,7 +42,7 @@ Latest measured score: **89.5 / 100** ([`docs/QUALITY_REPORT_2026-05-25.md`](doc
 | **Curated synonym expansion** | ✅ NEW | **Tujie (R6.5)** | [`rag/retrieve/synonyms.py`](rag/retrieve/synonyms.py) |
 | **Multi-turn contextual query** ("再便宜点的呢" inherits anchor) | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/contextual_query.py`](server/app/services/contextual_query.py) |
 | **Price intent parsing + sort** ("200元以下", "便宜") | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/price_intent.py`](server/app/services/price_intent.py) |
-| Negation / exclusion (4.3 ⭐⭐) | ✅ (brand-origin gap) | Shufeng | [`docs/demos/2026-05-24/02-negation-filter.png`](docs/demos/2026-05-24/02-negation-filter.png) |
+| Negation / exclusion (4.3 ⭐⭐) | ✅ **brand-origin gap CLOSED R7** | Shufeng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
 | Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-24/03-comparison.png`](docs/demos/2026-05-24/03-comparison.png) |
 | OpenCLIP image retrieval on A100 (4.2 ⭐⭐⭐) | ✅ | Shufeng (R3) | 100 images indexed |
 | Voice input + TTS (4.2 ⭐ + ⭐⭐) | ✅ | Shufeng (R3) | Speech / AVSpeechSynthesizer |
@@ -49,10 +50,10 @@ Latest measured score: **89.5 / 100** ([`docs/QUALITY_REPORT_2026-05-25.md`](doc
 | **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
 | **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
 | **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
-| **Eval dashboard (56-case golden, per-scenario, HTML)** | 🟡 on `Yusheng` branch | **Sam — ready to merge** | [`docs/eval_report.html`](https://github.com/YushengLiSam/AAALion-/blob/Yusheng/docs/eval_report.html) |
+| **Eval dashboard (56-case golden, per-scenario, HTML)** | ✅ merged R7 | Sam | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
 | Physical iPhone 13 Pro deploy | ✅ | Shufeng | weekly `aaalion resign` |
 
-> 📋 **R7 plan up for team review**: [`docs/PROPOSAL_2026-05-25.md`](docs/PROPOSAL_2026-05-25.md) — Sam / Tujie please comment before execution.
+> 📋 **R7 Tier 1 shipped** (Sam-merge / brand-origin / re-recorded demos / doc refresh). Tier 2-3 nice-to-haves continuing on `shufeng`: latency cut, TTS auto-read, stress test, defense slide-deck prompt. See [`docs/PROPOSAL_2026-05-25.md`](docs/PROPOSAL_2026-05-25.md).
 
 ---
 

@@ -157,11 +157,27 @@ final class ChatViewModel {
         }
     }
 
+    // MARK: - Auto-TTS state (R7 nice-to-have).
+    //
+    // When the user enables `lionpick.autoTTS` in Settings, the assistant's
+    // first complete paragraph (up to the first 。 / ! / ? / \n\n boundary
+    // or 200 chars) is read aloud automatically. We track which assistant
+    // message IDs have already had their first paragraph spoken so we don't
+    // double-speak when more deltas arrive after the boundary.
+    private var autoTTSSpokenMessageIDs: Set<UUID> = []
+
+    private var autoTTSEnabled: Bool {
+        UserDefaults.standard.bool(forKey: "lionpick.autoTTS")
+    }
+
     // MARK: - Internal mutation.
 
     private func appendText(_ chunk: String, to id: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].text.append(chunk)
+        if autoTTSEnabled {
+            maybeSpeakFirstParagraph(messageID: id)
+        }
     }
 
     private func appendProduct(_ card: ProductCard, to id: UUID) {
@@ -174,5 +190,29 @@ final class ChatViewModel {
             messages[index].isStreaming = false
         }
         isStreaming = false
+    }
+
+    /// First-paragraph detector. Triggers TTS at the earliest of:
+    /// - first sentence-end punctuation (`。`, `！`, `？`, `.`, `!`, `?`)
+    /// - double-newline (paragraph break)
+    /// - 200 chars (so chunky single-sentence replies don't go untold)
+    private func maybeSpeakFirstParagraph(messageID: UUID) {
+        guard !autoTTSSpokenMessageIDs.contains(messageID) else { return }
+        guard let msg = messages.first(where: { $0.id == messageID }), msg.role == .assistant else { return }
+        let t = msg.text
+        let boundaries: [Character] = ["。", "！", "？", ".", "!", "?"]
+        if t.count >= 200 || t.contains("\n\n") || t.contains(where: { boundaries.contains($0) }) {
+            // Take everything up to and including the first sentence-end (or full string).
+            var spoken = t
+            if let idx = t.firstIndex(where: { boundaries.contains($0) }) {
+                spoken = String(t[..<t.index(after: idx)])
+            } else if let pp = t.range(of: "\n\n") {
+                spoken = String(t[..<pp.lowerBound])
+            } else if t.count > 200 {
+                spoken = String(t.prefix(200))
+            }
+            autoTTSSpokenMessageIDs.insert(messageID)
+            TTSService.shared.speak(spoken)
+        }
     }
 }

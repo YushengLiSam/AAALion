@@ -4,6 +4,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var backendURLText: String = ""
     @State private var probeResult: ProbeResult?
+    @AppStorage("lionpick.autoTTS") private var autoTTS: Bool = false
 
     enum ProbeResult: Equatable {
         case ok(version: String)
@@ -46,6 +47,17 @@ struct SettingsView: View {
                     .foregroundStyle(.orange)
                 } footer: {
                     Text("默认 / default: \(Config.defaultBackendURL)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Toggle("自动朗读首段 / Auto-read first paragraph", isOn: $autoTTS)
+                } header: {
+                    Text("语音 / Speech")
+                } footer: {
+                    Text("开启后,助手回复的第一段会自动朗读。仍可手动点喇叭重读其他段落。\n" +
+                         "When on, the first paragraph of every assistant reply is read aloud automatically.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

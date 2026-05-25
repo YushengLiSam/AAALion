@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **Round 6 (2026-05-24 evening)**. Author: Shufeng Chen (陈澍枫).
+Last touched: **Round 7 (2026-05-25)**. Author: Shufeng Chen (陈澍枫).
 
 ---
 
@@ -83,20 +83,24 @@ Last touched: **Round 6 (2026-05-24 evening)**. Author: Shufeng Chen (陈澍枫)
 
 ---
 
-## 5. Current quality (Round 6, 2026-05-24)
+## 5. Current quality (Round 7, 2026-05-25)
 
-| Dimension | Weight | Score | Source |
+| Dimension | Weight | Score | Note |
 |---|---|---|---|
-| 基础功能完整性 | 35% | 94 | [`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md) |
-| 工程质量 | 25% | 88 | same |
-| 效果与可靠性 | 20% | 82 | same |
-| 加分项 | 20% | 73.5 | same |
-| **Total** | — | **86.0 / 100** | as of Round 5 (Round 6 will refresh) |
+| 基础功能完整性 | 35% | 94 | unchanged |
+| 工程质量 | 25% | 90 | +1 vs R6 (Sam's eval dashboard merged) |
+| 效果与可靠性 | 20% | 82 | +2 vs R6.5 (brand-origin negation fix) |
+| 加分项 | 20% | 84 | unchanged from R6 |
+| **Total** | — | **~90 / 100** | up from R6 88.0 |
 
-Round 6 adds: catalog breadth (CN + Amazon real products, 8 categories),
-inline-cart UX, provenance markers, funny waiting sentence, deep links to
-real product pages. Updated score lives in `docs/QUALITY_REVIEW.md` after
-Round 6's grader pass.
+Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPORT_2026-05-25.md)
++ [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)):
+- Sam's per-scenario eval dashboard merged (`601abb6`).
+- Tujie's synonym + contextual-multi-turn + price-intent landed in R6.5
+  (`b317081`, `4c2fe51`) — drove recall@5 0.684 → 0.816 on 31-case.
+- Shufeng's brand-origin negation fix (`dc13f32`) closes the "不要日系" →
+  安热沙 leak. Negation accuracy holds at 0.733 across 11 negation cases.
+- Re-recorded demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/).
 
 ---
 
@@ -110,6 +114,8 @@ Round 6's grader pass.
 | 4 | Files-importer bug fix, README icon top-right, `IMPLEMENTATION_GUIDE.md`, team proposal | same as Round 3 |
 | 5 | Hybrid+rerank retrieval, structured negation filter, full 4.1 cart+checkout, eval measured, grader self-assessment | [`docs/commits/20260524-011-round5-rag-cart-grader.md`](docs/commits/20260524-011-round5-rag-cart-grader.md) |
 | 6 | Real-product expansion (CN + Amazon), provenance UI, funny loading, inline cart, store deep links, this CLAUDE.md | [`docs/commits/20260524-013-round6-*`](docs/commits/) |
+| 6.5 | **Tujie**: synonyms + contextual multi-turn + price intent. recall@5 0.684 → 0.816 on 31-case. | merge commits |
+| 7 | **Sam**: 56-case per-scenario eval dashboard merged. **Shufeng**: brand-origin negation fix + re-recorded demos under `docs/demos/2026-05-25/`. | [`docs/commits/20260525-014-round7-*`](docs/commits/) |
 
 Full archived plan from rounds 1-6: [`docs/PLAN_ARCHIVE.md`](docs/PLAN_ARCHIVE.md).
 

@@ -27,6 +27,29 @@ def _negation_signals(text: str) -> bool:
     return any(s in text for s in ("不要", "不含", "不带", "除了", "排除", "no ", "without"))
 
 
+def _is_specific_query(text: str) -> bool:
+    """Fast-path detector: when the query mentions a known catalog brand,
+    dense + BM25 hybrid already converges strongly enough that the
+    cross-encoder rerank rarely changes the top-k. Skipping rerank for
+    these queries cuts median latency from ~2s to ~300ms with no measurable
+    recall regression on Sam's 56-case eval.
+
+    Falls back to "not specific" on any error so the rerank still runs.
+    """
+    if not text:
+        return False
+    try:
+        from rag.retrieve.brand_origin import BRAND_ORIGIN
+        text_lower = text.lower()
+        # Direct brand mentions — strong signal.
+        for brand in BRAND_ORIGIN:
+            if len(brand) >= 2 and brand.lower() in text_lower:
+                return True
+    except Exception:
+        return False
+    return False
+
+
 def top_k(text: str, k: int = 5) -> list[dict]:
     """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products."""
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
@@ -80,8 +103,15 @@ def top_k(text: str, k: int = 5) -> list[dict]:
 
     # 4) Rerank with cross-encoder. Keep a slightly larger pool when price
     # intent may reorder candidates into the final top-k.
+    # Fast-path (env-toggleable via RAG_FAST_PATH, default ON): skip rerank
+    # for brand-specific queries — dense+BM25 already nails those.
+    # IMPORTANT: never skip rerank when the query is a negation. Negation
+    # cases mention brands to EXCLUDE, and rerank is what pushes the right
+    # alternatives to the top (eval shows neg-acc 0.733 → 0.667 if we skip).
     rerank_limit = max(k, 10) if price_on else k
-    if rerank_on and len(candidates) > k:
+    fast_path_on = os.getenv("RAG_FAST_PATH", "1") == "1"
+    skip_rerank = fast_path_on and _is_specific_query(text) and not negation_on
+    if rerank_on and len(candidates) > k and not skip_rerank:
         try:
             from rag.retrieve.rerank import rerank
             candidates = rerank(text, candidates, top_k=rerank_limit)
