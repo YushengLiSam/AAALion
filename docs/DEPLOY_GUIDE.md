@@ -52,11 +52,12 @@ cp .env.example server/.env
 aaalion ingest
 # Expected: chunks: 992 | upserted; collection now has 992 docs
 
-# Smoke-test
+# Smoke-test. Startup first warms retrieval models and one real query path.
 aaalion backend &
-sleep 4
 curl -s http://127.0.0.1:8000/health
 # {"status":"ok","version":"0.1.0"}
+until curl -fsS http://127.0.0.1:8000/ready; do sleep 1; done
+# {"status":"ready","retrieval":{...,"reranker":"ready","query_path":"ready"}}
 
 curl -sN -X POST http://127.0.0.1:8000/chat/stream \
   -H 'Content-Type: application/json' \
@@ -65,6 +66,21 @@ curl -sN -X POST http://127.0.0.1:8000/chat/stream \
 ```
 
 If you only want UI dev without LLM cost: `LLM_PROVIDER=echo aaalion backend`. The backend returns a deterministic `[echo]` stream that exercises the SSE path.
+
+On Windows or for an isolated reproducible backend, use Docker instead:
+
+```powershell
+Copy-Item .env.example server/.env
+docker compose -f server/docker-compose.yml up --build -d
+do {
+  Start-Sleep -Seconds 1
+  try { $ready = Invoke-RestMethod http://127.0.0.1:8000/ready } catch { $ready = $null }
+} until ($ready.status -eq "ready")
+$ready
+```
+
+The first Docker build caches both retrieval model weights in the image; later
+container starts only load and warm them before accepting chat requests.
 
 ## 3. iOS Simulator (5 min)
 

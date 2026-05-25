@@ -18,6 +18,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _PRICE_MAX_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以内|以下|内|封顶|不超过|不要超过)")
 _PRICE_MIN_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以上|起|起步)")
+_BUDGET_MAX_RE = re.compile(
+    r"(?:预算|价格上限|最高价)\s*(?:提高|增加|加|放宽|调整|调|改)?\s*"
+    r"(?:到|至|为|成)?\s*[¥￥]?\s*(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?",
+    re.IGNORECASE,
+)
 _NEGATED_PREFIX_RE = re.compile(r"(?:不要|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;]*$", re.IGNORECASE)
 
 _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -35,7 +40,7 @@ _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
 # Only infer a category where current catalog membership is unambiguous.
 _INFERRED_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("美妆护肤", ("洗面奶", "洁面", "防晒", "面霜", "精华", "化妆水", "爽肤水")),
-    ("数码电子", ("蓝牙耳机", "无线耳机", "降噪耳机", "手机", "折叠屏", "笔记本", "平板", "相机")),
+    ("数码电子", ("耳机", "手机", "折叠屏", "笔记本", "平板", "相机")),
     ("图书音像", ("小说",)),
     ("食品饮料", ("速溶咖啡", "咖啡", "牛奶")),
 )
@@ -47,7 +52,7 @@ _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
     (("面霜",), ["面霜", "面霜/敏感肌"]),
     (("化妆水", "爽肤水"), ["化妆水", "化妆水/精华水", "爽肤水/化妆水", "精华水"]),
     (("精华液", "精华"), ["精华", "精华液"]),
-    (("头戴式降噪耳机", "蓝牙耳机", "无线耳机", "降噪耳机"), ["无线降噪耳机", "真无线耳机", "真无线降噪耳机"]),
+    (("头戴式降噪耳机", "蓝牙耳机", "无线耳机", "降噪耳机", "耳机"), ["无线降噪耳机", "真无线耳机", "真无线降噪耳机"]),
     (("笔记本电脑", "笔记本"), ["笔记本电脑"]),
     (("折叠屏", "手机"), ["智能手机"]),
     (("平板",), ["平板电脑"]),
@@ -71,7 +76,7 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
         sub_categories=_sub_categories(text),
         brand_include=[],
         brand_exclude=[],
-        price_max_cny=_price_bound(_PRICE_MAX_RE, text),
+        price_max_cny=_price_bound(_PRICE_MAX_RE, text) or _price_bound(_BUDGET_MAX_RE, text),
         price_min_cny=_price_bound(_PRICE_MIN_RE, text),
     )
     included, excluded = _brands(text)
@@ -84,6 +89,9 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
         if explicit.get("sub_category") is not None:
             result.sub_category = str(explicit["sub_category"])
             result.sub_categories = None
+        if explicit.get("sub_categories") is not None:
+            result.sub_category = None
+            result.sub_categories = list(explicit["sub_categories"]) or None
         if explicit.get("include_brands") is not None:
             result.brand_include = list(explicit["include_brands"]) or None
         if explicit.get("exclude_brands") is not None:

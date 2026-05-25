@@ -50,7 +50,7 @@ def parse_price_intent(text: str) -> PriceIntent:
     return PriceIntent(direction=direction, price_min=price_min, price_max=price_max)
 
 
-def apply_price_intent(products: Sequence[dict], text: str) -> list[dict]:
+def apply_price_intent(products: Sequence[dict], text: str, *, enforce_ranges: bool = True) -> list[dict]:
     """Filter explicit price ranges, then stable-sort by price preference.
 
     The input order is assumed to already encode semantic relevance from the
@@ -63,12 +63,12 @@ def apply_price_intent(products: Sequence[dict], text: str) -> list[dict]:
 
     with_index = [(i, p) for i, p in enumerate(ranked)]
 
-    if intent.price_min is not None:
+    if enforce_ranges and intent.price_min is not None:
         with_index = [
             (i, p) for i, p in with_index
             if (price := _price(p)) is not None and price >= intent.price_min
         ]
-    if intent.price_max is not None:
+    if enforce_ranges and intent.price_max is not None:
         with_index = [
             (i, p) for i, p in with_index
             if (price := _price(p)) is not None and price <= intent.price_max

@@ -27,4 +27,6 @@ tmp/
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.*
 node_modules/

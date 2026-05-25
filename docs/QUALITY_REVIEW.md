@@ -1,4 +1,4 @@
-# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 after R7.4 retrieval-filter evaluation)
+# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 after R7.6 Docker retrieval prewarm)
 
 > An objective, grader-style review by the implementer. R5 → R7 timeline below.
 > No marketing fluff. Each rubric item gets a target weight, achieved score (0-100),
@@ -8,13 +8,15 @@
 
 | Round | Score | Weighted breakdown |
 |---|---|---|
-| **Round 7.4 (current, conservative score retained)** | **90.0 / 100** | Constraint-aware retrieval is measured, but subjective score is intentionally unchanged pending independent label review. |
+| **Round 7.6 (current, conservative score retained)** | **90.0 / 100** | Docker readiness removes first-user model-load cost; subjective score is intentionally unchanged pending independent label review. |
+| Round 7.5 | 90.0 / 100 | Stateful multi-turn constraints are measured, but subjective score is intentionally unchanged pending independent label review. |
+| Round 7.4 | 90.0 / 100 | Constraint-aware retrieval is measured, but subjective score is intentionally unchanged pending independent label review. |
 | Round 7.3 | 90.0 / 100 | 基础 94 (32.9) · 工程 90 (22.5) · 效果 82 (16.4) · 加分 84 (16.8). +0.65 vs R6.5 from brand-origin neg fix; +0.5 vs R6 from Sam's eval dashboard. |
 | Round 6.5 (2026-05-25 AM) | 89.5 / 100 | 基础 94 · 工程 89 · 效果 80 · 加分 84. Tujie's synonyms + contextual + price intent merged. recall@5 0.684 → 0.816 on 31-case. |
 | Round 6 | 88.0 / 100 | 基础 94 (32.9) · 工程 89 (22.25) · 效果 80 (16.0) · 加分 84 (16.8) |
 | Round 5 | 86.0 / 100 | 基础 94 (32.9) · 工程 88 (22.0) · 效果 82 (16.4) · 加分 73.5 (14.7) |
 
-## What Round 7 and R7.4 added (since R6.5 measurement)
+## What Round 7 through R7.6 added (since R6.5 measurement)
 
 | Item | Owner | Score impact |
 |---|---|---|
@@ -25,25 +27,32 @@
 | Tujie: dated latest-reference CNY normalization for foreign catalog prices (`server/app/services/currency.py`) | Tujie | Display/price-intent correctness; MRR 0.771 → 0.778 |
 | Yusheng: negation alias/origin audit merged with the audited golden set | Yusheng | Production negation accuracy now 1.000; combined MRR 0.828 |
 | Tujie: category/brand/RMB retrieval filters shared by dense and BM25, plus five regression cases | Tujie | Same-64-case hard-filter A/B: filter MRR 0.635 → 0.917 |
+| Tujie: multi-turn constraint state for inherit/replace/cancel behavior, plus four regression cases | Tujie | 68-case production MRR 0.856; new `constraint-state` slice MRR 1.000 |
+| Tujie: Docker-baked retrieval models + startup full-query prewarm + `/ready` gate | Tujie | Warm eval latency 6156 ms → 610 ms; first verified chat retrieval 6519 ms → 1264 ms |
 
 **Net**: +3.5 dimension points → +0.5 to +1.0 weighted total, **89.5 → 90.0**.
 
-## Live numbers (hybrid+rerank, R7.4 audited 64-case set)
+## Live numbers (hybrid+rerank, R7.6 prewarmed Docker, 68-case set)
 
 ```
-recall@5             0.981
+recall@5             0.982
 recall@10            0.994
-MRR                  0.846
-negation_accuracy    1.000  (10 cases with forbidden ids)
-no_match_correctness 0.941
-mean latency         881 ms (Docker full evaluation run)
+MRR                  0.856
+negation_accuracy    1.000  (11 cases with forbidden ids)
+no_match_correctness 0.942
+mean latency         610 ms (Docker; startup prewarm excluded from timed cases)
+median latency       68 ms
 ```
 
 Note: the earlier 59-case set includes harder scenarios than the first
 31-case set, and its audit changed 19 incorrect or incomplete labels. R7.4
-adds five targeted constraint-filter regressions. On the same 64-case set,
+adds five targeted constraint-filter regressions. R7.5 adds four multi-turn
+constraint-state regressions; all four reach MRR 1.000. On the same 64-case set,
 turning hard filters on raises filter MRR from 0.635 to 0.917; the production
-report reaches MRR 0.846 with zero measured forbidden-product leakage.
+68-case report reaches MRR 0.856 with zero measured forbidden-product leakage.
+R7.6 keeps those quality values while moving lazy model/query initialization
+behind `/ready`; an unwarmed run measured 6156 ms average versus 610 ms after
+prewarm.
 
 ### Round 6 delta — what moved and why
 
@@ -68,7 +77,7 @@ report reaches MRR 0.846 with zero measured forbidden-product leakage.
 
 ### What still pushes the score higher (Round 7+ candidate work)
 
-1. **+2 效果**: expand judged constraint cases beyond the current five regressions; `brand-origin` now reaches `recall@5=1.000` on its small 3-case slice.
+1. **+2 效果**: expand judged constraint cases beyond the current five filter and four state regressions; `brand-origin` now reaches `recall@5=1.000` on its small 3-case slice.
 2. **+2 基础**: each new category currently has only 5 products; grow to 15-20 each for richer top-5 candidates.
 3. **+1-2 加分**: defense slide deck + demo video — PDF explicitly weights backup video as a 加分 signal.
 4. **+1-2 工程**: stress test, observability dashboard, real Docker compose `up` from a clean clone verified by a teammate.
@@ -114,7 +123,7 @@ report reaches MRR 0.846 with zero measured forbidden-product leakage.
 | Code structure | 95 | `client/ server/ rag/` separation; `docs/ARCHITECTURE.md` | — | — |
 | API design | 90 | `docs/API.md`; Pydantic v2 content union; SSE event taxonomy | no OpenAPI spec auto-published | FastAPI publishes `/openapi.json` but I don't surface it |
 | Error handling | 88 | SSE error events; iOS error banner; LLM provider retry/backoff (3× exp backoff); `LLM_PROVIDER=echo` graceful fallback | no client retry on network blip | iOS reconnect logic |
-| Private deployment | 85 | `server/Dockerfile` + `docker-compose.yml`; works locally | not verified by me running `docker compose up` from clean clone | live verification |
+| Private deployment | 90 | `Dockerfile.rag` caches retrieval weights; `server/docker-compose.yml` exposes `/ready` healthcheck; Docker endpoint verified locally | first build is large and slow | publish/pre-pull image before demo |
 | Multi-provider LLM | 100 | TokenRouter / Anthropic / Doubao / OpenAI / Echo via env switch | — | — |
 | Documentation | 95 | 24 docs in `docs/`, `IMPLEMENTATION_GUIDE.md` indexes them, 10 commit records, `RUBRIC_MAPPING.md`, this file | — | — |
 | Repo hygiene | 95 | Conventional Commits; major-commit records; secret scanner; gitignore covers `.chroma/` + `.env` + `xcodeproj` | no pre-commit hook installed yet | wire `tools/check-secrets.sh` as pre-commit |
@@ -123,7 +132,7 @@ report reaches MRR 0.846 with zero measured forbidden-product leakage.
 | Stress test | 80 | `tools/stress_test.py`; R7 run reports 20 concurrent users x 45 s, 92/92 successful | single workload, no p95/p99 trend dashboard | add repeated load profiles and publish percentiles |
 | Git workflow | 90 | shufeng branch for in-flight; main = stable; merge after self-assessment | no PR template enforcement | wire `.github/pull_request_template.md` more rigorously |
 
-**Weakness**: retrieval quality under brand-origin constraints and cold/full rerank latency are now the clearest measured gaps; the basic load smoke test exists, but needs broader profiles.
+**Weakness**: first-user cold loading is addressed; full CPU rerank latency on broad queries and broader judged coverage are now the clearest measured gaps.
 
 ---
 
@@ -131,10 +140,10 @@ report reaches MRR 0.846 with zero measured forbidden-product leakage.
 
 | Sub-item | Score | Evidence | Gap | Push higher |
 |---|---|---|---|---|
-| 检索准确率 (recall@5) | 88 | R7.4 64-case set: dense=0.804, hybrid=0.769, **hybrid+rerank=0.981**; production MRR=0.846 and negation accuracy=1.000. | labels now single-auditor; hard-filter rules cover only clear catalog concepts | double-judge labels; add regression cases with each new rule |
+| 检索准确率 (recall@5) | 88 | R7.6 prewarmed Docker 68-case set: dense=0.766, hybrid=0.751, **hybrid+rerank=0.982**; production MRR=0.856 and negation accuracy=1.000. | labels now single-auditor; state/filter rules cover only clear catalog concepts | double-judge labels; add regression cases with each new rule |
 | 无幻觉输出 | 90 | System prompt enforces; demo 02 proves; Round 5 vision-prompt tightening | no automated hallucination check | LLM-as-judge nightly |
 | 复杂场景 (negation, comparison) | 90 | demos 04 + 05; Round 5 added structured negation extraction → filter | rare LLM still hedges | tighten more |
-| First-screen response (<1s target) | 80 | Cache hit: ~300ms first_delta. Cache miss: ~3000-8000ms first_delta (mostly LLM-side, not our overhead) | cache miss path doesn't meet <1s target | prefetch on app focus, preload model weights |
+| First-screen response (<1s target) | 80 | Docker startup prewarm gates traffic via `/ready`; first verified broad-query retrieval after ready was 1264ms, versus 6519ms before full-path prewarm. | broad CPU rerank can still exceed 1s before LLM time | optimize rerank candidate pool or serve on faster compute |
 | Image input pipeline | 85 | Photos + Camera + Files (all 3 sources work); CLIP retrieval on A100 (100 images, 512-d vectors) | A100 not used for live retrieval — Mac runs CLIP on MPS at ~50ms per image | move CLIP serving to A100 over SSH tunnel for true GPU offload |
 | Voice input quality | 80 | Apple Speech.framework zh-CN; works in demos | no continuous listening; no interrupt | streaming partial results during recognition |
 | TTS quality | 75 | AVSpeechSynthesizer zh-CN system voice | flat prosody; no SSML | use a neural TTS if budget allows |
@@ -169,7 +178,7 @@ report reaches MRR 0.846 with zero measured forbidden-product leakage.
 
 | Tier | Score | Evidence |
 |---|---|---|
-| ⭐ 多轮上下文记忆 | 95 | Full history sent on each turn; edit-message rolls history back; demo 03 |
+| ⭐ 多轮上下文记忆 | 95 | Full history plus `constraint_state.py` inherit/replace/cancel handling; four new state cases reach MRR 1.000 |
 | ⭐⭐ 反选与排除 | 90 | Round 5: `rag/retrieve/negation.py` extracts `exclude_brands/categories/keywords` via LLM, applies as Chroma where + post-filter. Plus the system-prompt rule for belt-and-braces. |
 | ⭐⭐⭐ 多商品对比 | 92 | Demo 05: 雅诗兰黛 vs 兰蔻 returns 4-dim comparison; system prompt forces dimension selection |
 
@@ -215,15 +224,15 @@ In priority order, if defense were 7 days further out:
 ## What I'm certain of vs uncertain of
 
 **Certain**:
-- R7.4 production recall@5 = 0.981, MRR = 0.846, and negation accuracy = 1.000 on 64 audited/regression cases. Reproducible with `python -m rag.eval.report`.
+- R7.6 prewarmed Docker production recall@5 = 0.982, MRR = 0.856, negation accuracy = 1.000, and mean retrieval latency = 610 ms on 68 audited/regression cases. Reproducible with `python -m rag.eval.report`.
 - Cache hit drops first_delta ≥ 10×. Measured.
 - iPhone 13 Pro deploy works. Hands-on tested.
 - All listed 4.x bonus items have a working code path.
 
 **Uncertain**:
-- Whether 0.981 recall@5 transfers beyond this small 145-product catalog; the current labels still need independent second-pass judging.
+- Whether 0.982 recall@5 transfers beyond this small 145-product catalog; the current labels still need independent second-pass judging.
 - Whether the cart's regex-based intent detection holds against weird phrasings — robust would be a proper intent classifier.
-- Whether the cross-encoder reranker's first-call latency (~3s model load) will surface as a bad first-impression in the demo.
+- Whether broad-query CPU reranking should be further optimized; it no longer blocks first-user readiness, but several cases still take up to 4.3 seconds.
 
 ## Honest verdict
 

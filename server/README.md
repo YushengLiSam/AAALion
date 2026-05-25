@@ -17,12 +17,15 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 cd server
 cp ../.env.example .env
-docker compose up --build
+docker compose up --build -d
+until curl -fsS http://localhost:8000/ready; do sleep 1; done
 ```
 
 Backend at `http://localhost:8000`. The current text-retrieval path persists
 Chroma under `data/.chroma/`; rebuild that index with `python -m rag.ingest.run`
-after changing indexed metadata.
+after changing indexed metadata. The Docker build stores embedding and
+cross-encoder weights in the image; startup performs a complete retrieval
+warmup before `/ready` succeeds or chat traffic is accepted.
 
 ## Layout
 
@@ -31,7 +34,7 @@ app/
 ├── main.py            # FastAPI app + CORS + static mount
 ├── config.py          # Settings dataclass, .env loader
 ├── routes/
-│   ├── health.py      # GET /health
+│   ├── health.py      # GET /health + /ready
 │   ├── chat.py        # POST /chat/stream (SSE)
 │   └── products.py    # GET /products/{id}
 ├── schemas/
@@ -39,12 +42,15 @@ app/
 └── services/
     ├── llm_provider.py    # TokenRouter / Anthropic / Doubao / OpenAI switch
     ├── rag_client.py      # Hybrid retrieval + rerank + intent handling
+    ├── retrieval_readiness.py # Startup model/query-path prewarm
     └── currency.py        # Latest-reference foreign-price conversion to CNY
 ```
 
 ## What works today
 
 - `/health` returns 200.
+- `/ready` returns 200 only after retrieval prewarm; `/chat/stream` rejects
+  traffic with 503 until then.
 - `/chat/stream` runs RAG retrieval, streams LLM deltas, then sends product cards.
 - `/products/{id}` returns product details enriched with display pricing.
 - Static images served from `/static/...`.
@@ -53,6 +59,8 @@ app/
   remain in the payload.
 - Text queries and optional request filters constrain category, subcategory,
   included/excluded brands and RMB price bounds before hybrid retrieval.
+- Multi-turn constraints inherit, replace or cancel budget/brand conditions
+  without restoring stale anchor text.
 
 ## Currency conversion
 
@@ -81,10 +89,14 @@ Both dense and BM25 retrieval see the same constraint object.
 or diagnosis. When a query supplies a RMB budget, foreign-source items are
 converted using the current FX quote before the final strict range check.
 
+`RAG_PREWARM=1` is enabled by default. It performs model and full-query
+initialization during server startup; set it to `0` only for diagnosis.
+
 ## Quick smoke
 
 ```bash
 curl -s http://localhost:8000/health
+until curl -fsS http://localhost:8000/ready; do sleep 1; done
 curl -s -N -X POST http://localhost:8000/chat/stream \
   -H 'content-type: application/json' \
   -d '{"messages":[{"role":"user","content":"推荐一款油皮的洗面奶"}]}'

@@ -8,15 +8,27 @@ services:
       - qdrant_storage:/qdrant/storage
 
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: Dockerfile.rag
+    command: ["bash", "-lc", "cd /app/server && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     depends_on:
       - qdrant
     env_file:
       - .env
+    environment:
+      PYTHONPATH: /app:/app/server
+      RAG_PREWARM: "1"
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
     volumes:
-      - ../data:/app/data:ro
+      - ../data:/app/data
 
 volumes:
   qdrant_storage:

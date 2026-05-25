@@ -92,11 +92,47 @@ def case_query(case: dict) -> str:
     return case.get("query", "")
 
 
+def case_retrieval_state(case: dict) -> tuple[Any | None, str | None]:
+    """Return production-only conversation filter and latest-turn intent text."""
+    if not case.get("messages"):
+        return None, None
+    if str(REPO_ROOT / "server") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "server"))
+    from app.schemas.chat import ChatMessage
+    from app.services.constraint_state import build_conversation_filter
+    from app.services.contextual_query import message_text
+
+    messages = [ChatMessage.model_validate(m) for m in case["messages"]]
+    current = next(
+        (message_text(message) for message in reversed(messages) if message.role == "user"),
+        None,
+    )
+    return build_conversation_filter(messages), current
+
+
+def warm_mode(mode: str) -> None:
+    """Match production readiness by warming lazy models outside timed cases."""
+    if mode != "hybrid_rerank":
+        return
+    if str(REPO_ROOT / "server") not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT / "server"))
+    from app.services.retrieval_readiness import warm_retrieval_pipeline
+
+    warm_retrieval_pipeline()
+
+
 # ----------------------------------------------------------------------------
 # Retrieval dispatch
 # ----------------------------------------------------------------------------
 
-def retrieve(query_text: str, mode: str, k: int) -> list[str]:
+def retrieve(
+    query_text: str,
+    mode: str,
+    k: int,
+    *,
+    filters: Any | None = None,
+    intent_text: str | None = None,
+) -> list[str]:
     """Dispatch to one of the three retrievers and return product_id list.
 
     Notes on return shapes (verified against the actual code):
@@ -113,7 +149,12 @@ def retrieve(query_text: str, mode: str, k: int) -> list[str]:
         if str(REPO_ROOT / "server") not in sys.path:
             sys.path.insert(0, str(REPO_ROOT / "server"))
         from app.services.rag_client import top_k as full_top_k
-        prods = full_top_k(query_text, k=k)
+        prods = full_top_k(
+            query_text,
+            k=k,
+            conversation_filter=filters,
+            intent_text=intent_text,
+        )
         return [p["product_id"] for p in prods]
     raise ValueError(f"unknown mode: {mode}")
 
@@ -346,15 +387,23 @@ def evaluate(modes: list[str] | None = None, k: int = 10) -> dict[str, Any]:
     for mode in modes:
         per_case: list[dict] = []
         errors = 0
+        warm_mode(mode)
         for case in cases:
             query = case_query(case)
+            conversation_filter, intent_text = case_retrieval_state(case)
             expected = case.get("expected_product_ids", [])
             forbidden = case.get("forbidden_product_ids", []) or []
             tags = case.get("tags", []) or []
 
             try:
                 t0 = time.perf_counter()
-                retrieved = retrieve(query, mode, k=k)
+                retrieved = retrieve(
+                    query,
+                    mode,
+                    k=k,
+                    filters=conversation_filter,
+                    intent_text=intent_text,
+                )
                 latency_ms = (time.perf_counter() - t0) * 1000.0
                 metrics = score_case(
                     retrieved,

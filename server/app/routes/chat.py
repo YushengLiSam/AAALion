@@ -22,7 +22,7 @@ import re
 import time
 from typing import AsyncIterator
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -30,6 +30,7 @@ from app.schemas.chat import ChatMessage, ChatFilters
 from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
 from app.services.cache import cache, make_key, hash_image_bytes
+from app.services.constraint_state import build_conversation_filter
 from app.services.contextual_query import build_retrieval_query
 from app.services.currency import normalize_product_prices, pricing_cache_token
 
@@ -230,6 +231,9 @@ async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: i
 
 @router.post("/stream")
 async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
+    if not getattr(request.app.state, "retrieval_ready", False):
+        raise HTTPException(status_code=503, detail="retrieval is warming up; retry after /ready returns ready")
+
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
     retrieval_query = build_retrieval_query(req.messages)
@@ -243,7 +247,14 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             products = top_k_image(img_bytes, k=3)
     if not products:
         explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
-        products = top_k(retrieval_query, k=5, filters=explicit_filters)
+        conversation_filter = build_conversation_filter(req.messages, explicit_filters)
+        products = top_k(
+            retrieval_query,
+            k=5,
+            filters=explicit_filters,
+            conversation_filter=conversation_filter,
+            intent_text=user_text,
+        )
     products = await asyncio.to_thread(normalize_product_prices, products)
     t_retrieval = time.perf_counter()
 

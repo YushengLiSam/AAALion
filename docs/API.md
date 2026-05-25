@@ -19,6 +19,21 @@ Liveness check.
 
 ---
 
+### `GET /ready`
+
+Readiness check for user traffic. The backend warms embedding, BM25, the
+cross-encoder reranker and one complete retrieval call at startup.
+
+**Response 200** after warmup:
+```json
+{"status":"ready","retrieval":{"status":"ready","prewarm":"completed","embedding":"ready","bm25":"ready","reranker":"ready","query_path":"ready"}}
+```
+
+**Response 503** if startup warmup failed. `/chat/stream` also returns `503`
+until this endpoint is ready, so a user request never pays the model-load cost.
+
+---
+
 ### `POST /chat/stream`
 
 Multi-turn chat with streaming response.
@@ -46,6 +61,12 @@ Multi-turn chat with streaming response.
 `price_min`, `price_max`, `include_brands`, and `exclude_brands`. The backend
 also infers positive constraints from text such as `3500元以下的 Sony 降噪耳机`;
 explicit request fields override inferred values.
+
+For multi-turn requests, inferred constraints persist across user messages and
+are updated before retrieval. Follow-ups such as `预算加到3500元`, `不要 Sony
+了，改成 Bose`, `品牌不限`, or `预算不限` replace or cancel prior state
+without requiring the client to construct `filters` itself. Sending explicit
+`filters` remains the authoritative override for the current request.
 
 **Response**: `text/event-stream`. Each event is a JSON object, one per `data:` line:
 

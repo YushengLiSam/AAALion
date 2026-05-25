@@ -4,7 +4,10 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    ANONYMIZED_TELEMETRY=False
+    ANONYMIZED_TELEMETRY=False \
+    HF_HOME=/opt/huggingface \
+    EMBED_MODEL=BAAI/bge-small-zh-v1.5 \
+    RERANK_MODEL=BAAI/bge-reranker-base
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
@@ -13,6 +16,9 @@ RUN apt-get update \
 COPY server/requirements.txt /tmp/server-requirements.txt
 RUN pip install torch --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r /tmp/server-requirements.txt "posthog<6" rank-bm25 jieba
+
+# Bake lazy-loaded retrieval models into the image so runtime startup is local.
+RUN python -c "import os; from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer(os.environ['EMBED_MODEL']); CrossEncoder(os.environ['RERANK_MODEL'], max_length=256)"
 
 COPY rag ./rag
 COPY server ./server

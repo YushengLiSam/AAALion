@@ -37,12 +37,13 @@ Depth in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 | iOS settings | 陈澍枫 | `Views/SettingsView.swift` (UserDefaults-persisted backend URL) | — |
 | iOS theme | 陈澍枫 | `Views/Theme.swift` + `client/AAALionApp/design-tokens.json` | — |
 | Backend SSE route | 李雨晟 | `server/app/routes/chat.py` (text + multimodal) | [`API.md`](API.md) |
+| Backend readiness | 管图杰 | `server/app/services/retrieval_readiness.py` + `/ready` + `Dockerfile.rag` | [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md) |
 | LLM provider abstraction | 李雨晟 | `server/app/services/llm_provider.py` (TokenRouter / Anthropic / Doubao / OpenAI / Echo) | [`POLICY.md`](POLICY.md) §"Secrets" |
 | Backend caching | (proposed) | `server/app/services/cache.py` (written; wiring deferred) | [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) |
-| Text RAG | 管图杰 | `rag/retrieve/constraints.py` + `query.py` + `hybrid.py` (bge-small-zh-v1.5, BM25, constraint filtering) | [`ARCHITECTURE.md`](ARCHITECTURE.md) §"3. RAG" |
+| Text RAG | 管图杰 | `rag/retrieve/constraints.py` + `query.py` + `hybrid.py` + `server/app/services/constraint_state.py` (bge-small-zh-v1.5, BM25, stateful constraint filtering) | [`ARCHITECTURE.md`](ARCHITECTURE.md) §"3. RAG" |
 | Image RAG (CLIP) | 管图杰 | `rag/ingest/embed_image.py` (OpenCLIP ViT-B/32) + `rag/ingest/run_image.py` | [`HARDWARE.md`](HARDWARE.md) §"A100" |
 | Prompt | 管图杰 | `rag/prompts/system.md` | — |
-| Eval | 管图杰 | `rag/eval/golden.jsonl` + `rag/eval/report.py` (64-case dashboard) | [`EVAL_RESULTS.md`](EVAL_RESULTS.md) |
+| Eval | 管图杰 | `rag/eval/golden.jsonl` + `rag/eval/report.py` (68-case dashboard) | [`EVAL_RESULTS.md`](EVAL_RESULTS.md) |
 | Seed data (100 products) | 管图杰 | `data/seed/{1..4}_<category>/data/*.json` + `images/*.jpg` | [`DATA.md`](DATA.md) + [`research/`](research/) |
 | Toolchain | 陈澍枫 | `Makefile` + `tools/aaalion` + `tools/check-secrets.sh` | — |
 | A100 SSH workflow | 陈澍枫 | `tools/ssh_a100.sh` | [`HARDWARE.md`](HARDWARE.md) |
@@ -56,6 +57,7 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r server/requirements.txt
 cp .env.example server/.env   # set TOKENROUTER_API_KEY
 aaalion ingest && aaalion backend &
+until curl -fsS http://127.0.0.1:8000/ready; do sleep 1; done # wait before chat
 aaalion ios-sim               # builds + installs + launches
 ```
 

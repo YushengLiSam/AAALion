@@ -65,6 +65,11 @@ class RetrievalConstraintTests(unittest.TestCase):
 
         self.assertEqual(apply_price_intent(products, "100元以下的面霜"), [])
 
+    def test_parses_budget_replacement_as_current_upper_bound(self) -> None:
+        result = build_retrieval_filter("预算加到3500元")
+
+        self.assertEqual(result.price_max_cny, 3500.0)
+
     @patch("rag.retrieve.hybrid.hybrid_topk")
     def test_production_path_passes_inferred_filter_to_hybrid(self, hybrid_topk) -> None:
         hybrid_topk.return_value = []

@@ -76,6 +76,8 @@ ipconfig getifaddr en0     # → e.g. 10.76.138.67
 
 # 3. Self-test: curl that IP from the Mac itself (catches firewall problems)
 curl http://10.76.138.67:8000/health     # → {"status":"ok",…}
+until curl -fsS http://10.76.138.67:8000/ready; do sleep 1; done
+# /ready becomes 200 after retrieval startup prewarm; chat returns 503 before then.
 
 # 4. Point the iPhone app at that IP — DON'T edit Config.swift
 #    Open the app, tap ⚙ (top-right) → Settings → URL field → type

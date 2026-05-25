@@ -52,7 +52,14 @@ def _is_specific_query(text: str) -> bool:
     return False
 
 
-def top_k(text: str, k: int = 5, filters: dict | None = None) -> list[dict]:
+def top_k(
+    text: str,
+    k: int = 5,
+    filters: dict | None = None,
+    *,
+    conversation_filter=None,
+    intent_text: str | None = None,
+) -> list[dict]:
     """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products."""
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
@@ -62,8 +69,15 @@ def top_k(text: str, k: int = 5, filters: dict | None = None) -> list[dict]:
     hard_filters_on = os.getenv("RAG_HARD_FILTERS", "1") == "1"
 
     from rag.retrieve.constraints import build_retrieval_filter
+    from rag.retrieve.query import Filter
 
-    retrieval_filter = build_retrieval_filter(text if hard_filters_on else "", filters)
+    if hard_filters_on and isinstance(conversation_filter, Filter):
+        # Conversation state is authoritative, including an empty Filter after
+        # the user explicitly cancels conditions inherited from earlier turns.
+        retrieval_filter = conversation_filter
+    else:
+        retrieval_filter = build_retrieval_filter(text if hard_filters_on else "", filters)
+    preference_text = intent_text if intent_text is not None else text
 
     # 1) Curated local expansion, then optional LLM rewrite to multi-query.
     queries: list[str] = [text]
@@ -143,11 +157,15 @@ def top_k(text: str, k: int = 5, filters: dict | None = None) -> list[dict]:
     if price_on:
         try:
             from app.services.price_intent import apply_price_intent, parse_price_intent
-            if parse_price_intent(text).active:
+            if parse_price_intent(preference_text).active and not has_price_filter:
                 from app.services.currency import normalize_product_prices
 
                 candidates = normalize_product_prices(candidates)
-            candidates = apply_price_intent(candidates, text)
+            candidates = apply_price_intent(
+                candidates,
+                preference_text,
+                enforce_ranges=not has_price_filter,
+            )
         except Exception:
             pass
 

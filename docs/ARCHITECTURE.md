@@ -33,11 +33,12 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 - **`/chat/stream`** (POST, SSE): { messages, filters? } → tokens + product cards.
 - **`/chat/multimodal`** (POST, SSE): multipart (image + text) → same SSE.
 - **`/products/{id}`** (GET): detail by id, served from the indexed JSON.
-- **`/health`** (GET).
+- **`/health`** (GET): process liveness; **`/ready`** (GET): retrieval models
+  and complete query path warmed for user traffic.
 - **FX normalization**: `services/currency.py` fetches and caches latest
   reference quotes for non-CNY source prices, enriches response payloads with
   `price_cny` + `exchange_rate`, and leaves original catalog prices intact.
-- **Orchestration**: infer/API-merge retrieval constraints → hybrid RAG → rerank
+- **Orchestration**: merge multi-turn/API retrieval constraint state → hybrid RAG → rerank
   → strict converted-CNY budget check → assemble prompt and stream model
   response; product cards are emitted from returned catalog records.
 - **Doubao client**: thin wrapper around the ARK API (OpenAI-compatible). Reads key from `.env`.
@@ -52,24 +53,34 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
   - `constraints.py`: query text and optional API fields → `Filter` for category, subcategory, brand include/exclude, and RMB budget.
   - `query.py` + `bm25.py` + `hybrid.py`: dense and sparse candidate retrieval use the same filter before reciprocal-rank fusion.
   - `rerank.py`: cross-encoder reranking for top-20 → top-5.
+- **Conversation constraints**: `server/app/services/constraint_state.py` folds
+  user turns into an authoritative `Filter`; follow-ups may inherit, replace,
+  exclude, or cancel category/brand/RMB-budget conditions.
+- **Readiness warmup**: `server/app/services/retrieval_readiness.py` loads
+  embedding/BM25/reranker and executes one real `top_k` call before chat is
+  available; `Dockerfile.rag` caches model weights during image build.
 - **Prompts**: `prompts/system.md` enforces "answer only from retrieved products, never invent prices/coupons/skus".
-- **Eval**: `eval/golden.jsonl` contains 64 audited/regression cases; `python -m rag.eval.report` writes HTML/JSON metrics including scenario slices.
+- **Eval**: `eval/golden.jsonl` contains 68 audited/regression cases, including four multi-turn constraint-state cases; `python -m rag.eval.report` writes HTML/JSON metrics including scenario slices.
 
 ## Data flow per turn
 
-1. iOS sends `{messages: [...], filters?: {}}` to `/chat/stream`.
-2. Backend extracts the retrieval query, parses positive constraints and merges
-   explicit filter fields. `RAG_HARD_FILTERS=0` disables inference for A/B.
-3. Chroma dense retrieval and BM25 apply the same filter, then hybrid fusion
+1. Docker/FastAPI startup completes retrieval warmup; `/ready` becomes `200`.
+2. iOS sends `{messages: [...], filters?: {}}` to `/chat/stream`.
+3. Backend extracts the retrieval query and folds user turns into structured
+   constraint state. For example, a later `预算加到3500元`, `不要 Sony 了，
+   改成 Bose`, or `预算不限` replaces/cancels inherited constraints; explicit
+   request filter fields override inferred state. `RAG_HARD_FILTERS=0`
+   disables text/conversation inference for A/B.
+4. Chroma dense retrieval and BM25 apply the same filter, then hybrid fusion
    and reranking produce the candidate list.
-4. For an RMB range, indexed CNY prices are filtered early; foreign-priced
+5. For an RMB range, indexed CNY prices are filtered early; foreign-priced
    candidates are converted at response time and then checked strictly,
    preserving original price and dated FX metadata.
-5. Backend builds prompt: `system_prompt` + `retrieved_context_block` + `conversation_history`.
-6. Backend streams Doubao response. Two event types:
+6. Backend builds prompt: `system_prompt` + `retrieved_context_block` + `conversation_history`.
+7. Backend streams Doubao response. Two event types:
    - `data: {"type":"delta","text":"..."}`
    - `data: {"type":"product_card","product":{...}}` — emitted once per cited product, sourced from the indexed JSON (no hallucinated fields).
-7. iOS renders deltas into the streaming message bubble; on each `product_card` event, append a card with CNY primary pricing and original-price traceability.
+8. iOS renders deltas into the streaming message bubble; on each `product_card` event, append a card with CNY primary pricing and original-price traceability.
 
 ## Multimodal (拍照找货) path
 
@@ -89,7 +100,8 @@ End-to-end design of the RAG-based multimodal e-commerce agent.
 ## Deployment
 
 - Chroma persists locally under `data/.chroma/`; Docker provides a reproducible
-  Windows validation environment for ingest and evaluation.
+  Windows backend and evaluation environment. The Docker backend is exposed
+  only after its `/ready` healthcheck observes completed retrieval prewarm.
 - Re-run text ingest after metadata changes such as the newly indexed
   `currency` field required for RMB-aware retrieval filtering.
 - A100 used **only** for index-build (CLIP) and batch eval — not the request path.

@@ -9,7 +9,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 | Sub-item | Status | Artifact |
 |---|---|---|
 | 客户端对话 | ✅ | `client/AAALionApp/AAALionApp/Views/ChatView.swift` |
-| 后端 RAG 检索 | ✅ | `rag/retrieve/constraints.py` + `query.py` + Chroma `products_text` (1082 chunks; category/brand/RMB filters) |
+| 后端 RAG 检索 | ✅ | `rag/retrieve/constraints.py` + `server/app/services/constraint_state.py` + `query.py` + Chroma `products_text` (1082 chunks; multi-turn category/brand/RMB filters) |
 | 模型生成 | ✅ | `server/app/services/llm_provider.py` — TokenRouter `claude-haiku-4-5` |
 | 流式返回 | ✅ | SSE in `server/app/routes/chat.py` + `client/.../ChatService.swift` |
 | 商品卡片展示 | ✅ | `client/.../Views/ProductCardView.swift` + relative-URL resolution in `Models/ProductCard.swift` |
@@ -20,7 +20,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 |---|---|---|
 | 代码结构清晰 | ✅ | `client/ server/ rag/ docs/` separation; `docs/ARCHITECTURE.md` |
 | 接口设计合理 | ✅ | `docs/API.md`; Pydantic v2 content-union schema; SSE event types documented |
-| 错误处理完善 | ✅ | SSE error events; iOS error banner; `LLM_PROVIDER` echo fallback |
+| 错误处理完善 | ✅ | SSE error events; iOS error banner; `/ready` retrieval gate prevents chat before model warmup; `LLM_PROVIDER` echo fallback |
 | 文档齐全 | ✅ | 14 docs in `docs/`: ARCHITECTURE, PIPELINE, DEPLOY_GUIDE, TROUBLESHOOTING, RUBRIC_MAPPING, etc. |
 
 ### 效果与可靠性 (20%)
@@ -29,7 +29,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 |---|---|---|
 | 运行流畅 | ✅ | All 6 Round 2 demos + 3 Round 3 demos PASS |
 | 界面美观 | ✅ | Claude-designed tokens (`design-tokens.json`), warm-ivory theme, generated lion icon, SF Pro Rounded |
-| 检索准确率 | ✅ | bge-small-zh + hybrid rerank; audited 64-case production recall@5 = 0.981 via `python -m rag.eval.report` |
+| 检索准确率 | ✅ | bge-small-zh + hybrid rerank; prewarmed Docker 68-case production recall@5 = 0.982, MRR = 0.856, mean retrieval latency = 610 ms via `python -m rag.eval.report` |
 | 无幻觉输出 | ✅ | `rag/prompts/system.md` + demo 02 (`02-conditional-filter.md`) shows honest "no match" |
 | 复杂场景处理 | ✅ | demos 04 (negation), 05 (comparison), 06 (photo) — all Round 2 |
 
@@ -55,7 +55,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 
 | Tier | Status | Artifact |
 |---|---|---|
-| ⭐ 多轮上下文记忆 | ✅ | full history in messages array; `ChatViewModel.send()` sends all prior turns |
+| ⭐ 多轮上下文记忆 | ✅ | full history in messages array; `constraint_state.py` persists/replaces/cancels brand and budget filters; four `constraint-state` eval cases reach MRR 1.000 |
 | ⭐⭐ 反选与排除 | ✅ | `rag/prompts/system.md` negation rule + demo `docs/demos/2026-05-22/04-negation.md` |
 | ⭐⭐⭐ 多商品对比决策 | ✅ | demo `docs/demos/2026-05-22/05-comparison.md` (4-dim A-vs-B) |
 | **(bonus)** edit-last-message UX | ✅ | long-press → Edit; rolls back history. Standard ChatGPT/Claude pattern. |
@@ -65,7 +65,7 @@ Explicit map from each ByteDance PDF rubric item to a concrete artifact in this 
 | Tier | Status | Artifact |
 |---|---|---|
 | ⭐ 热门查询缓存 | 🟡 partial | `server/app/services/cache.py` — LRU with TTL implemented; route integration deferred |
-| ⭐⭐ 首屏极速响应 (<1s) | ✅ | streaming starts immediately; typing-dots placeholder in `MessageBubbleView.swift` makes <100ms feedback |
+| ⭐⭐ 首屏极速响应 (<1s) | 🟡 partial | `Dockerfile.rag` caches retrieval models and `/ready` blocks traffic until full-path prewarm; first verified broad-query retrieval after ready = 1264 ms, with immediate client loading feedback |
 | ⭐⭐⭐ 端侧体验打磨 | ✅ | new icon, palette, typography, empty state, skeleton card placeholders, smooth scroll-to-bottom |
 
 ## 减分项 (PDF §7.3) — checks

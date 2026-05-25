@@ -23,6 +23,16 @@ def _model():
     return CrossEncoder(_DEFAULT_MODEL, max_length=256)
 
 
+def warmup_reranker() -> None:
+    """Load the cross-encoder and run one tiny prediction before traffic."""
+    model = _model()
+    model.predict(
+        [("推荐一款日常洁面产品", "温和洁面乳 适合日常清洁")],
+        batch_size=1,
+        show_progress_bar=False,
+    )
+
+
 def rerank(query: str, candidates: Sequence[dict], top_k: int = 5) -> list[dict]:
     """Rerank product dict candidates by cross-encoder score against the query.
     Returns the top_k. On any failure (model not installed, etc.), falls
