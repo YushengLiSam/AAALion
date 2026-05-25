@@ -2,7 +2,7 @@
   "meta": {
     "n_cases": 59,
     "n_scored": 59,
-    "timestamp": "2026-05-24T18:40:37",
+    "timestamp": "2026-05-25T04:26:44",
     "dataset_size": 145,
     "k": 10,
     "modes": [
@@ -15,35 +15,35 @@
     "dense": {
       "label": "Dense",
       "overall": {
-        "latency_ms": 81.31315464405647,
-        "mrr": 0.6428030303030303,
-        "negation_accuracy": 0.7277777777777777,
-        "no_match_correctness": 0.8534887591636413,
-        "precision@5": 0.2636363636363636,
-        "recall@10": 0.7878787878787878,
-        "recall@5": 0.7272727272727273
+        "latency_ms": 287.9848370505635,
+        "mrr": 0.7332118561710398,
+        "negation_accuracy": 0.7799999999999999,
+        "no_match_correctness": 0.9021015473357992,
+        "precision@5": 0.30204081632653057,
+        "recall@10": 0.9200680272108842,
+        "recall@5": 0.802721088435374
       },
       "by_tag": {
         "basic": {
-          "latency_ms": 331.93241023078514,
+          "latency_ms": 1065.7616609225022,
           "mrr": 0.8958333333333334,
           "negation_accuracy": null,
           "no_match_correctness": 0.7772706959213892,
           "precision@5": 0.3,
-          "recall@10": 0.9583333333333334,
-          "recall@5": 0.9583333333333334
+          "recall@10": 1.0,
+          "recall@5": 1.0
         },
         "intent": {
-          "latency_ms": 428.24585839971405,
-          "mrr": 0.5277777777777778,
+          "latency_ms": 1363.907021900377,
+          "mrr": 0.7566137566137567,
           "negation_accuracy": null,
-          "no_match_correctness": 0.8116422281422282,
-          "precision@5": 0.13333333333333333,
-          "recall@10": 0.5833333333333334,
-          "recall@5": 0.4166666666666667
+          "no_match_correctness": 0.9673333333333334,
+          "precision@5": 0.3111111111111111,
+          "recall@10": 0.9444444444444444,
+          "recall@5": 0.6851851851851852
         },
         "filter": {
-          "latency_ms": 10.072354125099992,
+          "latency_ms": 68.69674987592589,
           "mrr": 0.7976190476190476,
           "negation_accuracy": null,
           "no_match_correctness": 0.7772706959213892,
@@ -52,52 +52,52 @@
           "recall@5": 0.9047619047619048
         },
         "no-match": {
-          "latency_ms": 10.593079454338294,
+          "latency_ms": 62.3182829998162,
           "mrr": null,
           "negation_accuracy": null,
-          "no_match_correctness": 0.8172464645288346,
+          "no_match_correctness": 0.8680658659534254,
           "precision@5": null,
           "recall@10": null,
           "recall@5": null
         },
         "spec": {
-          "latency_ms": 11.484005124884789,
-          "mrr": 0.7428571428571429,
+          "latency_ms": 71.12069987579162,
+          "mrr": 1.0,
           "negation_accuracy": null,
-          "no_match_correctness": 0.69,
-          "precision@5": 0.17142857142857146,
-          "recall@10": 0.8571428571428571,
-          "recall@5": 0.8571428571428571
+          "no_match_correctness": 0.6514814021560649,
+          "precision@5": 0.19999999999999998,
+          "recall@10": 1.0,
+          "recall@5": 1.0
         },
         "compare": {
-          "latency_ms": 14.359256833510395,
-          "mrr": 0.9,
-          "negation_accuracy": null,
-          "no_match_correctness": 0.7837662337662338,
-          "precision@5": 0.36,
-          "recall@10": 0.9,
-          "recall@5": 0.9
-        },
-        "negation": {
-          "latency_ms": 8.459075727345903,
-          "mrr": 0.2222222222222222,
-          "negation_accuracy": 0.7277777777777777,
-          "no_match_correctness": 0.8146001325778214,
-          "precision@5": 0.2,
-          "recall@10": 0.6111111111111112,
-          "recall@5": 0.462962962962963
-        },
-        "multiturn": {
-          "latency_ms": 12.815275000139081,
-          "mrr": 0.6666666666666667,
+          "latency_ms": 62.00439066863813,
+          "mrr": 0.9166666666666666,
           "negation_accuracy": null,
           "no_match_correctness": null,
-          "precision@5": 0.24000000000000005,
-          "recall@10": 0.7,
-          "recall@5": 0.7
+          "precision@5": 0.39999999999999997,
+          "recall@10": 0.9166666666666666,
+          "recall@5": 0.9166666666666666
+        },
+        "negation": {
+          "latency_ms": 68.64553372592623,
+          "mrr": 0.2951190476190476,
+          "negation_accuracy": 0.7799999999999999,
+          "no_match_correctness": 0.9303571428571429,
+          "precision@5": 0.2,
+          "recall@10": 0.7416666666666666,
+          "recall@5": 0.4333333333333334
+        },
+        "multiturn": {
+          "latency_ms": 81.87796999845887,
+          "mrr": 0.7166666666666667,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.27999999999999997,
+          "recall@10": 1.0,
+          "recall@5": 1.0
         },
         "vague": {
-          "latency_ms": 15.942388666492965,
+          "latency_ms": 86.71672266306511,
           "mrr": null,
           "negation_accuracy": null,
           "no_match_correctness": 0.960754378260099,
@@ -106,16 +106,16 @@
           "recall@5": null
         },
         "rewrite-target": {
-          "latency_ms": 13.897718749831256,
-          "mrr": 0.0,
+          "latency_ms": 80.53795349769644,
+          "mrr": 1.0,
           "negation_accuracy": null,
           "no_match_correctness": 0.960754378260099,
-          "precision@5": 0.0,
-          "recall@10": 0.0,
-          "recall@5": 0.0
+          "precision@5": 0.2,
+          "recall@10": 0.5,
+          "recall@5": 0.5
         },
         "sku": {
-          "latency_ms": 8.573792000788671,
+          "latency_ms": 45.519767998484895,
           "mrr": 1.0,
           "negation_accuracy": null,
           "no_match_correctness": null,
@@ -124,7 +124,7 @@
           "recall@5": 1.0
         },
         "compose": {
-          "latency_ms": 5.743291999351641,
+          "latency_ms": 71.72654700116254,
           "mrr": 0.16666666666666666,
           "negation_accuracy": null,
           "no_match_correctness": null,
@@ -133,20 +133,19 @@
           "recall@5": 0.0
         },
         "brand-origin": {
-          "latency_ms": 9.606277999713106,
-          "mrr": 0.08333333333333333,
+          "latency_ms": 66.89549533136112,
+          "mrr": 0.3666666666666667,
           "negation_accuracy": 0.9333333333333332,
           "no_match_correctness": null,
-          "precision@5": 0.06666666666666667,
-          "recall@10": 0.16666666666666666,
-          "recall@5": 0.16666666666666666
+          "precision@5": 0.13333333333333333,
+          "recall@10": 0.5,
+          "recall@5": 0.3333333333333333
         }
       },
       "per_case": [
         {
           "query": "推荐一款适合油皮的洗面奶",
           "expected": [
-            "p_beauty_004",
             "p_beauty_011"
           ],
           "forbidden": [],
@@ -163,18 +162,19 @@
             "p_beauty_013",
             "p_beauty_006",
             "p_1_intl_01",
-            "p_beauty_007"
+            "p_beauty_007",
+            "p_beauty_023"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 4161.766584000361
+            "latency_ms": 12883.72085699666
           },
-          "latency_ms": 4161.766584000361,
+          "latency_ms": 12883.72085699666,
           "error": null
         },
         {
@@ -206,9 +206,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 26.170041999648674
+            "latency_ms": 167.33995999675244
           },
-          "latency_ms": 26.170041999648674,
+          "latency_ms": 167.33995999675244,
           "error": null
         },
         {
@@ -227,7 +227,10 @@
             "p_2_intl_01",
             "p_2_intl_02",
             "p_digital_017",
-            "p_digital_002"
+            "p_digital_002",
+            "p_digital_019",
+            "p_clothes_022",
+            "p_digital_022"
           ],
           "metrics": {
             "recall@5": null,
@@ -236,9 +239,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.7772706959213892,
-            "latency_ms": 12.195207999866398
+            "latency_ms": 88.37153900094563
           },
-          "latency_ms": 12.195207999866398,
+          "latency_ms": 88.37153900094563,
           "error": null
         },
         {
@@ -270,9 +273,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 24.311834000400268
+            "latency_ms": 106.73438300000271
           },
-          "latency_ms": 24.311834000400268,
+          "latency_ms": 106.73438300000271,
           "error": null
         },
         {
@@ -292,7 +295,10 @@
             "p_digital_020",
             "p_digital_002",
             "p_digital_009",
-            "p_digital_011"
+            "p_digital_011",
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_015"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -301,9 +307,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 11.081457999353006
+            "latency_ms": 90.36145999561995
           },
-          "latency_ms": 11.081457999353006,
+          "latency_ms": 90.36145999561995,
           "error": null
         },
         {
@@ -323,7 +329,9 @@
             "p_digital_012",
             "p_digital_013",
             "p_digital_025",
-            "p_digital_001"
+            "p_digital_001",
+            "p_digital_003",
+            "p_digital_022"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -332,9 +340,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 18.292707999535196
+            "latency_ms": 90.3335650000372
           },
-          "latency_ms": 18.292707999535196,
+          "latency_ms": 90.3335650000372,
           "error": null
         },
         {
@@ -366,9 +374,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 10.401083000033395
+            "latency_ms": 75.21241600625217
           },
-          "latency_ms": 10.401083000033395,
+          "latency_ms": 75.21241600625217,
           "error": null
         },
         {
@@ -400,9 +408,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 18.99904099991545
+            "latency_ms": 73.98089500202332
           },
-          "latency_ms": 18.99904099991545,
+          "latency_ms": 73.98089500202332,
           "error": null
         },
         {
@@ -424,7 +432,8 @@
             "p_beauty_009",
             "p_1_intl_04",
             "p_beauty_003",
-            "p_1_real_02"
+            "p_1_real_02",
+            "p_beauty_004"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -433,18 +442,20 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 20.086874999833526
+            "latency_ms": 68.88502500078175
           },
-          "latency_ms": 20.086874999833526,
+          "latency_ms": 68.88502500078175,
           "error": null
         },
         {
           "query": "请推荐一款轻量跑鞋",
-          "expected": [],
+          "expected": [
+            "p_clothes_010",
+            "p_8_real_02"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_clothes_009",
@@ -454,18 +465,20 @@
             "p_clothes_010",
             "p_clothes_015",
             "p_clothes_011",
-            "p_clothes_013"
+            "p_clothes_013",
+            "p_clothes_014",
+            "p_3_intl_02"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
             "negation_accuracy": null,
-            "no_match_correctness": 0.762997002997003,
-            "latency_ms": 10.48129099945072
+            "no_match_correctness": null,
+            "latency_ms": 85.98576499935007
           },
-          "latency_ms": 10.48129099945072,
+          "latency_ms": 85.98576499935007,
           "error": null
         },
         {
@@ -485,7 +498,10 @@
             "p_beauty_024",
             "p_beauty_008",
             "p_beauty_009",
-            "p_1_intl_04"
+            "p_1_intl_04",
+            "p_beauty_019",
+            "p_1_real_01",
+            "p_beauty_017"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -494,9 +510,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 16.64600000003702
+            "latency_ms": 61.247161000210326
           },
-          "latency_ms": 16.64600000003702,
+          "latency_ms": 61.247161000210326,
           "error": null
         },
         {
@@ -515,7 +531,11 @@
             "p_digital_009",
             "p_digital_020",
             "p_digital_013",
-            "p_digital_006"
+            "p_digital_006",
+            "p_digital_008",
+            "p_digital_025",
+            "p_digital_012",
+            "p_digital_002"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -524,36 +544,44 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 19.6679580003547
+            "latency_ms": 49.067170002672356
           },
-          "latency_ms": 19.6679580003547,
+          "latency_ms": 49.067170002672356,
           "error": null
         },
         {
           "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
-          "expected": [],
+          "expected": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_02"
+          ],
           "forbidden": [],
           "tags": [
-            "compare",
-            "no-match"
+            "compare"
           ],
           "retrieved": [
             "p_digital_007",
             "p_digital_018",
             "p_2_intl_02",
             "p_2_intl_01",
-            "p_2_intl_04"
+            "p_2_intl_04",
+            "p_digital_013",
+            "p_digital_005",
+            "p_digital_024",
+            "p_digital_025",
+            "p_digital_019"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7837662337662338,
-            "latency_ms": 18.237332999888167
+            "no_match_correctness": null,
+            "latency_ms": 54.173174998140894
           },
-          "latency_ms": 18.237332999888167,
+          "latency_ms": 54.173174998140894,
           "error": null
         },
         {
@@ -573,7 +601,11 @@
             "p_beauty_010",
             "p_beauty_005",
             "p_beauty_008",
-            "p_beauty_006"
+            "p_beauty_006",
+            "p_beauty_007",
+            "p_1_real_02",
+            "p_beauty_018",
+            "p_beauty_017"
           ],
           "metrics": {
             "recall@5": 0.0,
@@ -582,9 +614,9 @@
             "precision@5": 0.0,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 17.42008299970621
+            "latency_ms": 66.1231289996067
           },
-          "latency_ms": 17.42008299970621,
+          "latency_ms": 66.1231289996067,
           "error": null
         },
         {
@@ -603,7 +635,8 @@
             "p_beauty_010",
             "p_beauty_022",
             "p_beauty_003",
-            "p_beauty_007"
+            "p_beauty_007",
+            "p_1_real_04"
           ],
           "metrics": {
             "recall@5": null,
@@ -612,18 +645,25 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9303571428571429,
-            "latency_ms": 9.81745800072531
+            "latency_ms": 62.95411799510475
           },
-          "latency_ms": 9.81745800072531,
+          "latency_ms": 62.95411799510475,
           "error": null
         },
         {
           "query": "不要 Apple 的笔记本电脑推荐",
-          "expected": [],
-          "forbidden": [],
+          "expected": [
+            "p_digital_004",
+            "p_digital_022",
+            "p_digital_023"
+          ],
+          "forbidden": [
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_020"
+          ],
           "tags": [
-            "negation",
-            "no-match"
+            "negation"
           ],
           "retrieved": [
             "p_digital_025",
@@ -633,18 +673,20 @@
             "p_digital_001",
             "p_digital_012",
             "p_digital_023",
-            "p_digital_013"
+            "p_digital_013",
+            "p_digital_022",
+            "p_digital_021"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
-            "negation_accuracy": null,
-            "no_match_correctness": 0.6988431222984999,
-            "latency_ms": 6.352125000375963
+            "recall@5": 0.0,
+            "recall@10": 0.6666666666666666,
+            "mrr": 0.14285714285714285,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 68.07956699776696
           },
-          "latency_ms": 6.352125000375963,
+          "latency_ms": 68.07956699776696,
           "error": null
         },
         {
@@ -664,7 +706,9 @@
             "p_beauty_006",
             "p_beauty_020",
             "p_beauty_013",
-            "p_beauty_023"
+            "p_beauty_023",
+            "p_beauty_005",
+            "p_beauty_002"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -673,15 +717,15 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 16.664208000293
+            "latency_ms": 118.56308999995235
           },
-          "latency_ms": 16.664208000293,
+          "latency_ms": 118.56308999995235,
           "error": null
         },
         {
           "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
           "expected": [
-            "p_beauty_004"
+            "p_beauty_002"
           ],
           "forbidden": [],
           "tags": [
@@ -700,15 +744,15 @@
             "p_beauty_008"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.25,
+            "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 16.757667000092624
+            "latency_ms": 79.86109099874739
           },
-          "latency_ms": 16.757667000092624,
+          "latency_ms": 79.86109099874739,
           "error": null
         },
         {
@@ -738,9 +782,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9607655502392345,
-            "latency_ms": 20.540749999781838
+            "latency_ms": 70.50035699649015
           },
-          "latency_ms": 20.540749999781838,
+          "latency_ms": 70.50035699649015,
           "error": null
         },
         {
@@ -770,9 +814,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9833333333333333,
-            "latency_ms": 16.467333000036888
+            "latency_ms": 89.20356499584159
           },
-          "latency_ms": 16.467333000036888,
+          "latency_ms": 89.20356499584159,
           "error": null
         },
         {
@@ -802,9 +846,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9381642512077295,
-            "latency_ms": 10.819082999660168
+            "latency_ms": 100.44624599686358
           },
-          "latency_ms": 10.819082999660168,
+          "latency_ms": 100.44624599686358,
           "error": null
         },
         {
@@ -825,7 +869,9 @@
             "p_digital_006",
             "p_digital_005",
             "p_digital_016",
-            "p_digital_014"
+            "p_digital_014",
+            "p_digital_002",
+            "p_digital_013"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -834,19 +880,18 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.573792000788671
+            "latency_ms": 45.519767998484895
           },
-          "latency_ms": 8.573792000788671,
+          "latency_ms": 45.519767998484895,
           "error": null
         },
         {
           "query": "薇诺娜舒敏控油洁面乳",
-          "expected": [
-            "p_beauty_011"
-          ],
+          "expected": [],
           "forbidden": [],
           "tags": [
-            "spec"
+            "spec",
+            "no-match"
           ],
           "retrieved": [
             "p_1_real_03",
@@ -861,21 +906,21 @@
             "p_1_intl_05"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
             "negation_accuracy": null,
-            "no_match_correctness": null,
-            "latency_ms": 8.302249999360356
+            "no_match_correctness": 0.6514814021560649,
+            "latency_ms": 48.46721400099341
           },
-          "latency_ms": 8.302249999360356,
+          "latency_ms": 48.46721400099341,
           "error": null
         },
         {
           "query": "理肤泉特护清盈防晒乳 SPF50",
           "expected": [
-            "p_beauty_006"
+            "p_beauty_023"
           ],
           "forbidden": [],
           "tags": [
@@ -889,18 +934,20 @@
             "p_beauty_006",
             "p_beauty_020",
             "p_beauty_019",
-            "p_beauty_003"
+            "p_beauty_003",
+            "p_1_real_04",
+            "p_beauty_005"
           ],
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
-            "mrr": 0.2,
+            "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.995584000331291
+            "latency_ms": 84.82576400274411
           },
-          "latency_ms": 8.995584000331291,
+          "latency_ms": 84.82576400274411,
           "error": null
         },
         {
@@ -930,18 +977,21 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9673333333333334,
-            "latency_ms": 18.384458000582526
+            "latency_ms": 79.08912600396434
           },
-          "latency_ms": 18.384458000582526,
+          "latency_ms": 79.08912600396434,
           "error": null
         },
         {
           "query": "保湿面霜推荐",
-          "expected": [],
+          "expected": [
+            "p_beauty_007",
+            "p_beauty_008",
+            "p_1_real_03"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_beauty_007",
@@ -956,22 +1006,25 @@
             "p_1_intl_02"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 0.6666666666666666,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7021260221260222,
-            "latency_ms": 16.38887499939301
+            "no_match_correctness": null,
+            "latency_ms": 81.68422900052974
           },
-          "latency_ms": 16.38887499939301,
+          "latency_ms": 81.68422900052974,
           "error": null
         },
         {
           "query": "无线耳机降噪",
           "expected": [
-            "p_digital_004",
-            "p_digital_005"
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_01",
+            "p_2_intl_02",
+            "p_2_intl_04"
           ],
           "forbidden": [],
           "tags": [
@@ -982,27 +1035,33 @@
             "p_digital_018",
             "p_2_intl_01",
             "p_2_intl_04",
-            "p_2_intl_02"
+            "p_2_intl_02",
+            "p_digital_019",
+            "p_digital_010",
+            "p_digital_014",
+            "p_digital_025",
+            "p_digital_011"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 1.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.969374999447609
+            "latency_ms": 58.51453300419962
           },
-          "latency_ms": 7.969374999447609,
+          "latency_ms": 58.51453300419962,
           "error": null
         },
         {
           "query": "Apple iPad Air 平板",
-          "expected": [],
+          "expected": [
+            "p_digital_025"
+          ],
           "forbidden": [],
           "tags": [
-            "spec",
-            "no-match"
+            "spec"
           ],
           "retrieved": [
             "p_digital_025",
@@ -1012,25 +1071,27 @@
             "p_digital_019",
             "p_digital_021",
             "p_digital_020",
-            "p_digital_006"
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_001"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
             "negation_accuracy": null,
-            "no_match_correctness": 0.69,
-            "latency_ms": 7.226124999760941
+            "no_match_correctness": null,
+            "latency_ms": 60.264517000177875
           },
-          "latency_ms": 7.226124999760941,
+          "latency_ms": 60.264517000177875,
           "error": null
         },
         {
           "query": "国产护肤平价好物",
           "expected": [
             "p_beauty_009",
-            "p_beauty_011"
+            "p_1_real_02"
           ],
           "forbidden": [],
           "tags": [
@@ -1050,24 +1111,25 @@
             "p_beauty_003"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 1.0,
+            "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.763708999846131
+            "latency_ms": 62.001646001590416
           },
-          "latency_ms": 7.763708999846131,
+          "latency_ms": 62.001646001590416,
           "error": null
         },
         {
           "query": "新手适合的相机",
-          "expected": [],
+          "expected": [
+            "p_2_intl_05"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_digital_016",
@@ -1077,18 +1139,20 @@
             "p_digital_008",
             "p_digital_003",
             "p_2_intl_05",
-            "p_digital_020"
+            "p_digital_020",
+            "p_digital_010",
+            "p_digital_001"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 0.0,
+            "recall@10": 1.0,
+            "mrr": 0.14285714285714285,
+            "precision@5": 0.0,
             "negation_accuracy": null,
-            "no_match_correctness": 0.8141125541125541,
-            "latency_ms": 7.704082999225648
+            "no_match_correctness": null,
+            "latency_ms": 80.12253099877853
           },
-          "latency_ms": 7.704082999225648,
+          "latency_ms": 80.12253099877853,
           "error": null
         },
         {
@@ -1109,7 +1173,9 @@
             "p_beauty_024",
             "p_beauty_009",
             "p_beauty_003",
-            "p_beauty_008"
+            "p_beauty_008",
+            "p_beauty_004",
+            "p_beauty_006"
           ],
           "metrics": {
             "recall@5": 0.0,
@@ -1118,17 +1184,17 @@
             "precision@5": 0.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 5.743291999351641
+            "latency_ms": 71.72654700116254
           },
-          "latency_ms": 5.743291999351641,
+          "latency_ms": 71.72654700116254,
           "error": null
         },
         {
           "query": "推荐一款入门跑步鞋",
           "expected": [
             "p_clothes_007",
-            "p_clothes_010",
-            "p_clothes_009"
+            "p_clothes_009",
+            "p_8_real_02"
           ],
           "forbidden": [],
           "tags": [
@@ -1142,7 +1208,9 @@
             "p_clothes_008",
             "p_clothes_014",
             "p_clothes_015",
-            "p_clothes_013"
+            "p_clothes_013",
+            "p_3_intl_02",
+            "p_clothes_011"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1151,9 +1219,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.892625000546104
+            "latency_ms": 45.07123200164642
           },
-          "latency_ms": 6.892625000546104,
+          "latency_ms": 45.07123200164642,
           "error": null
         },
         {
@@ -1185,9 +1253,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.415916000354628
+            "latency_ms": 44.381517996953335
           },
-          "latency_ms": 7.415916000354628,
+          "latency_ms": 44.381517996953335,
           "error": null
         },
         {
@@ -1204,7 +1272,13 @@
             "p_clothes_018",
             "p_clothes_025",
             "p_clothes_024",
-            "p_clothes_003"
+            "p_clothes_003",
+            "p_clothes_005",
+            "p_clothes_002",
+            "p_clothes_022",
+            "p_3_intl_03",
+            "p_clothes_012",
+            "p_8_real_05"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1213,9 +1287,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 5.717999999433232
+            "latency_ms": 42.232332001731265
           },
-          "latency_ms": 5.717999999433232,
+          "latency_ms": 42.232332001731265,
           "error": null
         },
         {
@@ -1246,9 +1320,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 5.973958000140556
+            "latency_ms": 43.671297004038934
           },
-          "latency_ms": 5.973958000140556,
+          "latency_ms": 43.671297004038934,
           "error": null
         },
         {
@@ -1269,7 +1343,10 @@
             "p_clothes_020",
             "p_clothes_001",
             "p_clothes_023",
-            "p_clothes_004"
+            "p_clothes_004",
+            "p_clothes_016",
+            "p_clothes_006",
+            "p_clothes_005"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1278,9 +1355,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.791959000314819
+            "latency_ms": 54.61680000007618
           },
-          "latency_ms": 7.791959000314819,
+          "latency_ms": 54.61680000007618,
           "error": null
         },
         {
@@ -1298,7 +1375,10 @@
             "p_food_023",
             "p_food_022",
             "p_food_001",
-            "p_food_002"
+            "p_food_002",
+            "p_food_006",
+            "p_food_025",
+            "p_food_005"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1307,9 +1387,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 9.248082999874896
+            "latency_ms": 58.94139999873005
           },
-          "latency_ms": 9.248082999874896,
+          "latency_ms": 58.94139999873005,
           "error": null
         },
         {
@@ -1340,9 +1420,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.237500000177533
+            "latency_ms": 72.46593700256199
           },
-          "latency_ms": 8.237500000177533,
+          "latency_ms": 72.46593700256199,
           "error": null
         },
         {
@@ -1365,7 +1445,8 @@
             "p_food_024",
             "p_food_015",
             "p_food_003",
-            "p_food_009"
+            "p_food_009",
+            "p_food_020"
           ],
           "metrics": {
             "recall@5": 0.3333333333333333,
@@ -1374,9 +1455,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.28274999983114
+            "latency_ms": 68.51293200452346
           },
-          "latency_ms": 7.28274999983114,
+          "latency_ms": 68.51293200452346,
           "error": null
         },
         {
@@ -1384,15 +1465,16 @@
           "expected": [
             "p_digital_002",
             "p_digital_008",
+            "p_digital_009",
+            "p_digital_010",
             "p_digital_014",
+            "p_digital_015",
+            "p_digital_016",
             "p_digital_017"
           ],
           "forbidden": [
             "p_digital_001",
-            "p_digital_003",
-            "p_digital_018",
-            "p_digital_024",
-            "p_digital_025"
+            "p_digital_003"
           ],
           "tags": [
             "negation"
@@ -1405,18 +1487,20 @@
             "p_digital_003",
             "p_digital_020",
             "p_digital_013",
-            "p_digital_016"
+            "p_digital_016",
+            "p_digital_018",
+            "p_digital_002"
           ],
           "metrics": {
             "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
+            "recall@10": 0.25,
+            "mrr": 0.125,
             "precision@5": 0.0,
-            "negation_accuracy": 0.19999999999999996,
+            "negation_accuracy": 0.6,
             "no_match_correctness": null,
-            "latency_ms": 5.669750000379281
+            "latency_ms": 76.24342700000852
           },
-          "latency_ms": 5.669750000379281,
+          "latency_ms": 76.24342700000852,
           "error": null
         },
         {
@@ -1424,11 +1508,11 @@
           "expected": [
             "p_clothes_008",
             "p_clothes_009",
-            "p_clothes_010"
+            "p_clothes_010",
+            "p_8_real_02"
           ],
           "forbidden": [
-            "p_clothes_007",
-            "p_3_intl_02"
+            "p_clothes_007"
           ],
           "tags": [
             "negation"
@@ -1442,18 +1526,19 @@
             "p_clothes_013",
             "p_clothes_011",
             "p_clothes_015",
-            "p_clothes_012"
+            "p_clothes_012",
+            "p_clothes_014"
           ],
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
             "mrr": 0.5,
-            "precision@5": 0.6,
+            "precision@5": 0.8,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 5.846000000019558
+            "latency_ms": 66.26483699801611
           },
-          "latency_ms": 5.846000000019558,
+          "latency_ms": 66.26483699801611,
           "error": null
         },
         {
@@ -1471,18 +1556,24 @@
             "p_digital_007",
             "p_2_intl_01",
             "p_digital_018",
-            "p_2_intl_04"
+            "p_2_intl_04",
+            "p_digital_017",
+            "p_2_intl_02",
+            "p_digital_002",
+            "p_digital_019",
+            "p_digital_025",
+            "p_digital_006"
           ],
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
             "mrr": 0.25,
             "precision@5": 0.2,
-            "negation_accuracy": 0.75,
+            "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 5.777124999440275
+            "latency_ms": 84.68350399925839
           },
-          "latency_ms": 5.777124999440275,
+          "latency_ms": 84.68350399925839,
           "error": null
         },
         {
@@ -1490,11 +1581,10 @@
           "expected": [
             "p_beauty_001",
             "p_beauty_009",
-            "p_1_real_01"
+            "p_beauty_024"
           ],
           "forbidden": [
-            "p_beauty_002",
-            "p_beauty_019"
+            "p_beauty_002"
           ],
           "tags": [
             "negation"
@@ -1508,18 +1598,19 @@
             "p_beauty_009",
             "p_beauty_018",
             "p_beauty_007",
-            "p_1_intl_04"
+            "p_1_intl_04",
+            "p_beauty_024"
           ],
           "metrics": {
-            "recall@5": 0.6666666666666666,
+            "recall@5": 0.3333333333333333,
             "recall@10": 1.0,
-            "mrr": 0.5,
-            "precision@5": 0.4,
-            "negation_accuracy": 0.6,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
+            "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 5.7266250005341135
+            "latency_ms": 66.88486500206636
           },
-          "latency_ms": 5.7266250005341135,
+          "latency_ms": 66.88486500206636,
           "error": null
         },
         {
@@ -1540,7 +1631,10 @@
             "p_food_002",
             "p_food_001",
             "p_food_022",
-            "p_food_025"
+            "p_food_025",
+            "p_food_006",
+            "p_food_005",
+            "p_food_016"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1549,16 +1643,15 @@
             "precision@5": 0.4,
             "negation_accuracy": 0.6,
             "no_match_correctness": null,
-            "latency_ms": 7.621833000484912
+            "latency_ms": 63.180937999277376
           },
-          "latency_ms": 7.621833000484912,
+          "latency_ms": 63.180937999277376,
           "error": null
         },
         {
           "query": "轻量碳板的",
           "expected": [
-            "p_clothes_010",
-            "p_clothes_007"
+            "p_clothes_010"
           ],
           "forbidden": [],
           "tags": [
@@ -1574,18 +1667,18 @@
             "p_clothes_013",
             "p_clothes_008",
             "p_beauty_022",
-            "p_beauty_018"
+            "p_digital_021"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.0880419998502475
+            "latency_ms": 74.00497200433165
           },
-          "latency_ms": 7.0880419998502475,
+          "latency_ms": 74.00497200433165,
           "error": null
         },
         {
@@ -1617,9 +1710,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 15.89887499994802
+            "latency_ms": 69.18153399601579
           },
-          "latency_ms": 15.89887499994802,
+          "latency_ms": 69.18153399601579,
           "error": null
         },
         {
@@ -1636,7 +1729,13 @@
             "p_digital_010",
             "p_digital_014",
             "p_digital_009",
-            "p_digital_005"
+            "p_digital_005",
+            "p_digital_004",
+            "p_digital_019",
+            "p_digital_003",
+            "p_digital_002",
+            "p_digital_023",
+            "p_digital_017"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1645,9 +1744,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.667583000511513
+            "latency_ms": 67.77916299324716
           },
-          "latency_ms": 7.667583000511513,
+          "latency_ms": 67.77916299324716,
           "error": null
         },
         {
@@ -1667,7 +1766,10 @@
             "p_digital_018",
             "p_digital_017",
             "p_2_intl_02",
-            "p_digital_006"
+            "p_digital_006",
+            "p_digital_020",
+            "p_digital_024",
+            "p_digital_015"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1676,9 +1778,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.7711250003412715
+            "latency_ms": 76.20960600615945
           },
-          "latency_ms": 6.7711250003412715,
+          "latency_ms": 76.20960600615945,
           "error": null
         },
         {
@@ -1710,9 +1812,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 15.287000000171247
+            "latency_ms": 67.4215600010939
           },
-          "latency_ms": 15.287000000171247,
+          "latency_ms": 67.4215600010939,
           "error": null
         },
         {
@@ -1744,9 +1846,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 9.546125000269967
+            "latency_ms": 63.90767200355185
           },
-          "latency_ms": 9.546125000269967,
+          "latency_ms": 63.90767200355185,
           "error": null
         },
         {
@@ -1761,12 +1863,12 @@
             "p_6_real_01",
             "p_digital_007",
             "p_digital_022",
+            "p_beauty_018",
             "p_digital_006",
             "p_digital_002",
             "p_digital_014",
             "p_digital_025",
-            "p_digital_018",
-            "p_digital_010"
+            "p_digital_018"
           ],
           "metrics": {
             "recall@5": null,
@@ -1774,10 +1876,10 @@
             "mrr": null,
             "precision@5": null,
             "negation_accuracy": null,
-            "no_match_correctness": 0.9294372294372294,
-            "latency_ms": 8.127750000312517
+            "no_match_correctness": 0.9484848484848485,
+            "latency_ms": 56.980643996212166
           },
-          "latency_ms": 8.127750000312517,
+          "latency_ms": 56.980643996212166,
           "error": null
         },
         {
@@ -1806,9 +1908,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.8968215488215489,
-            "latency_ms": 5.740208999668539
+            "latency_ms": 46.79866399965249
           },
-          "latency_ms": 5.740208999668539,
+          "latency_ms": 46.79866399965249,
           "error": null
         },
         {
@@ -1837,9 +1939,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.967003367003367,
-            "latency_ms": 5.686416999196808
+            "latency_ms": 54.20251099712914
           },
-          "latency_ms": 5.686416999196808,
+          "latency_ms": 54.20251099712914,
           "error": null
         },
         {
@@ -1861,7 +1963,9 @@
             "p_clothes_007",
             "p_clothes_010",
             "p_clothes_017",
-            "p_clothes_008"
+            "p_clothes_008",
+            "p_3_intl_02",
+            "p_clothes_013"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1870,9 +1974,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 5.551125000238244
+            "latency_ms": 68.17835199763067
           },
-          "latency_ms": 5.551125000238244,
+          "latency_ms": 68.17835199763067,
           "error": null
         },
         {
@@ -1890,7 +1994,10 @@
             "p_food_008",
             "p_food_017",
             "p_food_006",
-            "p_5_real_01"
+            "p_5_real_01",
+            "p_food_002",
+            "p_6_real_04",
+            "p_food_010"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1899,9 +2006,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.325709000520874
+            "latency_ms": 78.98308299627388
           },
-          "latency_ms": 6.325709000520874,
+          "latency_ms": 78.98308299627388,
           "error": null
         },
         {
@@ -1921,7 +2028,11 @@
             "p_beauty_020",
             "p_beauty_006",
             "p_beauty_005",
-            "p_beauty_008"
+            "p_beauty_008",
+            "p_6_real_02",
+            "p_1_real_02",
+            "p_1_real_01",
+            "p_beauty_012"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -1930,20 +2041,19 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 5.537541000194324
+            "latency_ms": 56.259710996528156
           },
-          "latency_ms": 5.537541000194324,
+          "latency_ms": 56.259710996528156,
           "error": null
         },
         {
           "query": "推荐一款防晒霜，不要日系品牌",
           "expected": [
             "p_beauty_006",
-            "p_1_intl_05"
+            "p_beauty_023"
           ],
           "forbidden": [
-            "p_beauty_010",
-            "p_beauty_011"
+            "p_beauty_010"
           ],
           "tags": [
             "negation",
@@ -1954,18 +2064,23 @@
             "p_beauty_020",
             "p_beauty_010",
             "p_beauty_006",
-            "p_beauty_008"
+            "p_beauty_008",
+            "p_beauty_005",
+            "p_beauty_014",
+            "p_beauty_007",
+            "p_1_real_02",
+            "p_beauty_013"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
-            "mrr": 0.25,
-            "precision@5": 0.2,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 5.561708999266557
+            "latency_ms": 64.04863399802707
           },
-          "latency_ms": 5.561708999266557,
+          "latency_ms": 64.04863399802707,
           "error": null
         },
         {
@@ -1990,18 +2105,19 @@
             "p_beauty_014",
             "p_beauty_017",
             "p_1_real_04",
-            "p_beauty_018"
+            "p_beauty_018",
+            "p_1_real_05"
           ],
           "metrics": {
             "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
+            "recall@10": 0.5,
+            "mrr": 0.1,
             "precision@5": 0.0,
             "negation_accuracy": 1.0,
             "no_match_correctness": null,
-            "latency_ms": 5.491166999490815
+            "latency_ms": 73.39925099950051
           },
-          "latency_ms": 5.491166999490815,
+          "latency_ms": 73.39925099950051,
           "error": null
         },
         {
@@ -2011,8 +2127,7 @@
             "p_1_intl_01"
           ],
           "forbidden": [
-            "p_1_intl_05",
-            "p_beauty_006"
+            "p_1_intl_05"
           ],
           "tags": [
             "negation",
@@ -2026,7 +2141,9 @@
             "p_beauty_001",
             "p_beauty_023",
             "p_beauty_017",
-            "p_beauty_005"
+            "p_beauty_005",
+            "p_1_intl_02",
+            "p_beauty_008"
           ],
           "metrics": {
             "recall@5": 0.0,
@@ -2035,9 +2152,9 @@
             "precision@5": 0.0,
             "negation_accuracy": 1.0,
             "no_match_correctness": null,
-            "latency_ms": 17.765958000381943
+            "latency_ms": 63.23860099655576
           },
-          "latency_ms": 17.765958000381943,
+          "latency_ms": 63.23860099655576,
           "error": null
         }
       ],
@@ -2046,89 +2163,89 @@
     "hybrid": {
       "label": "Hybrid (Dense + BM25)",
       "overall": {
-        "latency_ms": 12.824203389785815,
-        "mrr": 0.608198051948052,
-        "negation_accuracy": 0.7333333333333334,
-        "no_match_correctness": 0.8476032685969151,
-        "precision@5": 0.2636363636363636,
-        "recall@10": 0.8162878787878788,
-        "recall@5": 0.7348484848484849
+        "latency_ms": 107.44835713570464,
+        "mrr": 0.701044703595724,
+        "negation_accuracy": 0.74,
+        "no_match_correctness": 0.8971054061206925,
+        "precision@5": 0.29387755102040813,
+        "recall@10": 0.8971088435374148,
+        "recall@5": 0.7551020408163265
       },
       "by_tag": {
         "basic": {
-          "latency_ms": 32.51243599991609,
-          "mrr": 0.7638888888888888,
+          "latency_ms": 245.54221500035894,
+          "mrr": 0.8055555555555557,
           "negation_accuracy": null,
-          "no_match_correctness": 0.7772706959213892,
+          "no_match_correctness": 0.7772706959213891,
           "precision@5": 0.26666666666666666,
-          "recall@10": 0.875,
+          "recall@10": 0.9166666666666666,
           "recall@5": 0.8333333333333334
         },
         "intent": {
-          "latency_ms": 38.774708599885344,
-          "mrr": 0.3055555555555555,
+          "latency_ms": 308.6032441991847,
+          "mrr": 0.6481481481481481,
           "negation_accuracy": null,
-          "no_match_correctness": 0.798038998038998,
-          "precision@5": 0.10000000000000002,
-          "recall@10": 0.5833333333333334,
-          "recall@5": 0.4166666666666667
+          "no_match_correctness": 0.9666666666666667,
+          "precision@5": 0.31111111111111117,
+          "recall@10": 0.9444444444444444,
+          "recall@5": 0.7222222222222222
         },
         "filter": {
-          "latency_ms": 7.695822875120939,
+          "latency_ms": 69.95603124869376,
           "mrr": 0.8571428571428571,
           "negation_accuracy": null,
-          "no_match_correctness": 0.7772706959213892,
+          "no_match_correctness": 0.7772706959213891,
           "precision@5": 0.34285714285714286,
-          "recall@10": 0.8095238095238095,
+          "recall@10": 0.8571428571428571,
           "recall@5": 0.7619047619047619
         },
         "no-match": {
-          "latency_ms": 7.518458454548884,
+          "latency_ms": 74.29309316648869,
           "mrr": null,
           "negation_accuracy": null,
-          "no_match_correctness": 0.8152864521398644,
+          "no_match_correctness": 0.8708593342986178,
           "precision@5": null,
           "recall@10": null,
           "recall@5": null
         },
         "spec": {
-          "latency_ms": 7.901369875071396,
-          "mrr": 0.7714285714285715,
+          "latency_ms": 65.78824662483385,
+          "mrr": 1.0,
           "negation_accuracy": null,
-          "no_match_correctness": 0.74,
-          "precision@5": 0.2,
+          "no_match_correctness": 0.6346231646081721,
+          "precision@5": 0.19999999999999998,
           "recall@10": 1.0,
           "recall@5": 1.0
         },
         "compare": {
-          "latency_ms": 7.691652666532415,
-          "mrr": 0.9,
-          "negation_accuracy": null,
-          "no_match_correctness": 0.7837662337662338,
-          "precision@5": 0.36,
-          "recall@10": 1.0,
-          "recall@5": 0.9
-        },
-        "negation": {
-          "latency_ms": 7.962192999994758,
-          "mrr": 0.2585978835978836,
-          "negation_accuracy": 0.7333333333333334,
-          "no_match_correctness": 0.7571098579782791,
-          "precision@5": 0.2222222222222222,
-          "recall@10": 0.6944444444444444,
-          "recall@5": 0.5
-        },
-        "multiturn": {
-          "latency_ms": 6.645674799801782,
-          "mrr": 0.54,
+          "latency_ms": 67.47201566759031,
+          "mrr": 0.9166666666666666,
           "negation_accuracy": null,
           "no_match_correctness": null,
-          "precision@5": 0.24000000000000005,
-          "recall@10": 0.7,
-          "recall@5": 0.7
+          "precision@5": 0.39999999999999997,
+          "recall@10": 1.0,
+          "recall@5": 0.9166666666666666
+        },
+        "negation": {
+          "latency_ms": 61.73303809191566,
+          "mrr": 0.26845238095238094,
+          "negation_accuracy": 0.74,
+          "no_match_correctness": 0.8858571428571429,
+          "precision@5": 0.21999999999999997,
+          "recall@10": 0.6458333333333333,
+          "recall@5": 0.4666666666666666
+        },
+        "multiturn": {
+          "latency_ms": 69.27090839744778,
+          "mrr": 0.5666666666666667,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.2,
+          "recall@10": 1.0,
+          "recall@5": 0.6
         },
         "vague": {
-          "latency_ms": 7.708694333511327,
+          "latency_ms": 60.711534669583976,
           "mrr": null,
           "negation_accuracy": null,
           "no_match_correctness": 0.9533469708526917,
@@ -2137,16 +2254,16 @@
           "recall@5": null
         },
         "rewrite-target": {
-          "latency_ms": 7.405250000147134,
-          "mrr": 0.0,
+          "latency_ms": 64.73769500189519,
+          "mrr": 0.5,
           "negation_accuracy": null,
           "no_match_correctness": 0.9533469708526917,
-          "precision@5": 0.0,
-          "recall@10": 0.0,
-          "recall@5": 0.0
+          "precision@5": 0.2,
+          "recall@10": 0.5,
+          "recall@5": 0.5
         },
         "sku": {
-          "latency_ms": 8.781542000178888,
+          "latency_ms": 66.75420299870893,
           "mrr": 1.0,
           "negation_accuracy": null,
           "no_match_correctness": null,
@@ -2155,7 +2272,7 @@
           "recall@5": 1.0
         },
         "compose": {
-          "latency_ms": 6.342666999444191,
+          "latency_ms": 78.90051900176331,
           "mrr": 0.3333333333333333,
           "negation_accuracy": null,
           "no_match_correctness": null,
@@ -2164,20 +2281,19 @@
           "recall@5": 1.0
         },
         "brand-origin": {
-          "latency_ms": 7.013888666430527,
-          "mrr": 0.1726190476190476,
+          "latency_ms": 41.27400333284944,
+          "mrr": 0.23611111111111108,
           "negation_accuracy": 0.8666666666666667,
           "no_match_correctness": null,
-          "precision@5": 0.06666666666666667,
+          "precision@5": 0.13333333333333333,
           "recall@10": 0.6666666666666666,
-          "recall@5": 0.16666666666666666
+          "recall@5": 0.3333333333333333
         }
       },
       "per_case": [
         {
           "query": "推荐一款适合油皮的洗面奶",
           "expected": [
-            "p_beauty_004",
             "p_beauty_011"
           ],
           "forbidden": [],
@@ -2199,14 +2315,14 @@
           ],
           "metrics": {
             "recall@5": 0.0,
-            "recall@10": 0.5,
+            "recall@10": 1.0,
             "mrr": 0.16666666666666666,
             "precision@5": 0.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 320.2385000004142
+            "latency_ms": 2368.5428539974964
           },
-          "latency_ms": 320.2385000004142,
+          "latency_ms": 2368.5428539974964,
           "error": null
         },
         {
@@ -2238,9 +2354,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 12.892374999864842
+            "latency_ms": 120.93806499615312
           },
-          "latency_ms": 12.892374999864842,
+          "latency_ms": 120.93806499615312,
           "error": null
         },
         {
@@ -2259,10 +2375,10 @@
             "p_2_intl_01",
             "p_2_intl_02",
             "p_clothes_005",
+            "p_food_019",
+            "p_digital_020",
             "p_clothes_019",
-            "p_food_007",
-            "p_digital_017",
-            "p_food_022"
+            "p_3_intl_02"
           ],
           "metrics": {
             "recall@5": null,
@@ -2270,10 +2386,10 @@
             "mrr": null,
             "precision@5": null,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7772706959213892,
-            "latency_ms": 11.378125000192085
+            "no_match_correctness": 0.7772706959213891,
+            "latency_ms": 65.46118699770886
           },
-          "latency_ms": 11.378125000192085,
+          "latency_ms": 65.46118699770886,
           "error": null
         },
         {
@@ -2292,11 +2408,11 @@
             "p_digital_016",
             "p_digital_008",
             "p_digital_007",
+            "p_digital_005",
             "p_digital_019",
             "p_digital_002",
             "p_food_019",
-            "p_digital_001",
-            "p_beauty_021"
+            "p_digital_001"
           ],
           "metrics": {
             "recall@5": 0.0,
@@ -2305,9 +2421,9 @@
             "precision@5": 0.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 9.60525000027701
+            "latency_ms": 60.09866100066574
           },
-          "latency_ms": 9.60525000027701,
+          "latency_ms": 60.09866100066574,
           "error": null
         },
         {
@@ -2339,9 +2455,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.172625000748667
+            "latency_ms": 64.6274850005284
           },
-          "latency_ms": 7.172625000748667,
+          "latency_ms": 64.6274850005284,
           "error": null
         },
         {
@@ -2363,8 +2479,8 @@
             "p_digital_024",
             "p_digital_001",
             "p_digital_003",
-            "p_3_intl_02",
-            "p_clothes_007"
+            "p_digital_018",
+            "p_2_intl_02"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -2373,9 +2489,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.787125000300875
+            "latency_ms": 68.23471700045047
           },
-          "latency_ms": 6.787125000300875,
+          "latency_ms": 68.23471700045047,
           "error": null
         },
         {
@@ -2407,9 +2523,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 10.440874999403604
+            "latency_ms": 69.63956599793164
           },
-          "latency_ms": 10.440874999403604,
+          "latency_ms": 69.63956599793164,
           "error": null
         },
         {
@@ -2441,9 +2557,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.835708999868075
+            "latency_ms": 57.333687000209466
           },
-          "latency_ms": 8.835708999868075,
+          "latency_ms": 57.333687000209466,
           "error": null
         },
         {
@@ -2466,7 +2582,7 @@
             "p_beauty_003",
             "p_1_intl_02",
             "p_beauty_004",
-            "p_food_012"
+            "p_food_006"
           ],
           "metrics": {
             "recall@5": 0.5,
@@ -2475,18 +2591,20 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.1866669995870325
+            "latency_ms": 77.92286000039894
           },
-          "latency_ms": 7.1866669995870325,
+          "latency_ms": 77.92286000039894,
           "error": null
         },
         {
           "query": "请推荐一款轻量跑鞋",
-          "expected": [],
+          "expected": [
+            "p_clothes_010",
+            "p_8_real_02"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_clothes_009",
@@ -2501,15 +2619,15 @@
             "p_clothes_015"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.2,
             "negation_accuracy": null,
-            "no_match_correctness": 0.762997002997003,
-            "latency_ms": 7.43579200025124
+            "no_match_correctness": null,
+            "latency_ms": 85.30998000060208
           },
-          "latency_ms": 7.43579200025124,
+          "latency_ms": 85.30998000060208,
           "error": null
         },
         {
@@ -2532,7 +2650,7 @@
             "p_beauty_020",
             "p_1_real_01",
             "p_beauty_009",
-            "p_1_intl_04"
+            "p_beauty_003"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -2541,9 +2659,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.973583999752009
+            "latency_ms": 62.532405005185865
           },
-          "latency_ms": 6.973583999752009,
+          "latency_ms": 62.532405005185865,
           "error": null
         },
         {
@@ -2566,7 +2684,7 @@
             "p_digital_002",
             "p_digital_006",
             "p_digital_016",
-            "p_digital_021"
+            "p_digital_024"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -2575,18 +2693,21 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.359082999755628
+            "latency_ms": 61.39181100297719
           },
-          "latency_ms": 7.359082999755628,
+          "latency_ms": 61.39181100297719,
           "error": null
         },
         {
           "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
-          "expected": [],
+          "expected": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_02"
+          ],
           "forbidden": [],
           "tags": [
-            "compare",
-            "no-match"
+            "compare"
           ],
           "retrieved": [
             "p_digital_007",
@@ -2597,19 +2718,19 @@
             "p_digital_005",
             "p_digital_021",
             "p_digital_024",
-            "p_digital_025",
-            "p_digital_002"
+            "p_digital_004",
+            "p_digital_025"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7837662337662338,
-            "latency_ms": 8.165332999851671
+            "no_match_correctness": null,
+            "latency_ms": 68.12066299607977
           },
-          "latency_ms": 8.165332999851671,
+          "latency_ms": 68.12066299607977,
           "error": null
         },
         {
@@ -2642,9 +2763,9 @@
             "precision@5": 0.0,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 8.371165999960795
+            "latency_ms": 74.0009760047542
           },
-          "latency_ms": 8.371165999960795,
+          "latency_ms": 74.0009760047542,
           "error": null
         },
         {
@@ -2660,11 +2781,11 @@
             "p_beauty_002",
             "p_beauty_010",
             "p_6_real_04",
+            "p_beauty_012",
             "p_beauty_003",
             "p_beauty_007",
             "p_beauty_018",
-            "p_beauty_023",
-            "p_beauty_012"
+            "p_beauty_023"
           ],
           "metrics": {
             "recall@5": null,
@@ -2673,18 +2794,25 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.8858571428571429,
-            "latency_ms": 10.175917000196932
+            "latency_ms": 80.05001499986975
           },
-          "latency_ms": 10.175917000196932,
+          "latency_ms": 80.05001499986975,
           "error": null
         },
         {
           "query": "不要 Apple 的笔记本电脑推荐",
-          "expected": [],
-          "forbidden": [],
+          "expected": [
+            "p_digital_004",
+            "p_digital_022",
+            "p_digital_023"
+          ],
+          "forbidden": [
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_020"
+          ],
           "tags": [
-            "negation",
-            "no-match"
+            "negation"
           ],
           "retrieved": [
             "p_digital_006",
@@ -2696,18 +2824,18 @@
             "p_digital_025",
             "p_digital_022",
             "p_digital_013",
-            "p_digital_004"
+            "p_digital_018"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
-            "negation_accuracy": null,
-            "no_match_correctness": 0.6283625730994152,
-            "latency_ms": 9.844332999819017
+            "recall@5": 0.0,
+            "recall@10": 0.6666666666666666,
+            "mrr": 0.16666666666666666,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.4,
+            "no_match_correctness": null,
+            "latency_ms": 58.856813004240394
           },
-          "latency_ms": 9.844332999819017,
+          "latency_ms": 58.856813004240394,
           "error": null
         },
         {
@@ -2724,29 +2852,29 @@
             "p_beauty_020",
             "p_beauty_023",
             "p_beauty_006",
+            "p_beauty_024",
             "p_beauty_011",
             "p_beauty_014",
             "p_food_012",
             "p_beauty_018",
-            "p_beauty_017",
-            "p_food_019"
+            "p_beauty_017"
           ],
           "metrics": {
-            "recall@5": 1.0,
+            "recall@5": 0.0,
             "recall@10": 1.0,
-            "mrr": 0.2,
-            "precision@5": 0.2,
+            "mrr": 0.16666666666666666,
+            "precision@5": 0.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.089124999765772
+            "latency_ms": 74.7805930004688
           },
-          "latency_ms": 7.089124999765772,
+          "latency_ms": 74.7805930004688,
           "error": null
         },
         {
           "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
           "expected": [
-            "p_beauty_004"
+            "p_beauty_002"
           ],
           "forbidden": [],
           "tags": [
@@ -2766,14 +2894,14 @@
           ],
           "metrics": {
             "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
+            "recall@10": 1.0,
+            "mrr": 0.16666666666666666,
             "precision@5": 0.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.163374999436201
+            "latency_ms": 64.01354699482908
           },
-          "latency_ms": 7.163374999436201,
+          "latency_ms": 64.01354699482908,
           "error": null
         },
         {
@@ -2803,9 +2931,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9385433280170122,
-            "latency_ms": 8.321000000250933
+            "latency_ms": 63.41136900300626
           },
-          "latency_ms": 8.321000000250933,
+          "latency_ms": 63.41136900300626,
           "error": null
         },
         {
@@ -2835,9 +2963,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9833333333333333,
-            "latency_ms": 6.631000000197673
+            "latency_ms": 56.19006800407078
           },
-          "latency_ms": 6.631000000197673,
+          "latency_ms": 56.19006800407078,
           "error": null
         },
         {
@@ -2867,9 +2995,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9381642512077295,
-            "latency_ms": 8.174083000085375
+            "latency_ms": 62.53316700167488
           },
-          "latency_ms": 8.174083000085375,
+          "latency_ms": 62.53316700167488,
           "error": null
         },
         {
@@ -2892,7 +3020,7 @@
             "p_digital_005",
             "p_digital_013",
             "p_digital_009",
-            "p_digital_002"
+            "p_digital_008"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -2901,19 +3029,18 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.781542000178888
+            "latency_ms": 66.75420299870893
           },
-          "latency_ms": 8.781542000178888,
+          "latency_ms": 66.75420299870893,
           "error": null
         },
         {
           "query": "薇诺娜舒敏控油洁面乳",
-          "expected": [
-            "p_beauty_011"
-          ],
+          "expected": [],
           "forbidden": [],
           "tags": [
-            "spec"
+            "spec",
+            "no-match"
           ],
           "retrieved": [
             "p_1_real_03",
@@ -2923,26 +3050,26 @@
             "p_beauty_011",
             "p_beauty_023",
             "p_beauty_014",
-            "p_beauty_017",
             "p_beauty_020",
+            "p_beauty_017",
             "p_beauty_012"
           ],
           "metrics": {
-            "recall@5": 1.0,
-            "recall@10": 1.0,
-            "mrr": 0.2,
-            "precision@5": 0.2,
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
             "negation_accuracy": null,
-            "no_match_correctness": null,
-            "latency_ms": 6.569458000740269
+            "no_match_correctness": 0.6346231646081721,
+            "latency_ms": 71.32932300009998
           },
-          "latency_ms": 6.569458000740269,
+          "latency_ms": 71.32932300009998,
           "error": null
         },
         {
           "query": "理肤泉特护清盈防晒乳 SPF50",
           "expected": [
-            "p_beauty_006"
+            "p_beauty_023"
           ],
           "forbidden": [],
           "tags": [
@@ -2950,9 +3077,9 @@
           ],
           "retrieved": [
             "p_beauty_023",
+            "p_1_intl_05",
             "p_beauty_010",
             "p_beauty_012",
-            "p_1_intl_05",
             "p_beauty_006",
             "p_beauty_007",
             "p_1_real_03",
@@ -2963,13 +3090,13 @@
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
-            "mrr": 0.2,
+            "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.5179169996554265
+            "latency_ms": 66.29616300051566
           },
-          "latency_ms": 6.5179169996554265,
+          "latency_ms": 66.29616300051566,
           "error": null
         },
         {
@@ -2999,18 +3126,21 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9666666666666667,
-            "latency_ms": 6.4257920003001345
+            "latency_ms": 71.05887500074459
           },
-          "latency_ms": 6.4257920003001345,
+          "latency_ms": 71.05887500074459,
           "error": null
         },
         {
           "query": "保湿面霜推荐",
-          "expected": [],
+          "expected": [
+            "p_beauty_007",
+            "p_beauty_008",
+            "p_1_real_03"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_beauty_007",
@@ -3025,22 +3155,25 @@
             "p_1_intl_01"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
             "negation_accuracy": null,
-            "no_match_correctness": 0.6384896584896584,
-            "latency_ms": 6.278208999901835
+            "no_match_correctness": null,
+            "latency_ms": 59.8779919964727
           },
-          "latency_ms": 6.278208999901835,
+          "latency_ms": 59.8779919964727,
           "error": null
         },
         {
           "query": "无线耳机降噪",
           "expected": [
-            "p_digital_004",
-            "p_digital_005"
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_01",
+            "p_2_intl_02",
+            "p_2_intl_04"
           ],
           "forbidden": [],
           "tags": [
@@ -3059,24 +3192,25 @@
             "p_digital_011"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 1.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.086207999440376
+            "latency_ms": 67.26779499877011
           },
-          "latency_ms": 8.086207999440376,
+          "latency_ms": 67.26779499877011,
           "error": null
         },
         {
           "query": "Apple iPad Air 平板",
-          "expected": [],
+          "expected": [
+            "p_digital_025"
+          ],
           "forbidden": [],
           "tags": [
-            "spec",
-            "no-match"
+            "spec"
           ],
           "retrieved": [
             "p_digital_025",
@@ -3091,22 +3225,22 @@
             "p_digital_011"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
             "negation_accuracy": null,
-            "no_match_correctness": 0.74,
-            "latency_ms": 8.10570799967536
+            "no_match_correctness": null,
+            "latency_ms": 62.09082900022622
           },
-          "latency_ms": 8.10570799967536,
+          "latency_ms": 62.09082900022622,
           "error": null
         },
         {
           "query": "国产护肤平价好物",
           "expected": [
             "p_beauty_009",
-            "p_beauty_011"
+            "p_1_real_02"
           ],
           "forbidden": [],
           "tags": [
@@ -3121,35 +3255,36 @@
             "p_1_real_03",
             "p_1_real_05",
             "p_beauty_018",
+            "p_1_intl_05",
             "p_beauty_005",
-            "p_1_intl_04",
-            "p_1_intl_05"
+            "p_1_intl_04"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr": 0.5,
+            "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.494917000054556
+            "latency_ms": 76.81617599882884
           },
-          "latency_ms": 6.494917000054556,
+          "latency_ms": 76.81617599882884,
           "error": null
         },
         {
           "query": "新手适合的相机",
-          "expected": [],
+          "expected": [
+            "p_2_intl_05"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_2_intl_05",
+            "p_beauty_025",
             "p_digital_017",
             "p_digital_016",
-            "p_beauty_025",
             "p_digital_015",
             "p_clothes_020",
             "p_digital_002",
@@ -3158,15 +3293,15 @@
             "p_3_intl_01"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
             "negation_accuracy": null,
-            "no_match_correctness": 0.824002664002664,
-            "latency_ms": 6.365958999595023
+            "no_match_correctness": null,
+            "latency_ms": 79.39732600061689
           },
-          "latency_ms": 6.365958999595023,
+          "latency_ms": 79.39732600061689,
           "error": null
         },
         {
@@ -3188,8 +3323,8 @@
             "p_beauty_004",
             "p_beauty_003",
             "p_beauty_018",
-            "p_beauty_011",
-            "p_beauty_008"
+            "p_beauty_021",
+            "p_beauty_011"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3198,17 +3333,17 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.342666999444191
+            "latency_ms": 78.90051900176331
           },
-          "latency_ms": 6.342666999444191,
+          "latency_ms": 78.90051900176331,
           "error": null
         },
         {
           "query": "推荐一款入门跑步鞋",
           "expected": [
             "p_clothes_007",
-            "p_clothes_010",
-            "p_clothes_009"
+            "p_clothes_009",
+            "p_8_real_02"
           ],
           "forbidden": [],
           "tags": [
@@ -3222,20 +3357,20 @@
             "p_clothes_008",
             "p_clothes_014",
             "p_clothes_015",
+            "p_8_real_03",
             "p_clothes_013",
-            "p_clothes_012",
-            "p_clothes_011"
+            "p_clothes_020"
           ],
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
-            "mrr": 0.5,
+            "mrr": 1.0,
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.249374999242718
+            "latency_ms": 74.35911900392966
           },
-          "latency_ms": 6.249374999242718,
+          "latency_ms": 74.35911900392966,
           "error": null
         },
         {
@@ -3267,9 +3402,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.696874999761349
+            "latency_ms": 71.9686950033065
           },
-          "latency_ms": 6.696874999761349,
+          "latency_ms": 71.9686950033065,
           "error": null
         },
         {
@@ -3301,9 +3436,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 9.18654199995217
+            "latency_ms": 64.91692700365093
           },
-          "latency_ms": 9.18654199995217,
+          "latency_ms": 64.91692700365093,
           "error": null
         },
         {
@@ -3334,9 +3469,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 8.762916999330628
+            "latency_ms": 72.19295499817235
           },
-          "latency_ms": 8.762916999330628,
+          "latency_ms": 72.19295499817235,
           "error": null
         },
         {
@@ -3360,7 +3495,7 @@
             "p_clothes_005",
             "p_clothes_004",
             "p_clothes_016",
-            "p_food_007"
+            "p_clothes_008"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3369,9 +3504,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.755583000085608
+            "latency_ms": 76.38157600013074
           },
-          "latency_ms": 6.755583000085608,
+          "latency_ms": 76.38157600013074,
           "error": null
         },
         {
@@ -3391,11 +3526,11 @@
             "p_food_001",
             "p_food_002",
             "p_food_005",
+            "p_food_015",
+            "p_food_004",
+            "p_food_003",
             "p_food_006",
-            "p_food_007",
-            "p_food_025",
-            "p_clothes_005",
-            "p_4_intl_02"
+            "p_food_007"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3404,9 +3539,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.251333000363957
+            "latency_ms": 66.10039900260745
           },
-          "latency_ms": 6.251333000363957,
+          "latency_ms": 66.10039900260745,
           "error": null
         },
         {
@@ -3437,9 +3572,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.156125000416068
+            "latency_ms": 93.23394199600443
           },
-          "latency_ms": 6.156125000416068,
+          "latency_ms": 93.23394199600443,
           "error": null
         },
         {
@@ -3462,19 +3597,19 @@
             "p_food_015",
             "p_food_009",
             "p_4_intl_01",
-            "p_food_007",
-            "p_food_024"
+            "p_food_021",
+            "p_food_007"
           ],
           "metrics": {
             "recall@5": 0.3333333333333333,
-            "recall@10": 0.6666666666666666,
+            "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.346250000206055
+            "latency_ms": 78.59281599667156
           },
-          "latency_ms": 6.346250000206055,
+          "latency_ms": 78.59281599667156,
           "error": null
         },
         {
@@ -3482,15 +3617,16 @@
           "expected": [
             "p_digital_002",
             "p_digital_008",
+            "p_digital_009",
+            "p_digital_010",
             "p_digital_014",
+            "p_digital_015",
+            "p_digital_016",
             "p_digital_017"
           ],
           "forbidden": [
             "p_digital_001",
-            "p_digital_003",
-            "p_digital_018",
-            "p_digital_024",
-            "p_digital_025"
+            "p_digital_003"
           ],
           "tags": [
             "negation"
@@ -3509,14 +3645,14 @@
           ],
           "metrics": {
             "recall@5": 0.0,
-            "recall@10": 0.25,
+            "recall@10": 0.125,
             "mrr": 0.14285714285714285,
             "precision@5": 0.0,
-            "negation_accuracy": 0.4,
+            "negation_accuracy": 0.6,
             "no_match_correctness": null,
-            "latency_ms": 6.337374999930034
+            "latency_ms": 69.32924300053855
           },
-          "latency_ms": 6.337374999930034,
+          "latency_ms": 69.32924300053855,
           "error": null
         },
         {
@@ -3524,11 +3660,11 @@
           "expected": [
             "p_clothes_008",
             "p_clothes_009",
-            "p_clothes_010"
+            "p_clothes_010",
+            "p_8_real_02"
           ],
           "forbidden": [
-            "p_clothes_007",
-            "p_3_intl_02"
+            "p_clothes_007"
           ],
           "tags": [
             "negation"
@@ -3549,12 +3685,12 @@
             "recall@5": 1.0,
             "recall@10": 1.0,
             "mrr": 0.5,
-            "precision@5": 0.6,
+            "precision@5": 0.8,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 8.655999999973574
+            "latency_ms": 66.32157800049754
           },
-          "latency_ms": 8.655999999973574,
+          "latency_ms": 66.32157800049754,
           "error": null
         },
         {
@@ -3574,11 +3710,11 @@
             "p_2_intl_04",
             "p_digital_018",
             "p_2_intl_02",
-            "p_digital_017",
+            "p_digital_010",
             "p_digital_020",
-            "p_digital_002",
-            "p_food_019",
-            "p_digital_019"
+            "p_digital_023",
+            "p_digital_017",
+            "p_digital_002"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3587,9 +3723,9 @@
             "precision@5": 0.2,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 9.897875000206113
+            "latency_ms": 65.34655700670555
           },
-          "latency_ms": 9.897875000206113,
+          "latency_ms": 65.34655700670555,
           "error": null
         },
         {
@@ -3597,11 +3733,10 @@
           "expected": [
             "p_beauty_001",
             "p_beauty_009",
-            "p_1_real_01"
+            "p_beauty_024"
           ],
           "forbidden": [
-            "p_beauty_002",
-            "p_beauty_019"
+            "p_beauty_002"
           ],
           "tags": [
             "negation"
@@ -3615,19 +3750,19 @@
             "p_beauty_005",
             "p_beauty_008",
             "p_beauty_004",
-            "p_1_intl_04",
-            "p_beauty_015"
+            "p_1_real_02",
+            "p_1_intl_04"
           ],
           "metrics": {
-            "recall@5": 1.0,
-            "recall@10": 1.0,
+            "recall@5": 0.6666666666666666,
+            "recall@10": 0.6666666666666666,
             "mrr": 0.5,
-            "precision@5": 0.6,
-            "negation_accuracy": 0.6,
+            "precision@5": 0.4,
+            "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 6.733916000484896
+            "latency_ms": 70.9986250003567
           },
-          "latency_ms": 6.733916000484896,
+          "latency_ms": 70.9986250003567,
           "error": null
         },
         {
@@ -3650,10 +3785,10 @@
             "p_food_022",
             "p_food_016",
             "p_food_005",
+            "p_food_017",
             "p_food_025",
             "p_5_real_05",
-            "p_food_006",
-            "p_4_intl_01"
+            "p_food_006"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3662,16 +3797,15 @@
             "precision@5": 0.4,
             "negation_accuracy": 0.6,
             "no_match_correctness": null,
-            "latency_ms": 6.525875000079395
+            "latency_ms": 70.33760199556127
           },
-          "latency_ms": 6.525875000079395,
+          "latency_ms": 70.33760199556127,
           "error": null
         },
         {
           "query": "轻量碳板的",
           "expected": [
-            "p_clothes_010",
-            "p_clothes_007"
+            "p_clothes_010"
           ],
           "forbidden": [],
           "tags": [
@@ -3681,24 +3815,24 @@
             "p_clothes_010",
             "p_food_015",
             "p_clothes_008",
+            "p_digital_021",
             "p_clothes_013",
             "p_food_005",
             "p_digital_022",
             "p_clothes_011",
             "p_digital_014",
-            "p_clothes_025",
-            "p_food_024"
+            "p_clothes_025"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.309958000201732
+            "latency_ms": 53.60103299608454
           },
-          "latency_ms": 6.309958000201732,
+          "latency_ms": 53.60103299608454,
           "error": null
         },
         {
@@ -3720,8 +3854,8 @@
             "p_beauty_005",
             "p_beauty_004",
             "p_beauty_003",
-            "p_beauty_018",
-            "p_food_012"
+            "p_food_006",
+            "p_beauty_018"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3730,9 +3864,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.495374999758496
+            "latency_ms": 82.53984499606304
           },
-          "latency_ms": 6.495374999758496,
+          "latency_ms": 82.53984499606304,
           "error": null
         },
         {
@@ -3752,10 +3886,10 @@
             "p_digital_023",
             "p_digital_019",
             "p_digital_005",
+            "p_digital_013",
+            "p_digital_012",
             "p_digital_009",
-            "p_digital_004",
-            "p_clothes_025",
-            "p_clothes_018"
+            "p_digital_004"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3764,9 +3898,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.170540999846708
+            "latency_ms": 71.41952399979346
           },
-          "latency_ms": 6.170540999846708,
+          "latency_ms": 71.41952399979346,
           "error": null
         },
         {
@@ -3798,9 +3932,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.242624999686086
+            "latency_ms": 69.88069599901792
           },
-          "latency_ms": 6.242624999686086,
+          "latency_ms": 69.88069599901792,
           "error": null
         },
         {
@@ -3832,9 +3966,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.4184579998473055
+            "latency_ms": 67.75244099844713
           },
-          "latency_ms": 7.4184579998473055,
+          "latency_ms": 67.75244099844713,
           "error": null
         },
         {
@@ -3866,9 +4000,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 9.990833000301791
+            "latency_ms": 75.154078003834
           },
-          "latency_ms": 9.990833000301791,
+          "latency_ms": 75.154078003834,
           "error": null
         },
         {
@@ -3886,9 +4020,9 @@
             "p_food_019",
             "p_digital_007",
             "p_digital_022",
+            "p_beauty_018",
             "p_digital_006",
-            "p_digital_002",
-            "p_digital_014"
+            "p_digital_002"
           ],
           "metrics": {
             "recall@5": null,
@@ -3897,9 +4031,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9636363636363636,
-            "latency_ms": 6.227208999916911
+            "latency_ms": 63.86107499565696
           },
-          "latency_ms": 6.227208999916911,
+          "latency_ms": 63.86107499565696,
           "error": null
         },
         {
@@ -3928,9 +4062,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9125887445887446,
-            "latency_ms": 6.352500000502914
+            "latency_ms": 79.00819700444117
           },
-          "latency_ms": 6.352500000502914,
+          "latency_ms": 79.00819700444117,
           "error": null
         },
         {
@@ -3959,9 +4093,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9703703703703703,
-            "latency_ms": 6.124083000031533
+            "latency_ms": 95.03990200028056
           },
-          "latency_ms": 6.124083000031533,
+          "latency_ms": 95.03990200028056,
           "error": null
         },
         {
@@ -3982,10 +4116,10 @@
             "p_clothes_017",
             "p_8_real_04",
             "p_clothes_024",
+            "p_clothes_025",
             "p_clothes_009",
             "p_clothes_007",
-            "p_clothes_010",
-            "p_food_019"
+            "p_clothes_010"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -3994,9 +4128,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.3155419993563555
+            "latency_ms": 59.95066399918869
           },
-          "latency_ms": 6.3155419993563555,
+          "latency_ms": 59.95066399918869,
           "error": null
         },
         {
@@ -4027,9 +4161,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.862749999527296
+            "latency_ms": 45.97716800344642
           },
-          "latency_ms": 6.862749999527296,
+          "latency_ms": 45.97716800344642,
           "error": null
         },
         {
@@ -4047,13 +4181,13 @@
             "p_beauty_010",
             "p_beauty_023",
             "p_beauty_006",
+            "p_clothes_025",
             "p_food_007",
             "p_beauty_020",
             "p_clothes_005",
             "p_beauty_005",
             "p_beauty_008",
-            "p_food_015",
-            "p_6_real_02"
+            "p_food_015"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -4062,20 +4196,19 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.311000000096101
+            "latency_ms": 47.58671399758896
           },
-          "latency_ms": 6.311000000096101,
+          "latency_ms": 47.58671399758896,
           "error": null
         },
         {
           "query": "推荐一款防晒霜，不要日系品牌",
           "expected": [
             "p_beauty_006",
-            "p_1_intl_05"
+            "p_beauty_023"
           ],
           "forbidden": [
-            "p_beauty_010",
-            "p_beauty_011"
+            "p_beauty_010"
           ],
           "tags": [
             "negation",
@@ -4083,6 +4216,7 @@
           ],
           "retrieved": [
             "p_beauty_010",
+            "p_beauty_002",
             "p_beauty_023",
             "p_beauty_016",
             "p_beauty_020",
@@ -4090,19 +4224,18 @@
             "p_food_019",
             "p_beauty_006",
             "p_1_intl_05",
-            "p_beauty_008",
-            "p_digital_010"
+            "p_beauty_008"
           ],
           "metrics": {
-            "recall@5": 0.0,
+            "recall@5": 0.5,
             "recall@10": 1.0,
-            "mrr": 0.14285714285714285,
-            "precision@5": 0.0,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.2,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 7.424333000017214
+            "latency_ms": 39.884115001768805
           },
-          "latency_ms": 7.424333000017214,
+          "latency_ms": 39.884115001768805,
           "error": null
         },
         {
@@ -4137,9 +4270,9 @@
             "precision@5": 0.0,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 7.540790999883029
+            "latency_ms": 39.63410099822795
           },
-          "latency_ms": 7.540790999883029,
+          "latency_ms": 39.63410099822795,
           "error": null
         },
         {
@@ -4149,8 +4282,7 @@
             "p_1_intl_01"
           ],
           "forbidden": [
-            "p_1_intl_05",
-            "p_beauty_006"
+            "p_1_intl_05"
           ],
           "tags": [
             "negation",
@@ -4175,9 +4307,9 @@
             "precision@5": 0.2,
             "negation_accuracy": 1.0,
             "no_match_correctness": null,
-            "latency_ms": 6.076541999391338
+            "latency_ms": 44.303793998551555
           },
-          "latency_ms": 6.076541999391338,
+          "latency_ms": 44.303793998551555,
           "error": null
         }
       ],
@@ -4186,89 +4318,89 @@
     "hybrid_rerank": {
       "label": "Hybrid + Rerank",
       "overall": {
-        "latency_ms": 265.83484894915995,
-        "mrr": 0.6744318181818182,
-        "negation_accuracy": 0.7333333333333334,
-        "no_match_correctness": 0.8515219114094372,
-        "precision@5": 0.24090909090909093,
-        "recall@10": 0.8844696969696969,
-        "recall@5": 0.7462121212121212
+        "latency_ms": 3274.538826847536,
+        "mrr": 0.7714285714285712,
+        "negation_accuracy": 0.7799999999999999,
+        "no_match_correctness": 0.9016555578208442,
+        "precision@5": 0.2979591836734694,
+        "recall@10": 0.9362244897959183,
+        "recall@5": 0.8299319727891156
       },
       "by_tag": {
         "basic": {
-          "latency_ms": 348.3245000001821,
-          "mrr": 0.8916666666666666,
+          "latency_ms": 3450.1660930769644,
+          "mrr": 0.85,
           "negation_accuracy": null,
           "no_match_correctness": 0.7772706959213892,
           "precision@5": 0.25,
-          "recall@10": 0.9583333333333334,
-          "recall@5": 0.8611111111111112
+          "recall@10": 0.9722222222222223,
+          "recall@5": 0.9027777777777777
         },
         "intent": {
-          "latency_ms": 488.0854249998265,
-          "mrr": 0.7000000000000001,
+          "latency_ms": 4787.670326200168,
+          "mrr": 0.9166666666666666,
           "negation_accuracy": null,
-          "no_match_correctness": 0.790333630131044,
-          "precision@5": 0.16666666666666666,
-          "recall@10": 0.6666666666666666,
-          "recall@5": 0.5833333333333334
+          "no_match_correctness": 0.9376630036630037,
+          "precision@5": 0.3777777777777778,
+          "recall@10": 1.0,
+          "recall@5": 0.9444444444444444
         },
         "filter": {
-          "latency_ms": 264.7169273751615,
-          "mrr": 0.42142857142857143,
+          "latency_ms": 3507.479797249289,
+          "mrr": 0.46904761904761905,
           "negation_accuracy": null,
           "no_match_correctness": 0.7772706959213892,
-          "precision@5": 0.2571428571428572,
-          "recall@10": 0.9523809523809524,
-          "recall@5": 0.7142857142857143
+          "precision@5": 0.31428571428571433,
+          "recall@10": 1.0,
+          "recall@5": 0.8095238095238096
         },
         "no-match": {
-          "latency_ms": 219.30768209081592,
+          "latency_ms": 2919.9496276645127,
           "mrr": null,
           "negation_accuracy": null,
-          "no_match_correctness": 0.8139381367832027,
+          "no_match_correctness": 0.8661744019470188,
           "precision@5": null,
           "recall@10": null,
           "recall@5": null
         },
         "spec": {
-          "latency_ms": 75.11333350009863,
-          "mrr": 0.6761904761904762,
+          "latency_ms": 906.7136336252588,
+          "mrr": 0.9047619047619048,
           "negation_accuracy": null,
-          "no_match_correctness": 0.74,
-          "precision@5": 0.2,
+          "no_match_correctness": 0.6346231646081721,
+          "precision@5": 0.19999999999999998,
           "recall@10": 1.0,
           "recall@5": 1.0
         },
         "compare": {
-          "latency_ms": 101.42464583350375,
-          "mrr": 0.9,
-          "negation_accuracy": null,
-          "no_match_correctness": 0.7837662337662338,
-          "precision@5": 0.36,
-          "recall@10": 1.0,
-          "recall@5": 0.9
-        },
-        "negation": {
-          "latency_ms": 300.3101213635091,
-          "mrr": 0.49537037037037035,
-          "negation_accuracy": 0.7333333333333334,
-          "no_match_correctness": 0.7786001325778213,
-          "precision@5": 0.17777777777777778,
-          "recall@10": 0.75,
-          "recall@5": 0.5
-        },
-        "multiturn": {
-          "latency_ms": 279.68642479991104,
-          "mrr": 0.8666666666666666,
+          "latency_ms": 1247.996886333567,
+          "mrr": 0.9166666666666666,
           "negation_accuracy": null,
           "no_match_correctness": null,
-          "precision@5": 0.28,
-          "recall@10": 0.9,
-          "recall@5": 0.9
+          "precision@5": 0.39999999999999997,
+          "recall@10": 1.0,
+          "recall@5": 0.9166666666666666
+        },
+        "negation": {
+          "latency_ms": 3962.2682614545656,
+          "mrr": 0.5433333333333333,
+          "negation_accuracy": 0.7799999999999999,
+          "no_match_correctness": 0.8983571428571429,
+          "precision@5": 0.21999999999999997,
+          "recall@10": 0.7208333333333333,
+          "recall@5": 0.5166666666666666
+        },
+        "multiturn": {
+          "latency_ms": 3741.894873601268,
+          "mrr": 1.0,
+          "negation_accuracy": null,
+          "no_match_correctness": null,
+          "precision@5": 0.27999999999999997,
+          "recall@10": 1.0,
+          "recall@5": 1.0
         },
         "vague": {
-          "latency_ms": 292.6510000000538,
+          "latency_ms": 3876.0292526664366,
           "mrr": null,
           "negation_accuracy": null,
           "no_match_correctness": 0.973717341223062,
@@ -4277,16 +4409,16 @@
           "recall@5": null
         },
         "rewrite-target": {
-          "latency_ms": 283.5204582499955,
-          "mrr": 0.2,
+          "latency_ms": 3789.105636999011,
+          "mrr": 0.25,
           "negation_accuracy": null,
           "no_match_correctness": 0.973717341223062,
-          "precision@5": 0.2,
-          "recall@10": 0.5,
-          "recall@5": 0.5
+          "precision@5": 0.4,
+          "recall@10": 1.0,
+          "recall@5": 1.0
         },
         "sku": {
-          "latency_ms": 253.27691700022115,
+          "latency_ms": 3437.3158300004434,
           "mrr": 0.3333333333333333,
           "negation_accuracy": null,
           "no_match_correctness": null,
@@ -4295,7 +4427,7 @@
           "recall@5": 1.0
         },
         "compose": {
-          "latency_ms": 289.22262499963836,
+          "latency_ms": 3767.4210510012927,
           "mrr": 1.0,
           "negation_accuracy": null,
           "no_match_correctness": null,
@@ -4304,20 +4436,19 @@
           "recall@5": 1.0
         },
         "brand-origin": {
-          "latency_ms": 306.23334733324253,
+          "latency_ms": 4256.630894999641,
           "mrr": 0.3888888888888889,
-          "negation_accuracy": 0.7333333333333334,
+          "negation_accuracy": 0.8000000000000002,
           "no_match_correctness": null,
-          "precision@5": 0.06666666666666667,
+          "precision@5": 0.13333333333333333,
           "recall@10": 0.5,
-          "recall@5": 0.16666666666666666
+          "recall@5": 0.3333333333333333
         }
       },
       "per_case": [
         {
           "query": "推荐一款适合油皮的洗面奶",
           "expected": [
-            "p_beauty_004",
             "p_beauty_011"
           ],
           "forbidden": [],
@@ -4333,20 +4464,20 @@
             "p_beauty_013",
             "p_beauty_006",
             "p_1_intl_05",
-            "p_1_intl_04",
             "p_beauty_017",
+            "p_beauty_005",
             "p_beauty_018"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 2190.897290999601
+            "latency_ms": 12188.172342001053
           },
-          "latency_ms": 2190.897290999601,
+          "latency_ms": 12188.172342001053,
           "error": null
         },
         {
@@ -4361,6 +4492,7 @@
           ],
           "retrieved": [
             "p_beauty_011",
+            "p_beauty_006",
             "p_beauty_007",
             "p_beauty_024",
             "p_beauty_001",
@@ -4368,8 +4500,7 @@
             "p_beauty_009",
             "p_beauty_018",
             "p_1_real_03",
-            "p_beauty_012",
-            "p_1_intl_05"
+            "p_beauty_012"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -4378,9 +4509,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 367.860959000609
+            "latency_ms": 4300.457286000892
           },
-          "latency_ms": 367.860959000609,
+          "latency_ms": 4300.457286000892,
           "error": null
         },
         {
@@ -4411,9 +4542,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.7772706959213892,
-            "latency_ms": 270.7725840000421
+            "latency_ms": 3398.3469159938977
           },
-          "latency_ms": 270.7725840000421,
+          "latency_ms": 3398.3469159938977,
           "error": null
         },
         {
@@ -4427,10 +4558,10 @@
             "filter"
           ],
           "retrieved": [
-            "p_2_intl_05",
             "p_digital_007",
             "p_digital_016",
             "p_digital_011",
+            "p_digital_005",
             "p_digital_009",
             "p_digital_015",
             "p_digital_002",
@@ -4445,9 +4576,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 241.94829200041568
+            "latency_ms": 3213.373605001834
           },
-          "latency_ms": 241.94829200041568,
+          "latency_ms": 3213.373605001834,
           "error": null
         },
         {
@@ -4479,9 +4610,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 258.39504200030206
+            "latency_ms": 3271.8783279997297
           },
-          "latency_ms": 258.39504200030206,
+          "latency_ms": 3271.8783279997297,
           "error": null
         },
         {
@@ -4503,8 +4634,8 @@
             "p_digital_024",
             "p_digital_001",
             "p_digital_003",
-            "p_3_intl_02",
-            "p_clothes_007"
+            "p_digital_018",
+            "p_2_intl_02"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -4513,9 +4644,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 6.905125000230328
+            "latency_ms": 51.72985499666538
           },
-          "latency_ms": 6.905125000230328,
+          "latency_ms": 51.72985499666538,
           "error": null
         },
         {
@@ -4547,9 +4678,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 23.959500000273692
+            "latency_ms": 122.52068200177746
           },
-          "latency_ms": 23.959500000273692,
+          "latency_ms": 122.52068200177746,
           "error": null
         },
         {
@@ -4581,9 +4712,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 7.32125000013184
+            "latency_ms": 73.6040160045377
           },
-          "latency_ms": 7.32125000013184,
+          "latency_ms": 73.6040160045377,
           "error": null
         },
         {
@@ -4615,18 +4746,20 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 373.65425000007235
+            "latency_ms": 4503.490984003292
           },
-          "latency_ms": 373.65425000007235,
+          "latency_ms": 4503.490984003292,
           "error": null
         },
         {
           "query": "请推荐一款轻量跑鞋",
-          "expected": [],
+          "expected": [
+            "p_clothes_010",
+            "p_8_real_02"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_clothes_010",
@@ -4641,15 +4774,15 @@
             "p_3_intl_02"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.4,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7992744324640877,
-            "latency_ms": 265.034416999697
+            "no_match_correctness": null,
+            "latency_ms": 3261.6247110054246
           },
-          "latency_ms": 265.034416999697,
+          "latency_ms": 3261.6247110054246,
           "error": null
         },
         {
@@ -4672,7 +4805,7 @@
             "p_beauty_020",
             "p_1_real_01",
             "p_beauty_009",
-            "p_1_intl_04"
+            "p_beauty_003"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -4681,9 +4814,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 33.20900000016991
+            "latency_ms": 94.46210699388757
           },
-          "latency_ms": 33.20900000016991,
+          "latency_ms": 94.46210699388757,
           "error": null
         },
         {
@@ -4715,18 +4848,21 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 267.2829580005782
+            "latency_ms": 3398.8828610017663
           },
-          "latency_ms": 267.2829580005782,
+          "latency_ms": 3398.8828610017663,
           "error": null
         },
         {
           "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
-          "expected": [],
+          "expected": [
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_02"
+          ],
           "forbidden": [],
           "tags": [
-            "compare",
-            "no-match"
+            "compare"
           ],
           "retrieved": [
             "p_digital_007",
@@ -4737,19 +4873,19 @@
             "p_digital_005",
             "p_digital_021",
             "p_digital_024",
-            "p_digital_025",
-            "p_digital_002"
+            "p_digital_004",
+            "p_digital_025"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7837662337662338,
-            "latency_ms": 15.512124999986554
+            "no_match_correctness": null,
+            "latency_ms": 166.08506900229258
           },
-          "latency_ms": 15.512124999986554,
+          "latency_ms": 166.08506900229258,
           "error": null
         },
         {
@@ -4782,9 +4918,9 @@
             "precision@5": 0.2,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 415.54741700019804
+            "latency_ms": 5156.192340000416
           },
-          "latency_ms": 415.54741700019804,
+          "latency_ms": 5156.192340000416,
           "error": null
         },
         {
@@ -4813,18 +4949,25 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.8983571428571429,
-            "latency_ms": 294.5454169994264
+            "latency_ms": 3894.0849080026965
           },
-          "latency_ms": 294.5454169994264,
+          "latency_ms": 3894.0849080026965,
           "error": null
         },
         {
           "query": "不要 Apple 的笔记本电脑推荐",
-          "expected": [],
-          "forbidden": [],
+          "expected": [
+            "p_digital_004",
+            "p_digital_022",
+            "p_digital_023"
+          ],
+          "forbidden": [
+            "p_digital_006",
+            "p_digital_012",
+            "p_digital_020"
+          ],
           "tags": [
-            "negation",
-            "no-match"
+            "negation"
           ],
           "retrieved": [
             "p_digital_025",
@@ -4832,22 +4975,22 @@
             "p_digital_020",
             "p_digital_013",
             "p_digital_024",
+            "p_digital_019",
             "p_digital_005",
+            "p_digital_011",
             "p_digital_012",
-            "p_digital_004",
-            "p_digital_003",
-            "p_digital_023"
+            "p_digital_004"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
-            "negation_accuracy": null,
-            "no_match_correctness": 0.6588431222984998,
-            "latency_ms": 259.66020799933176
+            "recall@5": 0.0,
+            "recall@10": 0.3333333333333333,
+            "mrr": 0.1,
+            "precision@5": 0.0,
+            "negation_accuracy": 0.6,
+            "no_match_correctness": null,
+            "latency_ms": 3175.4816790053155
           },
-          "latency_ms": 259.66020799933176,
+          "latency_ms": 3175.4816790053155,
           "error": null
         },
         {
@@ -4866,10 +5009,10 @@
             "p_beauty_014",
             "p_beauty_006",
             "p_beauty_017",
-            "p_beauty_008",
             "p_beauty_023",
             "p_beauty_020",
-            "p_beauty_002"
+            "p_beauty_002",
+            "p_food_017"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -4878,15 +5021,15 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 315.4194169992479
+            "latency_ms": 3967.3848989987164
           },
-          "latency_ms": 315.4194169992479,
+          "latency_ms": 3967.3848989987164,
           "error": null
         },
         {
           "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
           "expected": [
-            "p_beauty_004"
+            "p_beauty_002"
           ],
           "forbidden": [],
           "tags": [
@@ -4907,13 +5050,13 @@
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
-            "mrr": 0.3333333333333333,
+            "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 277.67129099993326
+            "latency_ms": 3928.2062710044556
           },
-          "latency_ms": 277.67129099993326,
+          "latency_ms": 3928.2062710044556,
           "error": null
         },
         {
@@ -4943,9 +5086,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9607655502392345,
-            "latency_ms": 267.74966700031655
+            "latency_ms": 3668.0272279991186
           },
-          "latency_ms": 267.74966700031655,
+          "latency_ms": 3668.0272279991186,
           "error": null
         },
         {
@@ -4975,9 +5118,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 1.0,
-            "latency_ms": 277.81837499969697
+            "latency_ms": 3438.6129310005344
           },
-          "latency_ms": 277.81837499969697,
+          "latency_ms": 3438.6129310005344,
           "error": null
         },
         {
@@ -5007,9 +5150,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9603864734299516,
-            "latency_ms": 332.3849580001479
+            "latency_ms": 4521.447598999657
           },
-          "latency_ms": 332.3849580001479,
+          "latency_ms": 4521.447598999657,
           "error": null
         },
         {
@@ -5041,19 +5184,18 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 253.27691700022115
+            "latency_ms": 3437.3158300004434
           },
-          "latency_ms": 253.27691700022115,
+          "latency_ms": 3437.3158300004434,
           "error": null
         },
         {
           "query": "薇诺娜舒敏控油洁面乳",
-          "expected": [
-            "p_beauty_011"
-          ],
+          "expected": [],
           "forbidden": [],
           "tags": [
-            "spec"
+            "spec",
+            "no-match"
           ],
           "retrieved": [
             "p_1_real_03",
@@ -5063,26 +5205,26 @@
             "p_beauty_011",
             "p_beauty_023",
             "p_beauty_014",
-            "p_beauty_017",
             "p_beauty_020",
+            "p_beauty_017",
             "p_beauty_012"
           ],
           "metrics": {
-            "recall@5": 1.0,
-            "recall@10": 1.0,
-            "mrr": 0.2,
-            "precision@5": 0.2,
+            "recall@5": null,
+            "recall@10": null,
+            "mrr": null,
+            "precision@5": null,
             "negation_accuracy": null,
-            "no_match_correctness": null,
-            "latency_ms": 28.210999999828346
+            "no_match_correctness": 0.6346231646081721,
+            "latency_ms": 126.05753899697447
           },
-          "latency_ms": 28.210999999828346,
+          "latency_ms": 126.05753899697447,
           "error": null
         },
         {
           "query": "理肤泉特护清盈防晒乳 SPF50",
           "expected": [
-            "p_beauty_006"
+            "p_beauty_023"
           ],
           "forbidden": [],
           "tags": [
@@ -5090,9 +5232,9 @@
           ],
           "retrieved": [
             "p_beauty_023",
+            "p_1_intl_05",
             "p_beauty_010",
             "p_beauty_012",
-            "p_1_intl_05",
             "p_beauty_006",
             "p_beauty_007",
             "p_1_real_03",
@@ -5103,13 +5245,13 @@
           "metrics": {
             "recall@5": 1.0,
             "recall@10": 1.0,
-            "mrr": 0.2,
+            "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 14.603416999307228
+            "latency_ms": 120.92081100126961
           },
-          "latency_ms": 14.603416999307228,
+          "latency_ms": 120.92081100126961,
           "error": null
         },
         {
@@ -5139,18 +5281,21 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9376630036630037,
-            "latency_ms": 269.4424169994818
+            "latency_ms": 3630.323735997081
           },
-          "latency_ms": 269.4424169994818,
+          "latency_ms": 3630.323735997081,
           "error": null
         },
         {
           "query": "保湿面霜推荐",
-          "expected": [],
+          "expected": [
+            "p_beauty_007",
+            "p_beauty_008",
+            "p_1_real_03"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_beauty_007",
@@ -5165,22 +5310,25 @@
             "p_beauty_001"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.6,
             "negation_accuracy": null,
-            "no_match_correctness": 0.6384896584896584,
-            "latency_ms": 335.6276249996881
+            "no_match_correctness": null,
+            "latency_ms": 4579.485164998914
           },
-          "latency_ms": 335.6276249996881,
+          "latency_ms": 4579.485164998914,
           "error": null
         },
         {
           "query": "无线耳机降噪",
           "expected": [
-            "p_digital_004",
-            "p_digital_005"
+            "p_digital_007",
+            "p_digital_018",
+            "p_2_intl_01",
+            "p_2_intl_02",
+            "p_2_intl_04"
           ],
           "forbidden": [],
           "tags": [
@@ -5196,27 +5344,28 @@
             "p_digital_025",
             "p_digital_011",
             "p_digital_015",
-            "p_digital_013"
+            "p_digital_009"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.0,
-            "mrr": 0.0,
-            "precision@5": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 1.0,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 281.1420829993949
+            "latency_ms": 4726.893649996782
           },
-          "latency_ms": 281.1420829993949,
+          "latency_ms": 4726.893649996782,
           "error": null
         },
         {
           "query": "Apple iPad Air 平板",
-          "expected": [],
+          "expected": [
+            "p_digital_025"
+          ],
           "forbidden": [],
           "tags": [
-            "spec",
-            "no-match"
+            "spec"
           ],
           "retrieved": [
             "p_digital_025",
@@ -5231,22 +5380,22 @@
             "p_digital_011"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
             "negation_accuracy": null,
-            "no_match_correctness": 0.74,
-            "latency_ms": 8.234417000494432
+            "no_match_correctness": null,
+            "latency_ms": 49.682008000672795
           },
-          "latency_ms": 8.234417000494432,
+          "latency_ms": 49.682008000672795,
           "error": null
         },
         {
           "query": "国产护肤平价好物",
           "expected": [
             "p_beauty_009",
-            "p_beauty_011"
+            "p_1_real_02"
           ],
           "forbidden": [],
           "tags": [
@@ -5266,24 +5415,25 @@
             "p_1_real_05"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
-            "mrr": 0.2,
-            "precision@5": 0.2,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.25,
+            "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 256.1288329998206
+            "latency_ms": 3528.334789996734
           },
-          "latency_ms": 256.1288329998206,
+          "latency_ms": 3528.334789996734,
           "error": null
         },
         {
           "query": "新手适合的相机",
-          "expected": [],
+          "expected": [
+            "p_2_intl_05"
+          ],
           "forbidden": [],
           "tags": [
-            "intent",
-            "no-match"
+            "intent"
           ],
           "retrieved": [
             "p_2_intl_05",
@@ -5298,15 +5448,15 @@
             "p_digital_003"
           ],
           "metrics": {
-            "recall@5": null,
-            "recall@10": null,
-            "mrr": null,
-            "precision@5": null,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 1.0,
+            "precision@5": 0.2,
             "negation_accuracy": null,
-            "no_match_correctness": 0.7859074259074259,
-            "latency_ms": 251.84375000026193
+            "no_match_correctness": null,
+            "latency_ms": 3390.4995470002177
           },
-          "latency_ms": 251.84375000026193,
+          "latency_ms": 3390.4995470002177,
           "error": null
         },
         {
@@ -5324,8 +5474,8 @@
             "p_beauty_024",
             "p_beauty_021",
             "p_beauty_005",
+            "p_beauty_019",
             "p_beauty_004",
-            "p_1_real_04",
             "p_beauty_001",
             "p_beauty_002",
             "p_1_real_01",
@@ -5338,17 +5488,17 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 289.22262499963836
+            "latency_ms": 3767.4210510012927
           },
-          "latency_ms": 289.22262499963836,
+          "latency_ms": 3767.4210510012927,
           "error": null
         },
         {
           "query": "推荐一款入门跑步鞋",
           "expected": [
             "p_clothes_007",
-            "p_clothes_010",
-            "p_clothes_009"
+            "p_clothes_009",
+            "p_8_real_02"
           ],
           "forbidden": [],
           "tags": [
@@ -5364,18 +5514,18 @@
             "p_8_real_03",
             "p_clothes_009",
             "p_3_intl_02",
-            "p_clothes_007"
+            "p_3_intl_05"
           ],
           "metrics": {
             "recall@5": 0.3333333333333333,
-            "recall@10": 1.0,
-            "mrr": 1.0,
+            "recall@10": 0.6666666666666666,
+            "mrr": 0.5,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 252.2719580001649
+            "latency_ms": 3430.8774460005225
           },
-          "latency_ms": 252.2719580001649,
+          "latency_ms": 3430.8774460005225,
           "error": null
         },
         {
@@ -5407,9 +5557,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 245.55775000044378
+            "latency_ms": 3871.330535999732
           },
-          "latency_ms": 245.55775000044378,
+          "latency_ms": 3871.330535999732,
           "error": null
         },
         {
@@ -5441,9 +5591,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 240.31333299990365
+            "latency_ms": 3488.464556001418
           },
-          "latency_ms": 240.31333299990365,
+          "latency_ms": 3488.464556001418,
           "error": null
         },
         {
@@ -5467,9 +5617,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 299.11654100033047
+            "latency_ms": 3471.9122759997845
           },
-          "latency_ms": 299.11654100033047,
+          "latency_ms": 3471.9122759997845,
           "error": null
         },
         {
@@ -5501,9 +5651,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 279.454500000611
+            "latency_ms": 3230.0253520006663
           },
-          "latency_ms": 279.454500000611,
+          "latency_ms": 3230.0253520006663,
           "error": null
         },
         {
@@ -5520,25 +5670,25 @@
           "retrieved": [
             "p_food_004",
             "p_food_005",
-            "p_food_021",
             "p_food_023",
             "p_food_022",
             "p_food_002",
-            "p_food_016",
+            "p_food_020",
+            "p_food_014",
             "p_food_025",
             "p_food_006",
             "p_food_001"
           ],
           "metrics": {
-            "recall@5": 0.6666666666666666,
+            "recall@5": 1.0,
             "recall@10": 1.0,
-            "mrr": 0.25,
-            "precision@5": 0.4,
+            "mrr": 0.3333333333333333,
+            "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 237.6913339994644
+            "latency_ms": 3809.756454997114
           },
-          "latency_ms": 237.6913339994644,
+          "latency_ms": 3809.756454997114,
           "error": null
         },
         {
@@ -5563,9 +5713,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 251.79441699947347
+            "latency_ms": 3579.5074790003127
           },
-          "latency_ms": 251.79441699947347,
+          "latency_ms": 3579.5074790003127,
           "error": null
         },
         {
@@ -5581,25 +5731,25 @@
           ],
           "retrieved": [
             "p_food_004",
+            "p_food_021",
             "p_food_024",
             "p_food_008",
             "p_food_010",
-            "p_food_017",
             "p_food_020",
             "p_food_009",
             "p_4_intl_02",
             "p_4_intl_01"
           ],
           "metrics": {
-            "recall@5": 0.3333333333333333,
-            "recall@10": 0.6666666666666666,
-            "mrr": 0.25,
-            "precision@5": 0.2,
+            "recall@5": 0.6666666666666666,
+            "recall@10": 1.0,
+            "mrr": 0.5,
+            "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 276.8162920001487
+            "latency_ms": 3774.1857660003006
           },
-          "latency_ms": 276.8162920001487,
+          "latency_ms": 3774.1857660003006,
           "error": null
         },
         {
@@ -5607,15 +5757,16 @@
           "expected": [
             "p_digital_002",
             "p_digital_008",
+            "p_digital_009",
+            "p_digital_010",
             "p_digital_014",
+            "p_digital_015",
+            "p_digital_016",
             "p_digital_017"
           ],
           "forbidden": [
             "p_digital_001",
-            "p_digital_003",
-            "p_digital_018",
-            "p_digital_024",
-            "p_digital_025"
+            "p_digital_003"
           ],
           "tags": [
             "negation"
@@ -5627,21 +5778,21 @@
             "p_digital_015",
             "p_2_intl_02",
             "p_digital_003",
+            "p_digital_005",
             "p_digital_025",
-            "p_digital_002",
-            "p_digital_004",
-            "p_digital_006"
+            "p_digital_011",
+            "p_digital_002"
           ],
           "metrics": {
-            "recall@5": 0.0,
-            "recall@10": 0.25,
-            "mrr": 0.125,
-            "precision@5": 0.0,
-            "negation_accuracy": 0.8,
+            "recall@5": 0.25,
+            "recall@10": 0.375,
+            "mrr": 1.0,
+            "precision@5": 0.4,
+            "negation_accuracy": 1.0,
             "no_match_correctness": null,
-            "latency_ms": 240.71570900014194
+            "latency_ms": 3211.588236998068
           },
-          "latency_ms": 240.71570900014194,
+          "latency_ms": 3211.588236998068,
           "error": null
         },
         {
@@ -5649,11 +5800,11 @@
           "expected": [
             "p_clothes_008",
             "p_clothes_009",
-            "p_clothes_010"
+            "p_clothes_010",
+            "p_8_real_02"
           ],
           "forbidden": [
-            "p_clothes_007",
-            "p_3_intl_02"
+            "p_clothes_007"
           ],
           "tags": [
             "negation"
@@ -5671,15 +5822,15 @@
             "p_clothes_019"
           ],
           "metrics": {
-            "recall@5": 0.3333333333333333,
+            "recall@5": 0.25,
             "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
-            "negation_accuracy": 0.6,
+            "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 241.79150000054506
+            "latency_ms": 3485.184206001577
           },
-          "latency_ms": 241.79150000054506,
+          "latency_ms": 3485.184206001577,
           "error": null
         },
         {
@@ -5700,7 +5851,7 @@
             "p_2_intl_02",
             "p_digital_018",
             "p_digital_020",
-            "p_digital_015",
+            "p_digital_023",
             "p_digital_025",
             "p_digital_002",
             "p_digital_021"
@@ -5712,9 +5863,9 @@
             "precision@5": 0.2,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 304.49816700001975
+            "latency_ms": 3953.2722989970353
           },
-          "latency_ms": 304.49816700001975,
+          "latency_ms": 3953.2722989970353,
           "error": null
         },
         {
@@ -5722,11 +5873,10 @@
           "expected": [
             "p_beauty_001",
             "p_beauty_009",
-            "p_1_real_01"
+            "p_beauty_024"
           ],
           "forbidden": [
-            "p_beauty_002",
-            "p_beauty_019"
+            "p_beauty_002"
           ],
           "tags": [
             "negation"
@@ -5750,9 +5900,9 @@
             "precision@5": 0.4,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 373.165957999845
+            "latency_ms": 4457.462323996879
           },
-          "latency_ms": 373.165957999845,
+          "latency_ms": 4457.462323996879,
           "error": null
         },
         {
@@ -5777,8 +5927,8 @@
             "p_food_025",
             "p_5_real_05",
             "p_food_006",
-            "p_food_016",
-            "p_4_intl_01"
+            "p_food_014",
+            "p_food_016"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -5787,16 +5937,15 @@
             "precision@5": 0.4,
             "negation_accuracy": 0.6,
             "no_match_correctness": null,
-            "latency_ms": 254.78691699936462
+            "latency_ms": 3481.7921979993116
           },
-          "latency_ms": 254.78691699936462,
+          "latency_ms": 3481.7921979993116,
           "error": null
         },
         {
           "query": "轻量碳板的",
           "expected": [
-            "p_clothes_010",
-            "p_clothes_007"
+            "p_clothes_010"
           ],
           "forbidden": [],
           "tags": [
@@ -5815,15 +5964,15 @@
             "p_clothes_008"
           ],
           "metrics": {
-            "recall@5": 0.5,
-            "recall@10": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
             "mrr": 1.0,
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 264.9805829996694
+            "latency_ms": 3368.5948540005484
           },
-          "latency_ms": 264.9805829996694,
+          "latency_ms": 3368.5948540005484,
           "error": null
         },
         {
@@ -5855,9 +6004,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 305.30083300072874
+            "latency_ms": 3901.0949060029816
           },
-          "latency_ms": 305.30083300072874,
+          "latency_ms": 3901.0949060029816,
           "error": null
         },
         {
@@ -5873,11 +6022,11 @@
           "retrieved": [
             "p_digital_010",
             "p_digital_014",
+            "p_digital_013",
             "p_digital_021",
             "p_digital_002",
             "p_digital_023",
             "p_clothes_025",
-            "p_digital_025",
             "p_digital_009",
             "p_digital_003",
             "p_digital_004"
@@ -5889,9 +6038,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 235.05999999997584
+            "latency_ms": 3544.1934379996383
           },
-          "latency_ms": 235.05999999997584,
+          "latency_ms": 3544.1934379996383,
           "error": null
         },
         {
@@ -5923,9 +6072,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 29.026709000390838
+            "latency_ms": 129.4770310050808
           },
-          "latency_ms": 29.026709000390838,
+          "latency_ms": 129.4770310050808,
           "error": null
         },
         {
@@ -5957,9 +6106,9 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 252.57954100015922
+            "latency_ms": 3642.0190179997007
           },
-          "latency_ms": 252.57954100015922,
+          "latency_ms": 3642.0190179997007,
           "error": null
         },
         {
@@ -5991,9 +6140,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 10.937541999737732
+            "latency_ms": 57.05523199867457
           },
-          "latency_ms": 10.937541999737732,
+          "latency_ms": 57.05523199867457,
           "error": null
         },
         {
@@ -6006,14 +6155,14 @@
           "retrieved": [
             "p_6_real_01",
             "p_digital_007",
-            "p_digital_023",
             "p_digital_021",
             "p_digital_016",
             "p_digital_022",
             "p_digital_020",
             "p_digital_006",
             "p_digital_025",
-            "p_digital_013"
+            "p_digital_013",
+            "p_digital_018"
           ],
           "metrics": {
             "recall@5": null,
@@ -6021,10 +6170,10 @@
             "mrr": null,
             "precision@5": null,
             "negation_accuracy": null,
-            "no_match_correctness": 0.9023310023310023,
-            "latency_ms": 239.12720899988926
+            "no_match_correctness": 0.9177156177156177,
+            "latency_ms": 3624.4094140056404
           },
-          "latency_ms": 239.12720899988926,
+          "latency_ms": 3624.4094140056404,
           "error": null
         },
         {
@@ -6053,9 +6202,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9661375661375662,
-            "latency_ms": 254.52058399969246
+            "latency_ms": 3374.5953449979424
           },
-          "latency_ms": 254.52058399969246,
+          "latency_ms": 3374.5953449979424,
           "error": null
         },
         {
@@ -6067,6 +6216,7 @@
           ],
           "retrieved": [
             "p_digital_016",
+            "p_6_real_01",
             "p_digital_022",
             "p_8_real_01",
             "p_digital_025",
@@ -6074,8 +6224,7 @@
             "p_digital_023",
             "p_digital_020",
             "p_digital_024",
-            "p_digital_004",
-            "p_7_real_01"
+            "p_digital_004"
           ],
           "metrics": {
             "recall@5": null,
@@ -6084,9 +6233,9 @@
             "precision@5": null,
             "negation_accuracy": null,
             "no_match_correctness": 0.9636363636363636,
-            "latency_ms": 242.6091670004098
+            "latency_ms": 3365.9648159955395
           },
-          "latency_ms": 242.6091670004098,
+          "latency_ms": 3365.9648159955395,
           "error": null
         },
         {
@@ -6119,9 +6268,9 @@
             "precision@5": 0.6,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 245.31541600026685
+            "latency_ms": 3639.178446996084
           },
-          "latency_ms": 245.31541600026685,
+          "latency_ms": 3639.178446996084,
           "error": null
         },
         {
@@ -6139,11 +6288,11 @@
             "p_5_real_01",
             "p_food_017",
             "p_food_008",
+            "p_food_023",
             "p_food_010",
+            "p_food_004",
             "p_food_006",
-            "p_food_002",
-            "p_food_001",
-            "p_food_019"
+            "p_food_002"
           ],
           "metrics": {
             "recall@5": 1.0,
@@ -6152,9 +6301,9 @@
             "precision@5": 0.2,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 176.69999999998254
+            "latency_ms": 3802.225195002393
           },
-          "latency_ms": 176.69999999998254,
+          "latency_ms": 3802.225195002393,
           "error": null
         },
         {
@@ -6185,20 +6334,19 @@
             "precision@5": 0.4,
             "negation_accuracy": null,
             "no_match_correctness": null,
-            "latency_ms": 260.1414590008062
+            "latency_ms": 3582.7305290004006
           },
-          "latency_ms": 260.1414590008062,
+          "latency_ms": 3582.7305290004006,
           "error": null
         },
         {
           "query": "推荐一款防晒霜，不要日系品牌",
           "expected": [
             "p_beauty_006",
-            "p_1_intl_05"
+            "p_beauty_023"
           ],
           "forbidden": [
-            "p_beauty_010",
-            "p_beauty_011"
+            "p_beauty_010"
           ],
           "tags": [
             "negation",
@@ -6214,18 +6362,18 @@
             "p_clothes_024",
             "p_beauty_020",
             "p_beauty_007",
-            "p_beauty_018"
+            "p_beauty_009"
           ],
           "metrics": {
-            "recall@5": 0.5,
+            "recall@5": 1.0,
             "recall@10": 1.0,
             "mrr": 1.0,
-            "precision@5": 0.2,
+            "precision@5": 0.4,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 335.9157499999128
+            "latency_ms": 4803.120149001188
           },
-          "latency_ms": 335.9157499999128,
+          "latency_ms": 4803.120149001188,
           "error": null
         },
         {
@@ -6260,9 +6408,9 @@
             "precision@5": 0.0,
             "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 266.794832999949
+            "latency_ms": 3571.447205998993
           },
-          "latency_ms": 266.794832999949,
+          "latency_ms": 3571.447205998993,
           "error": null
         },
         {
@@ -6272,8 +6420,7 @@
             "p_1_intl_01"
           ],
           "forbidden": [
-            "p_1_intl_05",
-            "p_beauty_006"
+            "p_1_intl_05"
           ],
           "tags": [
             "negation",
@@ -6289,18 +6436,18 @@
             "p_beauty_001",
             "p_beauty_012",
             "p_beauty_009",
-            "p_beauty_003"
+            "p_1_real_01"
           ],
           "metrics": {
             "recall@5": 0.0,
             "recall@10": 0.5,
             "mrr": 0.16666666666666666,
             "precision@5": 0.0,
-            "negation_accuracy": 0.6,
+            "negation_accuracy": 0.8,
             "no_match_correctness": null,
-            "latency_ms": 315.98945899986575
+            "latency_ms": 4395.325329998741
           },
-          "latency_ms": 315.98945899986575,
+          "latency_ms": 4395.325329998741,
           "error": null
         }
       ],

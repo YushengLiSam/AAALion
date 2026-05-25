@@ -14,7 +14,7 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 
 <br clear="all"/>
 
-## Live status (2026-05-25, Round 7 — Sam's dashboard merged + brand-origin fix)
+## Live status (2026-05-25, Round 7 + golden audit)
 
 **Headline: 90.0 / 100, 6 demo scenarios re-recorded under R7 quality, "不要日系" → 安热沙 leak closed.**
 
@@ -30,7 +30,8 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | R5 (2026-05-24 AM) | Hybrid+rerank + cart+checkout + grader self-assessment | 0.711 | 0.695 |
 | R6 (2026-05-24 PM) | 45 real products + provenance UI + funny loading + CLAUDE.md | 0.684 | 0.647 |
 | R6.5 (2026-05-25 AM) | Tujie: synonyms + contextual + price intent merged | 0.816 (31-case) | 0.705 |
-| **R7 (2026-05-25 PM, now)** | **Sam's eval dashboard merged + brand-origin negation fix + re-recorded demos** | **0.723 (56+3 case)** | **0.673** |
+| R7 (2026-05-25 PM) | Sam's eval dashboard merged + brand-origin negation fix + re-recorded demos | 0.746 (59-case, pre-audit) | 0.674 |
+| **R7 + golden audit (2026-05-25, Tujie)** | **Correct wrong labels against catalog; regenerate dashboard** | **0.830 (59-case / 49 positive)** | **0.771** |
 
 ### Capability matrix
 
@@ -50,7 +51,7 @@ Latest demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/) (basic / filter
 | **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
 | **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
 | **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
-| **Eval dashboard (56-case golden, per-scenario, HTML)** | ✅ merged R7 | Sam | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
+| **Eval dashboard (59-case audited golden, per-scenario, HTML)** | ✅ refreshed R7 | Sam + Tujie | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
 | Physical iPhone 13 Pro deploy | ✅ | Shufeng | weekly `aaalion resign` |
 
 > 📋 **R7 Tier 1 shipped** (Sam-merge / brand-origin / re-recorded demos / doc refresh). Tier 2-3 nice-to-haves continuing on `shufeng`: latency cut, TTS auto-read, stress test, defense slide-deck prompt. See [`docs/PROPOSAL_2026-05-25.md`](docs/PROPOSAL_2026-05-25.md).
@@ -101,7 +102,7 @@ python -m rag.eval.report            # HTML dashboard → docs/eval_report.html
 
 Backend URL is hardcoded in `client/AAALionApp/AAALionApp/Config.swift` (`defaultBackendURL`). **You can also change it at runtime via the in-app Settings (gear icon)** — no rebuild needed for LAN IP changes.
 
-The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for current numbers and methodology.
+The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. The 2026-05-25 audit corrected 19 mismatched or incomplete golden labels, so its post-audit result is the new baseline rather than a pure algorithm improvement claim. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for current numbers and methodology.
 
 For iPhone device deploy, see [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md). For the A100 CLIP image index, see [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md).
 

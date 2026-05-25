@@ -29,16 +29,20 @@ booted screenshot`.
 | Synonym expansion ("无线耳机" → "蓝牙耳机/TWS/降噪耳机") | unchanged from R6.5 | unchanged | Tujie |
 | Per-scenario eval dashboard | not in repo | merged on `main` ([`docs/eval_report.html`](../eval_report.html)) | Sam |
 
-## Headline numbers (Round 7, hybrid+rerank on Sam's 56+3 case set)
+## Headline numbers (Round 7, hybrid+rerank on audited 59-case set)
 
 | Metric | Value | Note |
 |---|---|---|
-| recall@5 | 0.723 | -0.06 vs Sam's 0.780 baseline (cost of 3 added brand-origin cases with tight expected sets) |
-| recall@10 | 0.862 | unchanged |
-| MRR | 0.673 | -0.03 |
-| 反选准确率 | **0.733** | preserved across all 11 negation cases; new brand-origin cases verified live |
-| no-match correctness | 0.855 | unchanged |
-| median latency | 305 ms | benefit of `cache.py` LRU |
+| recall@5 | **0.830** | corrected 19 catalog-mismatched or incomplete golden labels |
+| recall@10 | **0.936** | post-audit baseline |
+| MRR | **0.771** | post-audit baseline |
+| 反选准确率 | **0.780** | 10 cases carry `forbidden_product_ids`; brand-origin demos verified live |
+| no-match correctness | **0.902** | 10 total empty-expected cases |
+| mean latency | 3,275 ms | Docker full evaluation run; live/cache latency is measured separately |
+
+The audit changes answer labels, not the retrieval pipeline. These values are
+the new baseline and are not presented as a pure algorithm delta from the
+pre-audit Round 7 report.
 
 See [`docs/EVAL_RESULTS.md`](../EVAL_RESULTS.md) (Sam) and
 [`docs/QUALITY_REPORT_2026-05-25.md`](../QUALITY_REPORT_2026-05-25.md)

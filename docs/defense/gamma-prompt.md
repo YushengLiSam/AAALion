@@ -63,16 +63,18 @@ Slide 4 — 真实商品 + 来源可验证 (real products + provenance)
 - 多币种购物车: 按币种分组合计 (¥1200 + $35)，不做虚假汇率换算
 
 Slide 5 — 检索质量量化 (measured retrieval quality)
-- 评测体系: 56 + 3 cases / 6 场景 / 3 策略 (dense, hybrid, hybrid+rerank)
+- 评测体系: 59 audited cases (49 positive / 10 no-match) / 6 场景 / 3 策略 (dense, hybrid, hybrid+rerank)
 - 看板: docs/eval_report.html (HTML 仪表盘，逐 case 可点)
 - 生产路径 (hybrid+rerank) 整体指标:
-  | recall@5 | recall@10 | MRR | 反选准确率 | 无匹配正确率 | 中位延迟 |
+  | recall@5 | recall@10 | MRR | 反选准确率 | 无匹配正确率 | 平均延迟 |
   |---|---|---|---|---|---|
-  | 0.746 | 0.884 | 0.674 | 0.733 | 0.855 | 266 ms |
+  | 0.830 | 0.936 | 0.771 | 0.780 | 0.902 | 3,275 ms |
+- 指标口径: 2026-05-25 按商品目录审计并修正 19 条 golden 标签后的新基线，
+  不将审计前后差值宣称为纯算法增益
 - 分场景亮点:
-  - multiturn: recall@5 = 0.900 (contextual_query 推动)
-  - compare: recall@5 = 0.900
-  - basic: recall@5 = 0.861
+  - multiturn: recall@5 = 1.000 (contextual_query + price intent 推动)
+  - compare: recall@5 = 0.917
+  - basic: recall@5 = 0.903
 
 Slide 6 — 现场 Demo (live demos)
 - 6 个场景全过一遍，每个场景对应 docs/demos/2026-05-25/<NN>.md 的详细日志:
@@ -97,7 +99,7 @@ Slide 8 — 答辩三问预演 (anticipated Q&A)
 - Q: 商品数据是真的吗？
   A: 45 个真实 (有真 URL 可验证，去原页一点即跳)，100 个 AI 演示 (UI 用「演示」徽章明示，不糊弄)
 - Q: 反幻觉 (no-hallucination) 怎么做到？
-  A: System prompt 严格约束「仅基于目录回答」；docs/demos/02 / 06 demo 中模型主动承认无匹配；评测中 no_match_correctness = 0.855
+  A: System prompt 严格约束「仅基于目录回答」；docs/demos/02 / 06 demo 中模型主动承认无匹配；审计后评测中 no_match_correctness = 0.902
 - Q: 检索做了什么独特工作？
   A: 混合检索 + 中文同义词扩展 + 多轮上下文继承 + 价格意图解析 + 品牌产地反选 — 同一套 pipeline 端到端测量
 

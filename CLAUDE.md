@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **Round 7 (2026-05-25)**. Author: Shufeng Chen (陈澍枫).
+Last touched: **Round 7 + golden audit (2026-05-25)**. Authors: Shufeng Chen (陈澍枫), Tujie Guan (管图杰).
 
 ---
 
@@ -77,7 +77,7 @@ Last touched: **Round 7 (2026-05-25)**. Author: Shufeng Chen (陈澍枫).
 | Cache | Shufeng | `server/app/services/cache.py` | wired into chat route |
 | RAG ingest | (Tujie, currently solo Shufeng) | `rag/ingest/chunk.py`, `embed_text.py`, `embed_image.py` | `rag/README.md` |
 | RAG retrieve | Shufeng | `rag/retrieve/query.py` (orchestrator) | hybrid `hybrid.py`, BM25 `bm25.py`, rewrite `rewrite.py`, negation `negation.py`, rerank `rerank.py` |
-| Eval | Shufeng | `rag/eval/run.py` + `rag/eval/golden.jsonl` (31 cases, 2 multi-turn) | report: recall@5=0.816, MRR=0.705 |
+| Eval | Shufeng + Tujie | `rag/eval/core.py` + `rag/eval/golden.jsonl` (59 cases, 49 positive, 10 no-match, 5 multi-turn) | audited report: recall@5=0.830, MRR=0.771 |
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
 
@@ -99,7 +99,11 @@ Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPOR
 - Tujie's synonym + contextual-multi-turn + price-intent landed in R6.5
   (`b317081`, `4c2fe51`) — drove recall@5 0.684 → 0.816 on 31-case.
 - Shufeng's brand-origin negation fix (`dc13f32`) closes the "不要日系" →
-  安热沙 leak. Negation accuracy holds at 0.733 across 11 negation cases.
+  安热沙 leak. On the audited set, negation accuracy is 0.780 across
+  10 cases carrying forbidden-product labels.
+- Tujie's golden audit aligns 19 mislabeled or incomplete cases with the
+  145-product catalog; corrected production baseline is recall@5 0.830,
+  MRR 0.771. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md).
 - Re-recorded demos: [`docs/demos/2026-05-25/`](docs/demos/2026-05-25/).
 
 ---
@@ -116,6 +120,7 @@ Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPOR
 | 6 | Real-product expansion (CN + Amazon), provenance UI, funny loading, inline cart, store deep links, this CLAUDE.md | [`docs/commits/20260524-013-round6-*`](docs/commits/) |
 | 6.5 | **Tujie**: synonyms + contextual multi-turn + price intent. recall@5 0.684 → 0.816 on 31-case. | merge commits |
 | 7 | **Sam**: 56-case per-scenario eval dashboard merged. **Shufeng**: brand-origin negation fix + re-recorded demos under `docs/demos/2026-05-25/`. | [`docs/commits/20260525-014-round7-*`](docs/commits/) |
+| 7.1 | **Tujie**: audit and repair 19 incorrect/incomplete golden annotations; regenerate 59-case report. | [`rag/eval/golden.jsonl`](rag/eval/golden.jsonl), [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
 
 Full archived plan from rounds 1-6: [`docs/PLAN_ARCHIVE.md`](docs/PLAN_ARCHIVE.md).
 

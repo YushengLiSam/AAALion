@@ -1,8 +1,8 @@
-# RAG 检索质量评测 — 当前结果
+# RAG 检索质量评测 - 当前结果
 
-> 评测脚本:`rag/eval/run.py`(CLI)+ `rag/eval/report.py`(HTML 看板)
-> 评测代码:`rag/eval/core.py`(可复用核心,所有指标定义在此)
-> Golden 集:`rag/eval/golden.jsonl` — 56 cases / 41 valid / 6 类场景 / 6 带 forbidden_product_ids
+> 评测脚本: `rag/eval/run.py` (CLI) + `rag/eval/report.py` (HTML 看板)
+> 评测代码: `rag/eval/core.py` (可复用核心, 所有指标定义在此)
+> Golden 集: `rag/eval/golden.jsonl` - 59 cases / 49 positive / 10 no-match / 10 带 `forbidden_product_ids`
 
 跑法:
 
@@ -10,35 +10,52 @@
 # CLI 速查
 python -m rag.eval.run
 
-# 完整 HTML 看板(总表 + 分场景 + 逐 case + 自动结论)
+# 完整 HTML 看板 (总表 + 分场景 + 逐 case + 自动结论)
 python -m rag.eval.report
 open docs/eval_report.html
 ```
 
 ---
 
-## 当前数据(2026-05-24,Round 6,商品库 145 件 × 8 类目)
+## 当前数据 (2026-05-25, Round 7 标签审计后, 商品库 145 件 x 8 类目)
 
 ### 三策略整体对比
 
-| 策略 | recall@5 | recall@10 | MRR | precision@5 | **反选准确率** | 无匹配正确率 | 延迟 |
-|---|---|---|---|---|---|---|---|
-| Dense | 0.768 | 0.864 | 0.689 | 0.278 | 0.633 | 0.855 | **130 ms** |
-| Hybrid (Dense + BM25) | 0.752 | 0.835 | 0.639 | 0.273 | 0.667 | 0.849 | 36 ms |
-| **Hybrid + Rerank ★生产路径** | **0.780** | **0.888** | **0.701** | 0.259 | **0.733** | 0.856 | 1 951 ms |
+| 策略 | recall@5 | recall@10 | MRR | precision@5 | **反选准确率** | 无匹配正确率 | 平均延迟 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Dense | 0.803 | 0.920 | 0.733 | **0.302** | **0.780** | **0.902** | 288 ms |
+| Hybrid (Dense + BM25) | 0.755 | 0.897 | 0.701 | 0.294 | 0.740 | 0.897 | **107 ms** |
+| **Hybrid + Rerank (生产路径)** | **0.830** | **0.936** | **0.771** | 0.298 | **0.780** | **0.902** | 3,275 ms |
 
-★ 加粗 = 该列最优;**生产路径**(`server/app/services/rag_client.top_k`)走 Hybrid + Rerank。
+生产路径 `server/app/services/rag_client.top_k` 走 Hybrid + Rerank。本轮数据由 Docker 中重新 ingest 后运行 `python -m rag.eval.report` 生成，原始记录见 [`eval_report.json`](eval_report.json)，可视化见 [`eval_report.html`](eval_report.html)。
 
-### 按场景拆解(hybrid_rerank,生产路径)
+### 按场景拆解 (Hybrid + Rerank)
 
 | 场景 | n cases | recall@5 | MRR | precision@5 | 反选准确率 | 备注 |
-|---|---|---|---|---|---|---|
-| 基础推荐 basic | 13 | 0.861 | 0.892 | 0.250 | — | 系统强项 |
-| 条件筛选 filter | 8 | 0.810 | 0.469 | 0.314 | — | recall@10 = 1.000(候选完整) |
-| 反选/排除 negation | 8 | 0.667 | 0.544 | 0.233 | **0.733** | 6 case 带 forbidden,反选准确率是头牌 |
-| 多轮追问 multiturn | 5 | 0.900 | 0.867 | 0.280 | — | 受益于 `contextual_query` |
-| 多商品对比 compare | 6 | 0.900 | 0.900 | 0.360 | — | 双匹配场景表现最好 |
-| 无匹配 no-match | 11 | — | — | — | — | 看 no_match_correctness = 0.820 |
+|---|---:|---:|---:|---:|---:|---|
+| 基础推荐 `basic` | 13 | 0.903 | 0.850 | 0.250 | - | recall@10 = 0.972 |
+| 条件筛选 `filter` | 8 | 0.810 | 0.469 | 0.314 | - | recall@10 = 1.000 |
+| 反选/排除 `negation` | 11 | 0.517 | 0.543 | 0.220 | **0.780** | 下一步重点是提升合规候选召回 |
+| 多轮追问 `multiturn` | 5 | **1.000** | **1.000** | 0.280 | - | `contextual_query` + price intent 生效 |
+| 多商品对比 `compare` | 6 | 0.917 | 0.917 | **0.400** | - | 品牌/型号对比稳定 |
+| 无匹配标签 `no-match` | 6 | - | - | - | - | correctness = 0.866 |
+
+共有 10 条 `expected_product_ids=[]` 的案例；其中 6 条显式标记 `no-match`，另外 4 条为 vague/rewrite 或排除后无替代商品的测试。
+
+---
+
+## Golden 标签审计 (2026-05-25)
+
+本轮没有改变检索算法，而是将评估标准与实际目录重新对齐，共修正 19 条条例:
+
+| 问题类型 | 修正示例 |
+|---|---|
+| 类型错配 | “油皮洗面奶”移除精华 `p_beauty_004`; “理肤泉防晒”从欧莱雅改为 `p_beauty_023` |
+| 目录已有却标为 no-match | 恢复轻量跑鞋、FreeBuds/AirPods 对比、非 Apple 笔记本、保湿面霜、iPad Air、入门相机的正例 |
+| 约束正/负样本跨品类 | “不要日系防晒”不再把法系面霜列为正例; “不要法系面霜”不再把防晒列为禁例 |
+| 候选范围不完整或不符合意图 | 非 Apple 手机补齐非 Apple 智能手机; “轻量碳板”仅保留具有碳板属性的特步 160X |
+
+因此，审计前后的扩展集指标不能作为纯算法 A/B 差值使用；新的数值更适合作为后续检索优化的基线。
 
 ---
 
@@ -46,63 +63,48 @@ open docs/eval_report.html
 
 | 指标 | 含义 | 何时适用 |
 |---|---|---|
-| **recall@k** | 命中的 expected_ids 占 expected 的比例 | expected 非空 |
+| **recall@k** | 命中的 expected ids 占 expected 的比例 | expected 非空 |
 | **MRR** | expected 第一次出现的位置的倒数 | expected 非空 |
-| **precision@k** | top-k 里 expected 的占比 | expected 非空 |
-| **反选准确率** | top-k 中不含任何 forbidden id 的比例(粒度到单 slot) | 带 forbidden_product_ids |
-| **无匹配正确率** | 启发式:top-k 商品标题与 query 的字符重叠度倒数 — 越低说明系统越"诚实地承认无匹配" | expected = `[]` |
-| **延迟** | 单次 retrieve() 的 wall-clock 毫秒 | 每个 case 都测 |
+| **precision@k** | top-k 中 expected 的占比 | expected 非空 |
+| **反选准确率** | top-5 中没有落入 `forbidden_product_ids` 的槽位比例 | 带 forbidden ids |
+| **无匹配正确率** | 启发式: top-5 商品标题与 query 的字符重叠度越低越好 | expected 为空 |
+| **延迟** | 单次 retrieve 的 wall-clock 毫秒 | 每个 case |
 
-**没用 LLM**:全部指标基于检索回的 product_id 列表 + golden 答案集计算,无 LLM 调用,可重复跑。
+所有指标基于返回的 `product_id` 与 golden 标签计算，不调用 LLM，可重复运行。
 
 ---
 
 ## 历史对比
 
 | 时间 | Golden 规模 | recall@5 (rerank) | MRR | 备注 |
-|---|---|---|---|---|
-| Round 5(2026-05-24 上午) | 31 cases / 19 valid | **0.711** | 0.695 | 初版 hybrid+rerank 落地 |
-| Round 6 同义词扩展(2026-05-24 下午) | 31 cases / 19 valid | **0.816** | 0.705 | 加了 `synonyms.py` 后 |
-| Round 6 扩 golden 集(当前) | **56 cases / 41 valid** | **0.780** | 0.701 | 加入 negation+filter+compare+multiturn,数字微降是因为新增场景更难 |
-
-**为什么扩 golden 后数字反而降?** 因为新 case 是按"难"加的(反选、多轮、跨类目筛选),不是按"易"凑。0.780 在 6 类场景全覆盖下比之前 0.816 在偏 spec 类的小集上更**真实**。
-
----
-
-## 局限性 / 已知问题
-
-1. **precision@5 ~0.26** — 看上去低,实际是 expected 多为单/双商品的自然下限。要拉高需要扩 expected 到每 case 3-5 个相似商品。这属于 golden 集设计取舍,非检索 bug。
-2. **延迟 ~2 秒** — Cross-encoder rerank 是主要成本(默认模型 `BAAI/bge-reranker-base`)。生产路径靠 `services/cache.py` LRU 兜底(命中后 first_delta 可降到 ~300ms,见 `routes/chat.py` 的 timing log)。
-3. **no_match_correctness 是启发式**(query-title 字符 Jaccard),不是绝对真理。真正的"反幻觉"由 LLM-side system prompt 守门(`rag/prompts/system.md` + demo 02)。
-4. **2 条 multiturn case** 还跑得不够稳,因为 `contextual_query` 重写后 query 形态变化大,recall 波动 ±0.2 都正常。
+|---|---|---:|---:|---|
+| Round 5 (2026-05-24 上午) | 31 cases / 19 positive | 0.711 | 0.695 | 初版 hybrid + rerank |
+| Round 6.5 同义词扩展 | 31 cases / 19 positive | 0.816 | 0.705 | 同一小集上的算法对照 |
+| Round 7 扩集 (审计前) | 59 cases, 标签含错配 | 0.746 | 0.674 | 仅保留为发现标签问题的记录 |
+| **Round 7 标签审计后 (当前)** | **59 cases / 49 positive** | **0.830** | **0.771** | **新基线, 不应与审计前作纯算法归因** |
 
 ---
 
-## 看板亮点(答辩可讲)
+## 局限性 / 下一步
 
-1. **反选准确率从 dense 的 0.633 提升到 rerank 的 0.733(+10pp)** — 这是 negation_filter + synonym + rerank pipeline 真实贡献的硬证据。
-2. **延迟 130ms → 1950ms** — 精度换延迟的工程取舍,缓存抵消是合理的"4.4 工程优化"加分论据。
-3. **6 场景全覆盖,不是只跑 spec 类的好看分** — 反选、多轮、对比、无匹配都进了 golden 集,看板按场景拆开后,弱项暴露而非隐藏。
+1. `brand-origin` 场景仍弱: 生产路径该标签 `recall@5=0.333`, `negation_accuracy=0.800`; 需要继续检查产地元数据和约束后的候选补位。
+2. 全量 Docker 冷跑平均延迟约 `3.3 s`: cross-encoder rerank 仍是主要成本，fast-path/缓存的线上延迟需要单独测量。
+3. `no_match_correctness` 是基于标题字符重叠的启发式分数，不等同于生成端的反幻觉保证。
+4. 下一轮应进行双人标注复核，尤其是泛意图查询允许哪些候选，避免扩充商品库后再次出现答案漂移。
 
 ---
 
 ## 复现命令
 
 ```bash
-cd ~/Desktop/rag/AAALion-/
-source .venv/bin/activate
-
-# Quick CLI
-python -m rag.eval.run
-#   → 56 cases (41 with expected, 5 multi-turn, 15 no-match)
-#   → 三档 7 个指标的总表
-
-# Full HTML dashboard
+# 在已有依赖环境中
+python -m rag.ingest.run
 python -m rag.eval.report
-#   → docs/eval_report.html (+ docs/eval_report.json 原始数据)
-open docs/eval_report.html
+
+# Windows + Docker 验证路径
+docker run --rm -e ANONYMIZED_TELEMETRY=False -e RAG_FAST_PATH=1 \
+  --mount type=bind,source="$PWD",target=/app \
+  aaalion-rag:latest bash -lc "python -m rag.ingest.run && python -m rag.eval.report"
 ```
 
-Env 控制:
-- `RAG_RERANK=0` — 跳过最慢的 hybrid_rerank 档(快速 sanity 跑)
-- 看板可指定 modes / k:`python -m rag.eval.report --modes dense hybrid_rerank --k 5`
+本次 Docker 运行结果: `1082` chunks indexed, `59` cases evaluated, three modes all completed with `0` errors。

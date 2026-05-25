@@ -1,4 +1,4 @@
-# 狮选 LionPick — Quality Self-Assessment (refreshed 2026-05-25 for Round 7)
+# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 after golden audit)
 
 > An objective, grader-style review by the implementer. R5 → R7 timeline below.
 > No marketing fluff. Each rubric item gets a target weight, achieved score (0-100),
@@ -20,23 +20,25 @@
 | Sam: 56-case per-scenario eval dashboard merged (`docs/eval_report.html`, `docs/EVAL_RESULTS.md`, `rag/eval/{core,report}.py`) | Sam | +1.0 工程 (testability + transparency) |
 | Shufeng: brand-origin negation fix (`rag/retrieve/brand_origin.py` + extended `apply_negation`) | Shufeng | +2.0 效果 (closes 安热沙 "不要日系" leak) |
 | Shufeng: re-recorded demos under `docs/demos/2026-05-25/` covering all 6 scenarios | Shufeng | +0.5 加分 (verifiable defense material) |
+| Tujie: catalog-backed audit of 19 golden annotations + regenerated report | Tujie | Measurement validity; no score bump claimed |
 
 **Net**: +3.5 dimension points → +0.5 to +1.0 weighted total, **89.5 → 90.0**.
 
-## Live numbers (hybrid+rerank, Sam's 56+3 case set)
+## Live numbers (hybrid+rerank, audited 59-case set)
 
 ```
-recall@5            0.723
-recall@10           0.862
-MRR                 0.673
-negation_accuracy   0.733  (preserved across 11 negation cases inc. brand-origin)
-no_match_correctness 0.855
-median latency       305 ms (cache-warm)
+recall@5             0.830
+recall@10            0.936
+MRR                  0.771
+negation_accuracy    0.780  (10 cases with forbidden ids)
+no_match_correctness 0.902
+mean latency         3275 ms (Docker full evaluation run)
 ```
 
-Note: recall@5 dropped from R6.5 0.816 → R7 0.723 because Sam's golden set
-is harder (56 cases, 6 scenarios) than the 31-case set R6.5 was measured on.
-This is honest measurement upgrade, not a regression.
+Note: the 59-case set includes harder scenarios than the earlier 31-case set,
+and this audit also changed 19 incorrect or incomplete labels. The post-audit
+numbers are the new baseline; they should not be claimed as a pure retrieval
+algorithm lift over the pre-audit report.
 
 ### Round 6 delta — what moved and why
 
@@ -61,7 +63,7 @@ This is honest measurement upgrade, not a regression.
 
 ### What still pushes the score higher (Round 7+ candidate work)
 
-1. **+2 效果**: rerun eval with an expanded 60+ case golden set that includes 10+ real-product queries → recovers the recall@5 regression honestly.
+1. **+2 效果**: attack the audited set's `brand-origin` weakness (`recall@5=0.333`) with constraint-aware candidate refill and metadata validation.
 2. **+2 基础**: each new category currently has only 5 products; grow to 15-20 each for richer top-5 candidates.
 3. **+1-2 加分**: defense slide deck + demo video — PDF explicitly weights backup video as a 加分 signal.
 4. **+1-2 工程**: stress test, observability dashboard, real Docker compose `up` from a clean clone verified by a teammate.
@@ -113,10 +115,10 @@ This is honest measurement upgrade, not a regression.
 | Repo hygiene | 95 | Conventional Commits; major-commit records; secret scanner; gitignore covers `.chroma/` + `.env` + `xcodeproj` | no pre-commit hook installed yet | wire `tools/check-secrets.sh` as pre-commit |
 | Latency instrumentation | 85 | `server/app/routes/chat.py` `_log_timing`; JSON-per-request with `retrieval_ms` / `first_delta_ms` / `total_ms` / `cache` | no aggregate dashboard | publish Prometheus metrics |
 | Cache layer | 80 | `services/cache.py` in-memory LRU 200-entry × 10-min TTL; wired into chat route; cache hit reduces `first_delta_ms` from ~5000 → ~300 in measurement | no eviction on data change | invalidate cache on `aaalion ingest` |
-| Stress test | 60 | `tools/stress_test.py` deferred to next round | no p95/p99 numbers | run locust 100 RPS × 60s |
+| Stress test | 80 | `tools/stress_test.py`; R7 run reports 20 concurrent users x 45 s, 92/92 successful | single workload, no p95/p99 trend dashboard | add repeated load profiles and publish percentiles |
 | Git workflow | 90 | shufeng branch for in-flight; main = stable; merge after self-assessment | no PR template enforcement | wire `.github/pull_request_template.md` more rigorously |
 
-**Weakness**: the stress test is the biggest gap. I can claim cache + latency targets are met from single-shot measurements, but I haven't verified under load.
+**Weakness**: retrieval quality under brand-origin constraints and cold/full rerank latency are now the clearest measured gaps; the basic load smoke test exists, but needs broader profiles.
 
 ---
 
@@ -124,7 +126,7 @@ This is honest measurement upgrade, not a regression.
 
 | Sub-item | Score | Evidence | Gap | Push higher |
 |---|---|---|---|---|
-| 检索准确率 (recall@5) | 85 | Measured: dense=0.605, hybrid=0.632, **hybrid+rerank=0.711** on 31-case golden set. MRR 0.585 → 0.695. | only 31 cases; 12 have no expected ids (intentional "no-match" tests) | grow to 80+ cases; add human-judged relevance scores |
+| 检索准确率 (recall@5) | 88 | Audited 59-case set: dense=0.803, hybrid=0.755, **hybrid+rerank=0.830**; production MRR=0.771. | labels now single-auditor; brand-origin recall remains weak | double-judge labels; tune constraint-aware retrieval |
 | 无幻觉输出 | 90 | System prompt enforces; demo 02 proves; Round 5 vision-prompt tightening | no automated hallucination check | LLM-as-judge nightly |
 | 复杂场景 (negation, comparison) | 90 | demos 04 + 05; Round 5 added structured negation extraction → filter | rare LLM still hedges | tighten more |
 | First-screen response (<1s target) | 80 | Cache hit: ~300ms first_delta. Cache miss: ~3000-8000ms first_delta (mostly LLM-side, not our overhead) | cache miss path doesn't meet <1s target | prefetch on app focus, preload model weights |
@@ -132,7 +134,7 @@ This is honest measurement upgrade, not a regression.
 | Voice input quality | 80 | Apple Speech.framework zh-CN; works in demos | no continuous listening; no interrupt | streaming partial results during recognition |
 | TTS quality | 75 | AVSpeechSynthesizer zh-CN system voice | flat prosody; no SSML | use a neural TTS if budget allows |
 
-**Weakness**: recall@5 of 0.711 is decent but not "high-end product" territory. The single biggest lever would be a properly-tuned cross-encoder (we use the base model; the v2-m3 variant is bigger and better) and 50+ more golden eval cases.
+**Weakness**: aggregate recall@5 is now credible, but `brand-origin` recall@5 is only 0.333. The next quality lift should target constrained retrieval rather than hide behind a stronger aggregate.
 
 ---
 
@@ -208,13 +210,13 @@ In priority order, if defense were 7 days further out:
 ## What I'm certain of vs uncertain of
 
 **Certain**:
-- Recall@5 = 0.711 on 31 cases. Reproducible: `aaalion eval`.
+- Audited production recall@5 = 0.830 and MRR = 0.771 on 59 cases. Reproducible with `python -m rag.eval.report`.
 - Cache hit drops first_delta ≥ 10×. Measured.
 - iPhone 13 Pro deploy works. Hands-on tested.
 - All listed 4.x bonus items have a working code path.
 
 **Uncertain**:
-- Whether 0.711 recall@5 is "good" by absolute benchmark — RAG papers report 0.8+ on larger corpora; ours is small (100 products, ~50% of queries are no-match-expected).
+- Whether 0.830 recall@5 transfers beyond this small 145-product catalog; the current labels still need independent second-pass judging.
 - Whether the cart's regex-based intent detection holds against weird phrasings — robust would be a proper intent classifier.
 - Whether the cross-encoder reranker's first-call latency (~3s model load) will surface as a bad first-impression in the demo.
 
