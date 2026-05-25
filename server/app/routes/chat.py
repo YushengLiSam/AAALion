@@ -234,12 +234,18 @@ def _extract_image_bytes(messages) -> bytes | None:
 
 
 # Bug 2 fix (R8.F): iPhone uploads are 12MP (~4032×3024) Base64 data URLs.
-# Anthropic / Doubao vision LLMs tile by pixel area; a 4032×3024 image costs
-# ~12 tiles ≈ 13k tokens, vs ~1 tile ≈ 1.1k tokens at 1024×768. Brand /
-# category recognition does NOT need 12MP — downscaling on the server side
-# cuts multi-image latency by roughly an order of magnitude. The CLIP
-# retriever upstream still embeds the original bytes (img_bytes_list[0]),
-# which we hash for the cache key, so visual search precision is unaffected.
+# Measured (see tools/bench_image_downscale.py on 3-image payload):
+#   * payload bytes:  1.82 MB  →  156 KB   (11.7× over-the-wire savings)
+#   * vision tokens:   7,377   →  3,147    (2.3× — Anthropic auto-caps at
+#                                          1568 px server-side, so raw 12×
+#                                          pixel ratio compresses to ~2.3×
+#                                          on the billed-token side)
+#   * server CPU:     +203 ms  on this Mac (PIL LANCZOS × 3)
+# Net effect: predicted 3-image latency 30 s → ~13 s, with no impact on
+# brand / category recognition quality at 1024 px (Anthropic's own optimum
+# is "1.15 MP and below"; 1024×768 ≈ 0.79 MP). The CLIP retriever still
+# uses original bytes (img_bytes_list[0]), which we hash for the cache key,
+# so visual search precision is unaffected.
 def _downscale_image_data_url(url: str, max_edge: int = 1024) -> str:
     """Resize a base64 ``data:image/...`` URL so the longer side is ``max_edge``.
 
