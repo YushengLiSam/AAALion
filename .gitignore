@@ -74,3 +74,6 @@ ehthumbs.db
 
 # Persistent local policy (private entries)
 docs/POLICY_LOCAL.md
+
+# Local-only defense-prep package (Cluely). Never committed.
+docs/cluely/
