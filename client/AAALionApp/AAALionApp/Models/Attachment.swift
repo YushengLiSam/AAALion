@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// One staged user attachment in the composer (image OR file). Replaces
 /// the R6-era single `pendingImage: Data?`. The composer can hold up to
@@ -55,6 +56,43 @@ struct Attachment: Identifiable, Hashable {
 }
 
 extension Attachment {
+    /// R8.E.2: downsample-and-recompress an image before it joins the
+    /// upload pipeline. iPhone camera JPEGs are ~2-4 MB at 4032×3024;
+    /// base64-encoded this balloons each image to ~3-5 MB on the wire,
+    /// which is why 3 photos hit the >30 s wall (network upload + LLM
+    /// vision processing both scale with payload size).
+    ///
+    /// Vision LLMs (Claude / GPT-4o / Doubao Vision) process images at
+    /// most ~1568×1568 internally — sending bigger is pure waste. We
+    /// resize to `maxDim` on the longer edge, re-encode JPEG @ 0.78
+    /// quality. Typical 4032×3024 photo shrinks from 2.4 MB to ~120 KB.
+    ///
+    /// Returns the original bytes unchanged if decoding fails or if
+    /// the image is already small enough — defensive against PNG /
+    /// HEIC / files-imported-but-not-image cases.
+    static func compressForUpload(_ data: Data, maxDim: CGFloat = 1280, quality: CGFloat = 0.78) -> Data {
+        guard let image = UIImage(data: data) else { return data }
+        let originalSize = image.size
+        let longestEdge = max(originalSize.width, originalSize.height)
+        // Skip work if already smaller than the cap and reasonably compressed.
+        if longestEdge <= maxDim && data.count < 300_000 {
+            return data
+        }
+        let scale = min(1.0, maxDim / longestEdge)
+        let newSize = CGSize(
+            width: floor(originalSize.width * scale),
+            height: floor(originalSize.height * scale)
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1  // we already have absolute target size in points
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+        return resized.jpegData(compressionQuality: quality) ?? data
+    }
+
     /// Best-effort MIME sniff from the first few bytes. Used by the file
     /// importer so PDFs / PNGs land with the right header on the wire.
     static func sniffMIME(from data: Data, fallback: String = "application/octet-stream") -> String {

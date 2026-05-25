@@ -259,6 +259,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     retrieval_query = build_retrieval_query(req.messages)
 
     # Retrieval ----------------------------------------------------------------
+    # R8.E.3: top_k* are sync (torch / sentence-transformers under the hood).
+    # Running them directly on the FastAPI event loop blocks ALL other
+    # requests for the duration — that's why /cache/stats times out during
+    # an in-flight /chat/stream. asyncio.to_thread offloads to the default
+    # thread pool so the event loop stays responsive (matches the already-
+    # offloaded normalize_product_prices call below).
     products: list[dict] = []
     img_bytes_list: list[bytes] = []
     if _has_image(req.messages):
@@ -266,11 +272,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         # CLIP retriever is single-image; use the first attachment as the
         # visual query. The LLM still sees all images via the content array.
         if img_bytes_list:
-            products = top_k_image(img_bytes_list[0], k=3)
+            products = await asyncio.to_thread(top_k_image, img_bytes_list[0], k=3)
     if not products:
         explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
         conversation_filter = build_conversation_filter(req.messages, explicit_filters)
-        products = top_k(
+        products = await asyncio.to_thread(
+            top_k,
             retrieval_query,
             k=5,
             filters=explicit_filters,

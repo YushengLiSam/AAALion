@@ -46,15 +46,20 @@ struct CacheStatsService {
     }
 
     /// Fetch current cache stats. Lightweight; safe to poll every 5-10s.
-    /// Timeout = 15s because the iPhone's first call over LAN may hit a
+    /// Timeout = 60s because the iPhone's first call over LAN may hit a
     /// fresh TCP socket and a cold backend response path (model isn't on
     /// the hot path so prewarm doesn't pay forward to /cache/stats). After
     /// the first successful call URLSession reuses the connection and
     /// follow-up polls return in <200ms.
+    /// R8.E.3: bumped from 15s to 60s because while a multi-image chat
+    /// request is in-flight, the (single-worker) uvicorn serializes ALL
+    /// requests behind it — `/cache/stats` can wait up to ~30s on the
+    /// FastAPI event loop. 60s gives ample headroom; the fast path
+    /// (no concurrent heavy request) still returns sub-second.
     func fetch() async throws -> CacheStats {
         let url = baseURL.appendingPathComponent("cache/stats")
         var req = URLRequest(url: url)
-        req.timeoutInterval = 15
+        req.timeoutInterval = 60
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
             guard let http = response as? HTTPURLResponse else {
