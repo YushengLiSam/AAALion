@@ -54,3 +54,6 @@
 {"query": "推荐徒步登山鞋", "expected_product_ids": ["p_clothes_014", "p_clothes_015", "p_8_real_03"], "tags": ["basic"]}
 {"query": "推荐有机牛奶", "expected_product_ids": ["p_food_007"], "tags": ["basic"]}
 {"query": "500元以下的高倍防晒霜", "expected_product_ids": ["p_beauty_006", "p_beauty_010", "p_beauty_023"], "tags": ["filter"]}
+{"query": "推荐一款防晒霜，不要日系品牌", "expected_product_ids": ["p_beauty_006", "p_1_intl_05"], "forbidden_product_ids": ["p_beauty_010", "p_beauty_011"], "tags": ["negation", "brand-origin"]}
+{"query": "推荐一款补水化妆水，不要韩系", "expected_product_ids": ["p_1_intl_03", "p_1_real_05"], "forbidden_product_ids": ["p_1_real_04"], "tags": ["negation", "brand-origin"]}
+{"query": "推荐一款敏感肌面霜，不要法系品牌", "expected_product_ids": ["p_1_real_03", "p_1_intl_01"], "forbidden_product_ids": ["p_1_intl_05", "p_beauty_006"], "tags": ["negation", "brand-origin"]}

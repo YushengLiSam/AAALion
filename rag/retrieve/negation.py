@@ -70,15 +70,31 @@ def extract_negation(text: str) -> dict:
 
 
 def apply_negation(products: list[dict], neg: dict) -> list[dict]:
-    """Filter the candidate list. Removes products whose brand / category
-    matches any excluded value, or whose title/marketing_description contains
-    any excluded keyword."""
+    """Filter the candidate list.
+
+    Removes products that match any of:
+      1. excluded brand (substring match on brand name),
+      2. excluded category,
+      3. excluded keyword in title/marketing_description (textual),
+      4. **excluded brand-origin country** (Round 7 fix): when the user says
+         "不要日系" / "不要美系", resolve each product's origin via
+         `provenance.origin_country` or the `brand_origin` lookup table
+         and drop products whose origin matches the excluded country.
+    """
     if not neg or not (neg.get("exclude_brands") or neg.get("exclude_categories") or neg.get("exclude_keywords")):
         return products
 
     excl_brands = {b.lower() for b in neg.get("exclude_brands", [])}
     excl_cats = {c for c in neg.get("exclude_categories", [])}
     excl_kw = [k for k in neg.get("exclude_keywords", []) if k]
+
+    # Resolve country exclusions from the keyword set (e.g. "日系" → JP).
+    try:
+        from rag.retrieve.brand_origin import excluded_countries, product_origin
+        excl_countries = excluded_countries(excl_kw)
+    except Exception:
+        excl_countries = set()
+        product_origin = lambda p: None  # type: ignore
 
     out: list[dict] = []
     for p in products:
@@ -92,5 +108,9 @@ def apply_negation(products: list[dict], neg: dict) -> list[dict]:
         haystack = f"{title}\n{desc}".lower()
         if any(k.lower() in haystack for k in excl_kw):
             continue
+        if excl_countries:
+            origin = product_origin(p)
+            if origin and origin in excl_countries:
+                continue
         out.append(p)
     return out
