@@ -27,24 +27,37 @@ final class SpeechService {
     /// R8.E-VOICE: auto-stop on silence. SFSpeechRecognizer doesn't release
     /// itself when the user stops talking; without this the red mic stays
     /// on forever and the draft picks up garbage (or carries stale text
-    /// from a prior turn). We reset this timer every time a new partial
-    /// arrives; if 1.8 s pass without any new partial we treat it as
-    /// "user stopped" and stop the session. Matches ChatGPT/Claude UX.
+    /// from a prior turn). We reset this timer ONLY when a partial arrives
+    /// whose transcript is *strictly different* from the previous one
+    /// (see `lastTranscript`). If the user stops talking, the recognizer
+    /// may still emit "same text" partials from ambient noise — those
+    /// must NOT extend the window, or the mic never releases.
+    /// idleTimeout = 1.8 s matches the ChatGPT/Claude iOS app feel.
     private var idleTimer: Timer?
     private let idleTimeout: TimeInterval = 1.8
+    /// Last partial transcript seen this session. Used to suppress the
+    /// "noise keeps re-firing the same text" idle-timer extension.
+    private var lastTranscript: String = ""
 
     private(set) var isRecording = false
     var onTranscript: ((String) -> Void)?
     var onError: ((String) -> Void)?
+    /// R8.E-VOICE-FIX: fired whenever the recognizer stops — including
+    /// when the idle-timer auto-stops it. The ViewModel listens here so
+    /// it can flip its own `isRecording` back to false (otherwise the UI
+    /// stays red even though the audio engine is already shut down).
+    var onStop: (() -> Void)?
 
     private init() {}
 
     /// Schedule (or re-schedule) the silence-timeout. Called once at
     /// `start()` so a tap-with-no-speech still releases, and again on
-    /// every partial result so an active speaker doesn't get cut off.
+    /// every *meaningful* partial result so an active speaker doesn't
+    /// get cut off. Uses RunLoop.main with .common modes so it still
+    /// fires while the user is scrolling the chat view.
     private func resetIdleTimer() {
         idleTimer?.invalidate()
-        idleTimer = Timer.scheduledTimer(withTimeInterval: idleTimeout, repeats: false) { [weak self] _ in
+        let t = Timer(timeInterval: idleTimeout, repeats: false) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
                 // Guard against firing after an explicit stop or after
@@ -55,6 +68,8 @@ final class SpeechService {
                 }
             }
         }
+        RunLoop.main.add(t, forMode: .common)
+        idleTimer = t
     }
 
     /// Asks for mic + speech recognition permission. Call before first start.
@@ -107,11 +122,19 @@ final class SpeechService {
             Task { @MainActor in
                 guard self.sessionID == mySession else { return }
                 if let result {
-                    self.onTranscript?(result.bestTranscription.formattedString)
-                    // R8.E-VOICE: speech is active → push the silence
-                    // timeout out. If no further partial arrives within
-                    // idleTimeout, we'll auto-stop.
-                    self.resetIdleTimer()
+                    let newText = result.bestTranscription.formattedString
+                    self.onTranscript?(newText)
+                    // R8.E-VOICE-FIX: ONLY reset the silence timer when
+                    // the transcript actually changed. SFSpeechRecognizer
+                    // keeps emitting partials with the SAME text on
+                    // ambient noise / breathing / room hum — if every
+                    // such partial extended the window, the mic would
+                    // never auto-release. Comparing `newText !=
+                    // lastTranscript` is the cheapest correct guard.
+                    if newText != self.lastTranscript {
+                        self.lastTranscript = newText
+                        self.resetIdleTimer()
+                    }
                 }
                 if error != nil || (result?.isFinal ?? false) {
                     self.stop()
@@ -148,7 +171,15 @@ final class SpeechService {
         request = nil
         task = nil
         isRecording = false
+        lastTranscript = ""
         // Release the audio session so subsequent sessions start clean.
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        // R8.E-VOICE-FIX: notify the ViewModel so its own `isRecording`
+        // can flip to false — otherwise the UI mic stays red even though
+        // we've torn down the audio engine. This is the path that fires
+        // when the idle timer auto-stops us; the manual-tap path also
+        // hits it but ChatViewModel.stopListening was already clearing
+        // its flag synchronously (idempotent).
+        onStop?()
     }
 }

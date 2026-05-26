@@ -213,6 +213,12 @@ Every other recurring hiccup: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.m
 - **Major commits get a record file**: every "feel-the-weight" commit lands
   with a sibling `docs/commits/YYYYMMDD-NNN-<topic>.md`. See
   [`docs/commits/README.md`](docs/commits/README.md).
+- **Team status updates** (R8 onward): WeChat drafts are **LOCAL ONLY**
+  (gitignored under `docs/WECHAT_*.md` / `docs/cluely/`). The
+  persistent on-remote record is [`docs/DEV_LOG.md`](docs/DEV_LOG.md),
+  a rolling reverse-chronological log; add a new top section per
+  shipping moment. Full policy in [`docs/POLICY.md`](docs/POLICY.md)
+  §"Team status updates".
 - **Author**: every commit is attributed to
   `Shufeng Chen <shufeng.c.dev@gmail.com>` (verified in `git log`).
 - **Secrets**: never committed. Pre-commit hook lives at

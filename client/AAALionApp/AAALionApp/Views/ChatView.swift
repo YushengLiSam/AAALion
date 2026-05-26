@@ -9,6 +9,12 @@ struct ChatView: View {
     // `remaining` images in one go, and the picker stays usable until
     // the message hits `Attachment.maxCount`.
     @State private var pickerItems: [PhotosPickerItem] = []
+    // R8.E.1: PhotosPicker is presented via the .photosPicker modifier
+    // (NOT inline inside the Menu). The inline form has a known SwiftUI
+    // bug where plural-selection bindings don't fire reliably after the
+    // host Menu dismisses. The modifier form is the iOS 17+ blessed path
+    // and works correctly.
+    @State private var showPhotosPicker = false
     @State private var showCamera = false
     @State private var showFileImporter = false
     @State private var showSettings = false
@@ -118,11 +124,46 @@ struct ChatView: View {
             .sheet(isPresented: $showCamera) {
                 CameraPicker { data in
                     // R8.E: append (not replace) — user can tap camera
-                    // repeatedly until the 10-attachment cap.
-                    viewModel.appendAttachment(.init(data: data, kind: .camera))
+                    // repeatedly until the 10-attachment cap. R8.E.2:
+                    // downsample on capture so the 4032×3024 iPhone JPEG
+                    // doesn't bloat the request payload.
+                    let compressed = Attachment.compressForUpload(data)
+                    viewModel.appendAttachment(.init(data: compressed, kind: .camera))
                     showCamera = false
                 }
                 .ignoresSafeArea()
+            }
+            // R8.E.1: modifier-form PhotosPicker. The host Menu just sets
+            // `showPhotosPicker = true`; the picker sheet itself is owned
+            // by the NavigationStack so the binding survives the Menu
+            // dismissing.
+            .photosPicker(
+                isPresented: $showPhotosPicker,
+                selection: $pickerItems,
+                maxSelectionCount: max(1, viewModel.remainingAttachmentSlots),
+                selectionBehavior: .ordered,
+                matching: .images,
+                photoLibrary: .shared()
+            )
+            .onChange(of: pickerItems) { _, newItems in
+                guard !newItems.isEmpty else { return }
+                Task { @MainActor in
+                    for item in newItems {
+                        guard viewModel.remainingAttachmentSlots > 0 else { break }
+                        guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+                        // R8.E.2: downsample BEFORE storing so the chip
+                        // preview and the wire payload both use the
+                        // smaller bytes — keeps multi-image requests
+                        // under the >30 s wall.
+                        let compressed = Attachment.compressForUpload(data)
+                        viewModel.appendAttachment(.init(data: compressed, kind: .photo))
+                    }
+                    // Defer the clear so iOS finishes its presentation
+                    // animation before the binding flips back to empty.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        pickerItems = []
+                    }
+                }
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -169,11 +210,18 @@ struct ChatView: View {
                                 continue
                             }
                             let mime = Attachment.sniffMIME(from: data)
+                            // R8.E.2: if the file is an image, downsample
+                            // it so the upload payload stays bounded.
+                            // Non-image files (PDF etc.) pass through.
+                            let finalData = mime.hasPrefix("image/")
+                                ? Attachment.compressForUpload(data)
+                                : data
+                            let finalMIME = mime.hasPrefix("image/") ? "image/jpeg" : mime
                             viewModel.appendAttachment(.init(
-                                data: data,
+                                data: finalData,
                                 kind: .file,
                                 filename: url.lastPathComponent,
-                                mime: mime
+                                mime: finalMIME
                             ))
                         }
                     }
@@ -371,16 +419,17 @@ struct ChatView: View {
 
     private var attachmentMenu: some View {
         Menu {
-            // R8.E: plural PhotosPicker — user can multi-select up to the
-            // remaining-slot count in one go. Stays usable until 10/10.
-            PhotosPicker(
-                selection: $pickerItems,
-                maxSelectionCount: viewModel.remainingAttachmentSlots,
-                matching: .images,
-                photoLibrary: .shared()
-            ) {
+            // R8.E.1: trigger the photo picker via a Button that flips
+            // a presentation flag — the actual .photosPicker modifier
+            // is applied on the NavigationStack so the sheet lives
+            // OUTSIDE the Menu's lifecycle. This makes plural-selection
+            // bindings fire reliably.
+            Button {
+                showPhotosPicker = true
+            } label: {
                 Label("照片库 / Photo library", systemImage: "photo.on.rectangle")
             }
+            .disabled(viewModel.remainingAttachmentSlots == 0)
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
                 Button {
                     showCamera = true
@@ -401,19 +450,5 @@ struct ChatView: View {
                 .foregroundStyle(viewModel.remainingAttachmentSlots == 0 ? Color.gray : Color.accentColor)
         }
         .disabled(viewModel.remainingAttachmentSlots == 0)
-        .onChange(of: pickerItems) { _, newItems in
-            guard !newItems.isEmpty else { return }
-            Task { @MainActor in
-                // Load each picked photo sequentially and append. The
-                // PhotosPicker enforces `maxSelectionCount` already, but
-                // we still bail at the cap defensively.
-                for item in newItems {
-                    guard viewModel.remainingAttachmentSlots > 0 else { break }
-                    guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-                    viewModel.appendAttachment(.init(data: data, kind: .photo))
-                }
-                pickerItems = []
-            }
-        }
     }
 }
