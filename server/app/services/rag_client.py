@@ -141,32 +141,48 @@ def top_k(
     ):
         topic_switch = True
 
-    # Path B: only triggers when there IS an inherited filter to potentially
-    # drop. Compares the raw message's category signal to the inherited one.
-    # Avoids over-firing on single-turn queries (which have nothing to drop
-    # anyway, and where forcing `text = raw_message` could lose contextual-
-    # rewriter benefits).
+    # Path B (R8.F.8.1, expanded): conflict-check against inherited filter
+    # on EITHER category OR brand. Earlier version only checked category,
+    # which let inherited brand_include = ["Apple"] (from a prior iPad
+    # turn) keep filtering retrieval even when the new query carried a
+    # clear category signal — that was the "护肤品 / 鞋子 / 纸尿片 returns
+    # 0 results after iPad turns" failure.
     if not topic_switch and isinstance(conversation_filter, Filter) and raw_message_for_anchor:
-        inh_cat = conversation_filter.category
-        if inh_cat:
-            # Try the hard-filter extractor first (catches things like
-            # 洗面奶→美妆护肤, 牛奶→食品饮料 from existing _INFERRED_CATEGORIES).
+        try:
+            raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
+        except Exception:
+            raw_filter = None
+        raw_cat = raw_filter.category if raw_filter else None
+        if not raw_cat:
             try:
-                raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
+                from rag.retrieve.constraints import detect_topic_switch_category
+                raw_cat = detect_topic_switch_category(raw_message_for_anchor)
             except Exception:
-                raw_filter = None
-            raw_cat = raw_filter.category if raw_filter else None
-            # Fall back to the topic-only hint table for general domain
-            # words (零食 / 跑鞋 / 衣服 / ...) that don't participate in
-            # hard filtering.
-            if not raw_cat:
-                try:
-                    from rag.retrieve.constraints import detect_topic_switch_category
-                    raw_cat = detect_topic_switch_category(raw_message_for_anchor)
-                except Exception:
-                    raw_cat = None
-            if raw_cat and raw_cat != inh_cat:
-                topic_switch = True
+                raw_cat = None
+        raw_brands = set((raw_filter.brand_include or [])) if raw_filter else set()
+
+        inh_cat = conversation_filter.category
+        inh_brands = set((conversation_filter.brand_include or []))
+
+        # Category conflict: raw has a new category signal that doesn't
+        # match inherited (including "inherited had no category but
+        # something else like brand was sticky").
+        cat_conflict = bool(raw_cat and raw_cat != inh_cat)
+
+        # Brand conflict: raw has brand_include and it doesn't intersect
+        # inherited's. Triggers e.g. "推荐 OPPO 手机" after iPad turns
+        # where conversation_filter inherited brand_include = ["Apple"].
+        brand_conflict = bool(raw_brands and inh_brands and not (raw_brands & inh_brands))
+
+        # Also: raw has a category but inherited has a brand_include of
+        # a different ecosystem (typical: iPad turns leave brand=Apple,
+        # then user says "护肤品" — different category, different brand).
+        category_vs_brand_conflict = bool(
+            raw_cat and inh_brands and not raw_brands and raw_cat != inh_cat
+        )
+
+        if cat_conflict or brand_conflict or category_vs_brand_conflict:
+            topic_switch = True
 
     if topic_switch:
         conversation_filter = None
