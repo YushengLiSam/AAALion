@@ -108,6 +108,23 @@ def top_k(
     from rag.retrieve.constraints import build_retrieval_filter
     from rag.retrieve.query import Filter
 
+    # R8.F.7: topic-switch detection. When the raw current user message
+    # mentions a known product-line anchor (iPhone / iPad / MacBook /
+    # AirPods / ...), the user has changed topic explicitly — they're no
+    # longer asking about whatever inherited category sits in the
+    # conversation state from earlier turns. Drop the inherited
+    # constraint_filter AND fall back to the raw current message for
+    # retrieval, so a "I want a iPhone 12" after "推荐适合敏感肌的洁面"
+    # doesn't get skincare results back.
+    raw_message_for_anchor = intent_text or text
+    topic_switch = (
+        raw_message_for_anchor is not None
+        and any(a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS)
+    )
+    if topic_switch:
+        conversation_filter = None
+        text = raw_message_for_anchor  # bypass the contextual-query rewriter
+
     if hard_filters_on and isinstance(conversation_filter, Filter):
         # Conversation state is authoritative, including an empty Filter after
         # the user explicitly cancels conditions inherited from earlier turns.
