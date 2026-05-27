@@ -320,22 +320,53 @@ def compute_due_items(
             conn.execute("ROLLBACK")
             raise
 
-    out: list[dict] = []
+    # Gather raw products first so we can batch-normalize prices through
+    # the FX layer in one pass — same pattern as chat.py:417 and
+    # rag_client.py:173. **R8.F.2 BUG FIX**: previously the reminder
+    # response embedded the raw catalog JSON, which has no `price_cny`
+    # field (that's computed at runtime by `normalize_product_prices`).
+    # Foreign-priced items therefore landed in the cart with
+    # `unitPriceCNY = nil`, which is what fed the iOS Checkout view's
+    # "unresolved foreign currency" bucket. Running products through
+    # the same normalization the chat route uses keeps the two flows
+    # consistent — every product card in the app gets the same CNY
+    # treatment whether it came from RAG retrieval or a reminder.
+    raw_pairs: list[tuple[int, int, dict, int]] = []  # (row_id, next_due, product, days_overdue)
+    raw_products: list[dict] = []
     for r in rows:
         product = _product_metadata(r["product_id"])
         if product is None:
             # Catalog drifted out from under us — skip rather than crash.
             continue
         days_overdue = max(0, (now - r["next_due_at"]) // 86400)
+        raw_pairs.append((r["id"], r["next_due_at"], product, int(days_overdue)))
+        raw_products.append(product)
+
+    if raw_products:
+        try:
+            from app.services.currency import normalize_product_prices
+
+            normalized = normalize_product_prices(raw_products)
+        except Exception:  # currency service down: fall back to raw catalog data
+            normalized = raw_products
+    else:
+        normalized = []
+
+    out: list[dict] = []
+    for (row_id, next_due, raw_product, days_overdue), product in zip(raw_pairs, normalized):
+        # Re-read purchased_at from rows in the same order
         out.append(
             {
-                "id": r["id"],
-                "product_id": r["product_id"],
+                "id": row_id,
+                "product_id": raw_product["product_id"],
                 "product": _product_for_response(product),
-                "purchased_at": r["purchased_at"],
-                "next_due_at": r["next_due_at"],
-                "days_overdue": int(days_overdue),
-                "reminder_text": _reminder_text(product, int(days_overdue)),
+                "purchased_at": next(
+                    (r["purchased_at"] for r in rows if r["id"] == row_id),
+                    0,
+                ),
+                "next_due_at": next_due,
+                "days_overdue": days_overdue,
+                "reminder_text": _reminder_text(product, days_overdue),
             }
         )
     return out
