@@ -69,8 +69,25 @@ struct ChatView: View {
                         .background(.ultraThinMaterial, in: Capsule())
                         .padding(.top, 8)
                         .transition(.move(edge: .top).combined(with: .opacity))
+                } else if let cartToast = viewModel.repurchaseToast {
+                    // R8.F.2: "已加入购物车" feedback after "再来一单" tap.
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.appAccent)
+                        Text(cartToast)
+                            .font(.appCaption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.top, 8)
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
+            .animation(.easeOut(duration: 0.2), value: viewModel.repurchaseToast)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 14) {

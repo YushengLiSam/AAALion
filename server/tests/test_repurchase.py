@@ -129,11 +129,16 @@ def test_cycle_default_picked_by_category(fresh_db):
     product's category — proves DEFAULT_CYCLE_DAYS_BY_CATEGORY is wired."""
     idx = fresh_db._product_index()
     # Find one beauty product and one electronics product for distinct cycles.
+    # Skip products with their own override field so we test the category default.
     beauty_pid = next(
-        (pid for pid, p in idx.items() if p.get("category") == "美妆护肤"), None
+        (pid for pid, p in idx.items()
+         if p.get("category") == "美妆护肤" and not p.get("repurchase_cycle_days")),
+        None,
     )
     electronics_pid = next(
-        (pid for pid, p in idx.items() if p.get("category") == "数码电子"), None
+        (pid for pid, p in idx.items()
+         if p.get("category") == "数码电子" and not p.get("repurchase_cycle_days")),
+        None,
     )
     if not beauty_pid or not electronics_pid:
         pytest.skip("catalog missing required categories for this test")
@@ -141,9 +146,33 @@ def test_cycle_default_picked_by_category(fresh_db):
     now = int(time.time())
     r1 = fresh_db.record_purchase("u-cycle", beauty_pid, purchased_at=now)
     r2 = fresh_db.record_purchase("u-cycle", electronics_pid, purchased_at=now)
-    # Beauty cycle = 60 days, electronics = 365 days (from constant table).
-    assert r1["next_due_at"] == now + 60 * 86400
+    # R8.F.2: beauty bumped from 60 → 90 days; electronics still 365.
+    assert r1["next_due_at"] == now + 90 * 86400
     assert r2["next_due_at"] == now + 365 * 86400
+
+
+def test_per_product_cycle_override_wins(fresh_db):
+    """R8.F.2: when a product JSON carries `repurchase_cycle_days`,
+    that overrides the category default. Also asserts the override is
+    used when the catalog actually has at least one tuned product."""
+    idx = fresh_db._product_index()
+    # Look for any catalog entry that opted in to a per-product cycle.
+    tuned = next(
+        ((pid, p) for pid, p in idx.items()
+         if isinstance(p.get("repurchase_cycle_days"), int)
+         and p["repurchase_cycle_days"] > 0),
+        None,
+    )
+    if not tuned:
+        pytest.skip("no catalog product has a `repurchase_cycle_days` field yet")
+    pid, product = tuned
+    now = int(time.time())
+    r = fresh_db.record_purchase("u-override", pid, purchased_at=now)
+    expected = now + int(product["repurchase_cycle_days"]) * 86400
+    assert r["next_due_at"] == expected, (
+        f"per-product cycle field should win; got {r['next_due_at']}, "
+        f"expected {expected} (cycle={product['repurchase_cycle_days']})"
+    )
 
 
 # -----------------------------------------------------------------------------

@@ -22,6 +22,10 @@ final class ChatViewModel {
     /// stream. Empty list = nothing to show, banner is hidden.
     /// Backend contract: `docs/REPURCHASE_PLAN.md` §3.2.
     var repurchaseReminders: [RepurchaseReminder] = []
+    /// Toast shown briefly after "再来一单" tap. Drives the small
+    /// "已加入购物车" pill rendered by ChatView. Cleared automatically
+    /// after ~1.5s; the toast is purely an acknowledgement, not a queue.
+    var repurchaseToast: String?
     private let repurchaseService = RepurchaseService()
     private var didFetchReminders = false
 
@@ -187,26 +191,28 @@ final class ChatViewModel {
         }
     }
 
-    /// User tapped "再来一单" on a reminder card. Records a new
-    /// purchase server-side (resets the cycle for that product) and
-    /// pre-fills the composer with a follow-up question so the user
-    /// can keep chatting / browse alternatives.
+    /// User tapped "再来一单" on a reminder card. R8.F.2 fix: this now
+    /// **adds to cart directly** instead of seeding the chat composer
+    /// (which was a shortcut that conflated re-ordering with chatting).
+    /// Semantics:
+    ///   * cart.add() — the same code path as the regular product card
+    ///     "+ 加入购物车" pill, so the cart UI is consistent.
+    ///   * NO POST /repurchase/purchase here — adding to cart is intent,
+    ///     not purchase. The actual `record_purchase` fires at checkout
+    ///     time (CheckoutView's "确认下单" button), so the cycle resets
+    ///     only when the user truly buys.
+    ///   * Banner snooze (24h dedup) is already locked in by the server
+    ///     at the moment GET /reminders returned this row, so the same
+    ///     item won't reappear regardless of this tap.
     func reorderFromReminder(_ reminder: RepurchaseReminder) {
-        // Dismiss locally right away so the user sees responsiveness.
+        CartStore.shared.add(reminder.product)
         repurchaseReminders.removeAll { $0.id == reminder.id }
-        let userId = DeviceIdentity.userId
+        repurchaseToast = "已加入购物车 · \(reminder.product.title)"
         Task { @MainActor in
-            do {
-                _ = try await repurchaseService.recordPurchase(
-                    userId: userId,
-                    productId: reminder.productId
-                )
-                // Seed the composer so the user can continue naturally.
-                if draft.isEmpty {
-                    draft = "我准备再来一单「\(reminder.product.title)」,有什么需要注意的?"
-                }
-            } catch {
-                self.errorMessage = "记录购买失败: \(error.localizedDescription)"
+            try? await Task.sleep(for: .seconds(1.6))
+            // Only clear if no newer toast superseded ours.
+            if repurchaseToast?.contains(reminder.product.title) == true {
+                repurchaseToast = nil
             }
         }
     }

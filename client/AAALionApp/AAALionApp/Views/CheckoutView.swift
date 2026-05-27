@@ -98,7 +98,7 @@ struct CheckoutView: View {
             }
             Section {
                 Button {
-                    confirmed = true
+                    placeOrder()
                 } label: {
                     Text("确认下单 / Place Order (mock)")
                         .font(.appBody.bold())
@@ -143,5 +143,31 @@ struct CheckoutView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+
+    // R8.F.2: "下单" is the moment a purchase truly happens. Persist each
+    // cart line as a repurchase record so the snooze / cycle clock
+    // starts ticking. We fire-and-forget per line (no need to block the
+    // UI on these — checkout is mock anyway), but log failures so a
+    // network blip doesn't silently break the reminder loop later.
+    private func placeOrder() {
+        let userId = DeviceIdentity.userId
+        let service = RepurchaseService()
+        let snapshot = cart.items
+        Task { @MainActor in
+            for line in snapshot {
+                do {
+                    _ = try await service.recordPurchase(
+                        userId: userId,
+                        productId: line.productId
+                    )
+                } catch {
+                    print("[repurchase] checkout record_purchase failed for \(line.productId): \(error.localizedDescription)")
+                }
+            }
+        }
+        // UI flips to success view immediately — purchase POSTs run async
+        // in the background and don't block the user-perceived flow.
+        confirmed = true
     }
 }

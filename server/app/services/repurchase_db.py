@@ -26,20 +26,27 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = REPO_ROOT / "data" / "repurchase.db"
 
 
-# Category → default repurchase cycle in days. Used when the client
-# doesn't supply ``cycle_days`` at purchase time. Tuned for the catalog;
-# extend when adding new categories.
+# Category → default repurchase cycle in days. Conservative baselines —
+# real-world skincare lasts longer than people think; drinks turn over
+# faster. These are FALLBACKS when a product's JSON doesn't carry an
+# explicit `repurchase_cycle_days` field (see `_resolve_cycle_days`).
+#
+# Tuning rationale (R8.F.2):
+#   美妆护肤 was 60d in v1; user feedback flagged that 10-day reminders
+#   for 雅诗兰黛 75ml 精华 are absurd. Real high-end skincare lasts
+#   3-4 months. Bumped category baseline to 90, with individual luxury
+#   products allowed to override upward via the JSON field.
 DEFAULT_CYCLE_DAYS_BY_CATEGORY: dict[str, int] = {
-    "美妆护肤": 60,    # 面霜/精华 平均 2 个月
-    "食品饮料": 30,    # 牛奶/咖啡 平均 1 个月
-    "母婴健康": 30,    # 奶粉/尿不湿 平均 1 个月
-    "食品生活": 30,    # 日用品 平均 1 个月
-    "服饰运动": 365,   # 衣物几乎不复购
-    "数码电子": 365,
+    "美妆护肤": 90,    # 多数面霜/精华 2-3 个月;高端 essence 用 JSON override 到 120
+    "食品饮料": 14,    # 大多数饮品 / 牛奶 2 周;长保质期食品用 JSON override 到 30+
+    "母婴健康": 30,    # 奶粉/尿不湿 1 个月
+    "食品生活": 30,    # 日用品(洗衣液 / 卫生纸)1 个月
+    "服饰运动": 180,   # 运动鞋 / 装备半年补一次
+    "数码电子": 365,   # 电子产品很少复购,几乎不会触发提醒
     "家居家具": 365,
     "图书音像": 365,
 }
-DEFAULT_CYCLE_FALLBACK = 90  # 类目未知或不在表里时的兜底
+DEFAULT_CYCLE_FALLBACK = 90  # 类目未知时的兜底
 
 
 # ---------------------------------------------------------------------------
@@ -143,8 +150,21 @@ def _product_metadata(product_id: str) -> dict | None:
 
 
 def _resolve_cycle_days(product: dict) -> int:
-    """Pick a cycle for a product based on its category. Falls back to
-    ``DEFAULT_CYCLE_FALLBACK`` for unknown categories."""
+    """Pick a cycle for a product, in preference order:
+
+      1. ``product["repurchase_cycle_days"]`` — explicit per-product override
+         in the catalog JSON. Most accurate. Use for products where the
+         category default is obviously wrong (high-end 精华 lasts 120+;
+         dish soap 30; mineral water 7).
+      2. ``DEFAULT_CYCLE_DAYS_BY_CATEGORY[product.category]`` — category
+         baseline. Covers the long tail without manual labelling.
+      3. ``DEFAULT_CYCLE_FALLBACK`` — last-resort for unknown categories.
+
+    Returns a positive int. Invalid / non-positive overrides are ignored.
+    """
+    override = product.get("repurchase_cycle_days")
+    if isinstance(override, (int, float)) and int(override) > 0:
+        return int(override)
     category = product.get("category") or ""
     return DEFAULT_CYCLE_DAYS_BY_CATEGORY.get(category, DEFAULT_CYCLE_FALLBACK)
 
