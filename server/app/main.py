@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import cache_stats, chat, products, health
+from app.routes import cache_stats, chat, products, health, repurchase
 
 log = logging.getLogger("startup")
 
@@ -20,6 +20,15 @@ log = logging.getLogger("startup")
 async def lifespan(app: FastAPI):
     app.state.retrieval_ready = False
     app.state.retrieval_warmup = {"status": "warming"}
+    # Repurchase reminder schema: cheap, sync, idempotent — init before
+    # serving any requests so the first /repurchase/* call doesn't race
+    # with table creation.
+    try:
+        from app.services.repurchase_db import init_schema as _init_repurchase
+
+        await asyncio.to_thread(_init_repurchase)
+    except Exception:  # noqa: BLE001
+        log.exception("Repurchase schema init failed (route will 500 on use)")
     try:
         from app.services.retrieval_readiness import warm_retrieval_pipeline
 
@@ -55,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(products.router)
     app.include_router(cache_stats.router)
+    app.include_router(repurchase.router)
 
     # Serve seed images for the demo (production would put these behind a CDN).
     images_root = settings.repo_root / "data" / "seed"
