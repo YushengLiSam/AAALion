@@ -4,6 +4,9 @@ struct ProductDetailView: View {
     let product: ProductCard
     @State private var cart = CartStore.shared
     @State private var addedToast = false
+    /// Drives the button's "just-tapped" morph — true for ~1.5s after
+    /// adding to cart, then resets so the user could add another one.
+    @State private var justAdded = false
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -44,19 +47,32 @@ struct ProductDetailView: View {
                 } else {
                     disabledStoreLink
                 }
-
-                if addedToast {
-                    Label("已加入购物车 / Added to cart", systemImage: "checkmark.circle.fill")
-                        .font(.appCaption)
-                        .foregroundStyle(Color.appAccent)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
             }
             .padding()
         }
         .background(Color.appBackground.ignoresSafeArea())
         .navigationTitle(product.brand)
         .navigationBarTitleDisplayMode(.inline)
+        // R8.F.5 fix: float the "已加入购物车" toast at the top of the
+        // screen as an overlay (was inside ScrollView so it could land
+        // off-screen if the user was scrolled down). Same look as the
+        // ChatView dev-mode toast — feels native.
+        .overlay(alignment: .top) {
+            if addedToast {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.appAccent)
+                    Text("已加入购物车 / Added to cart")
+                        .font(.appCaption)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: addedToast)
     }
 
     private var priceBlock: some View {
@@ -132,24 +148,44 @@ struct ProductDetailView: View {
     private var addToCartButton: some View {
         Button {
             cart.add(product)
-            let gen = UINotificationFeedbackGenerator()
-            gen.notificationOccurred(.success)
-            withAnimation { addedToast = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                withAnimation { addedToast = false }
+            // R8.F.5: double-up the haptic — medium impact PLUS success
+            // notification. iOS users feel the impact "thunk" reliably even
+            // through a case; the success notification adds a gentle
+            // texture afterward. Together it reads as a real "click +
+            // confirmation" rather than a single subtle pulse.
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+            let success = UINotificationFeedbackGenerator()
+            success.notificationOccurred(.success)
+            // Morph the button itself for ~1.5s — confirmation right where
+            // the user's finger is.
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                justAdded = true
+                addedToast = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    justAdded = false
+                    addedToast = false
+                }
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "cart.badge.plus")
-                Text("加入购物车 / Add to Cart")
+                Image(systemName: justAdded ? "checkmark.circle.fill" : "cart.badge.plus")
+                Text(justAdded ? "已加入购物车 / Added" : "加入购物车 / Add to Cart")
             }
             .font(.appBody.bold())
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(Color.appAccent)
+            // Slightly darker accent during the "just added" state so the
+            // morph reads as confirmation, not a regular state.
+            .background(justAdded ? Color.appAccent.opacity(0.85) : Color.appAccent)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .scaleEffect(justAdded ? 0.97 : 1.0)
         }
+        // Disable double-tap-add by greying out for the morph window.
+        .disabled(justAdded)
     }
 
     private func storeLinkButton(url: URL) -> some View {

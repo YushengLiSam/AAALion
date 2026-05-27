@@ -26,6 +26,10 @@ struct ChatView: View {
     // OFF so users never see infra config.
     @AppStorage("lionpick.devMode") private var devMode: Bool = false
     @State private var devModeToast: String?
+    /// Drives the cart-icon bounce when a new item is added anywhere in
+    /// the app. Watches cart.totalQuantity for upward transitions only —
+    /// remove / decrement does not animate. R8.F.5.
+    @State private var cartIconBounce = false
 
     var body: some View {
         NavigationStack {
@@ -105,8 +109,18 @@ struct ChatView: View {
                                         .background(Color.appAccent)
                                         .clipShape(Capsule())
                                         .offset(x: 10, y: -8)
+                                        // The badge gets its own little pop so the count
+                                        // change is also obviously animated.
+                                        .scaleEffect(cartIconBounce ? 1.25 : 1.0)
                                 }
                             }
+                            // R8.F.5: spring-scale the whole cart cluster when a new
+                            // item lands. Provides feedback even if the user added from
+                            // ProductDetailView (where they can't see the button morph
+                            // because they're scrolled away) or from the repurchase
+                            // banner's "再来一单".
+                            .scaleEffect(cartIconBounce ? 1.18 : 1.0)
+                            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: cartIconBounce)
                         }
                         .accessibilityLabel("Cart")
                         Button {
@@ -137,6 +151,16 @@ struct ChatView: View {
             }
             .sheet(isPresented: $showCart) {
                 CartSheet(cart: cart)
+            }
+            // R8.F.5: bounce the cart toolbar icon whenever totalQuantity
+            // *increases* (item added from anywhere — chat, ProductDetail,
+            // reminder banner). Decrement / remove doesn't animate.
+            .onChange(of: cart.totalQuantity) { oldQty, newQty in
+                guard newQty > oldQty else { return }
+                cartIconBounce = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    cartIconBounce = false
+                }
             }
             .onChange(of: viewModel.cartIntent) { _, intent in
                 guard let intent else { return }
