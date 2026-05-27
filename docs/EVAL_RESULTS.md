@@ -39,6 +39,57 @@ Chroma/PostHog 的 `capture() takes 1 positional argument but 3 were given`
 属于遥测兼容噪声，不影响检索结果；设置 `ANONYMIZED_TELEMETRY=False`
 可避免该输出。
 
+## R8.F.4 (2026-05-26 深夜): 双语 rerank + 英文 query 修复
+
+**现象**: 用户在 iOS 输入「Give me an iPhone」,Banner 上面的卡片**返回了 iPad**。
+后端文字推理说的是 iPhone(catalog 命中),但 product_card 事件推的全是 iPad +
+AirPods + MacBook —— **检索召回 + 排序确实把 iPhone 推到了第 3-5 位**。
+
+**追因 — Codex review 式的逐层验证**:
+
+| 阶段 | 输出 |
+|---|---|
+| BM25 单层 | iPhone 17 Pro #1 (score 4.82) + iPhone Pro Max #2 (4.35) ✓ |
+| Dense BGE 单层 | iPhone Pro 排第 0, Pro Max 第 2 ✓ |
+| RRF 融合 | iPhone Pro 第 1, Pro Max 第 2, iPad 在第 7 ✓ |
+| **Cross-encoder rerank** | **iPad Pro 第 1, AirPods 第 2, iPhone Pro Max 跌到第 3,iPhone Pro 跌到第 5** ✗ |
+
+根因: `BAAI/bge-reranker-base` 是**中文优化的 cross-encoder**,看不懂英文 query
+「Give me an iPhone」的语义,把所有 Apple SKU 视为「差不多相似」→ 按描述长度 / 富词性排,iPad Pro 描述更长所以胜出。**Tujie 的 golden set 全中文,这个 bug 在
+eval 里从来不会触发** —— 这是「**evaluation framework 覆盖盲点 = 真实 bug 隐藏处**」
+模式的又一个真实复现(继 R7+ 反选 silent bug、R8.F brand_origin 拼写 audit 之后)。
+
+**修法 — 语言路由 cross-encoder**:
+
+`rag/retrieve/rerank.py:_pick_model_name()` 按 query 是否含 `[A-Za-z]` 路由:
+- 纯中文 query → `BAAI/bge-reranker-base` (~280 MB, 95 ms CPU) — 保持原 baseline
+- 任何含英文字母 → `BAAI/bge-reranker-v2-m3` (~568 MB, 270 ms CPU) — 多语言能力
+
+**结果**:
+
+| 维度 | 改前(全 base) | 改后(路由) | Delta |
+|---|---:|---:|---|
+| 中文 golden 71 cases recall@5 | 0.983 | **0.981** | -0.2pp(噪声) |
+| 中文 MRR | 0.844 | 0.847 | **+0.3pp** ✓ |
+| 反选准确率 / no_match | 1.000 / 0.942 | 1.000 / 0.942 | 不变 |
+| 英文 5 cases recall@5 | **0** (无 case 测过) → 0.000 实测 | **0.800** (4/5 pass) | **+80pp** ✓ |
+| 全集 76 cases recall@5 | — | 0.969 | (含 EN 后摊薄) |
+| 延迟(CN/EN 平均) | 95 ms | 141 ms | +46 ms |
+
+**新增 5 个英文 case** in `rag/eval/golden.jsonl`, tag = `en-query`,覆盖:
+"Give me an iPhone" / "Recommend a tablet" / "noise cancelling headphones" /
+"best laptop for designers" / "luxury Japanese skincare"。后续如果加 LLM 答辩
+还是要监控这一 slice。
+
+**答辩话术**:
+> 「**eval 盲点 = 真实 bug 隐藏处**:Tujie 的 golden set 全中文,我们 recall@5
+> 0.983,看着漂亮;但用户测试时英文问『Give me an iPhone』,返回了 iPad。
+> 我逐层 trace 发现 BM25/dense/hybrid 都正确,**问题在 cross-encoder rerank**
+> 是中文优化模型,看不懂英文语义。修复用 per-query 语言路由 + 多语言模型 v2-m3,
+> 中文 baseline 0 退步(实际微涨 0.3pp MRR),英文从 0 → 0.800 recall@5。」
+
+---
+
 ## 当前数据 (2026-05-25, stateful multi-turn retrieval + Docker prewarm)
 
 商品库包含 145 件商品、8 个类目。本次结果基于队友刚合入 `main` 的
