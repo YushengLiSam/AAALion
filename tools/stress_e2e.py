@@ -189,6 +189,47 @@ def _build_correctness_cases() -> list[CorrectnessCase]:
             must_contain_any=["iPhone"],  # the anchor filter returns iPhone 17 Pro family
             must_not_contain=["iPad"],
         ),
+        # R8.F.8 — broader topic-switch (not just Apple lines).
+        CorrectnessCase(
+            name="R8.F.8a: skincare → '想买点零食' should return snacks/food, not skincare",
+            messages=[
+                {"role": "user", "content": "推荐适合敏感肌的洁面"},
+                {"role": "assistant", "content": "为您推荐..."},
+                {"role": "user", "content": "我想买点零食"},
+            ],
+            must_contain_any=["KitKat", "巧克力", "饮料", "茶", "薯片", "饼干", "糖", "酱", "速溶"],
+            must_not_contain=["洁面", "面霜", "精华", "护肤"],
+        ),
+        CorrectnessCase(
+            name="R8.F.8b: skincare → 'Nike 跑鞋' should return shoes, not skincare",
+            messages=[
+                {"role": "user", "content": "推荐一款日常洁面"},
+                {"role": "assistant", "content": "..."},
+                {"role": "user", "content": "推荐一双 Nike 跑鞋"},
+            ],
+            must_contain_any=["Nike", "耐克", "跑鞋", "运动鞋"],
+            must_not_contain=["洁面", "面霜", "精华"],
+        ),
+        CorrectnessCase(
+            name="R8.F.8c: digital → '推荐衣服' should return clothing",
+            messages=[
+                {"role": "user", "content": "推荐一台笔记本"},
+                {"role": "assistant", "content": "..."},
+                {"role": "user", "content": "推荐一件外套"},
+            ],
+            must_contain_any=["外套", "夹克", "卫衣", "服"],
+            must_not_contain=["笔记本", "MacBook", "iPad"],
+        ),
+        CorrectnessCase(
+            name="R8.F.8 invariant: 'iPhone' follow-up after iPhone — inheritance keeps working",
+            messages=[
+                {"role": "user", "content": "推荐 iPhone"},
+                {"role": "assistant", "content": "..."},
+                {"role": "user", "content": "再便宜点的"},
+            ],
+            must_contain_any=[],  # only forbidden — make sure we didn't reset on a non-switch
+            must_not_contain=["洁面", "面霜"],
+        ),
     ]
 
 

@@ -108,19 +108,66 @@ def top_k(
     from rag.retrieve.constraints import build_retrieval_filter
     from rag.retrieve.query import Filter
 
-    # R8.F.7: topic-switch detection. When the raw current user message
-    # mentions a known product-line anchor (iPhone / iPad / MacBook /
-    # AirPods / ...), the user has changed topic explicitly — they're no
-    # longer asking about whatever inherited category sits in the
-    # conversation state from earlier turns. Drop the inherited
-    # constraint_filter AND fall back to the raw current message for
-    # retrieval, so a "I want a iPhone 12" after "推荐适合敏感肌的洁面"
-    # doesn't get skincare results back.
-    raw_message_for_anchor = intent_text or text
-    topic_switch = (
-        raw_message_for_anchor is not None
-        and any(a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS)
-    )
+    # R8.F.7 — Topic-switch detection (generalized in R8.F.8).
+    #
+    # Original narrow version only caught Apple product-line anchors
+    # (iPhone / iPad / MacBook / AirPods / ...). User feedback (and the
+    # 'snacks after skincare' regression) showed that's whack-a-mole:
+    # switching to "我想买点零食" or "Nike 跑鞋" still let the inherited
+    # 美妆护肤 filter strand retrieval.
+    #
+    # Generalized to two complementary signals — either flips the switch:
+    #
+    #   Path A  Hard-coded product-LINE anchors (iPhone / iPad / etc.).
+    #           These tokens are SKU-line names that build_retrieval_filter
+    #           doesn't know how to map to a category. Keep the explicit
+    #           list as a safety net.
+    #
+    #   Path B  Re-extract a Filter from the RAW current user message
+    #           (intent_text, NOT the contextual-rewrite'd text). If it
+    #           carries a category / sub_category / brand_include signal
+    #           that differs from the inherited conversation_filter, the
+    #           user has clearly named a new topic — reset.
+    #
+    # Either path firing drops conversation_filter AND substitutes the
+    # raw message for the rewritten text. "再便宜点的"-style follow-ups
+    # (no category/brand signal of their own) still inherit normally.
+    raw_message_for_anchor = intent_text or text or ""
+    topic_switch = False
+
+    # Path A: explicit product-line anchor.
+    if raw_message_for_anchor and any(
+        a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS
+    ):
+        topic_switch = True
+
+    # Path B: only triggers when there IS an inherited filter to potentially
+    # drop. Compares the raw message's category signal to the inherited one.
+    # Avoids over-firing on single-turn queries (which have nothing to drop
+    # anyway, and where forcing `text = raw_message` could lose contextual-
+    # rewriter benefits).
+    if not topic_switch and isinstance(conversation_filter, Filter) and raw_message_for_anchor:
+        inh_cat = conversation_filter.category
+        if inh_cat:
+            # Try the hard-filter extractor first (catches things like
+            # 洗面奶→美妆护肤, 牛奶→食品饮料 from existing _INFERRED_CATEGORIES).
+            try:
+                raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
+            except Exception:
+                raw_filter = None
+            raw_cat = raw_filter.category if raw_filter else None
+            # Fall back to the topic-only hint table for general domain
+            # words (零食 / 跑鞋 / 衣服 / ...) that don't participate in
+            # hard filtering.
+            if not raw_cat:
+                try:
+                    from rag.retrieve.constraints import detect_topic_switch_category
+                    raw_cat = detect_topic_switch_category(raw_message_for_anchor)
+                except Exception:
+                    raw_cat = None
+            if raw_cat and raw_cat != inh_cat:
+                topic_switch = True
+
     if topic_switch:
         conversation_filter = None
         text = raw_message_for_anchor  # bypass the contextual-query rewriter
