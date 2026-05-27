@@ -24,6 +24,7 @@ PATTERNS=(
 # liveness. Block any future reintroduction.
 BLOCKLIST=(
   'ark-2af51d30-ed70-4061-a2cd-74f454ccc4e8'  # PDF Doubao key, deactivated 2026-05-22
+  'ark-7bf37d28-942e-40b4-839d-f9ea281f135e-dd134'  # current live Doubao key, R8.F.3 — never commit
 )
 
 # Files to scan: staged for commit if running pre-commit; else all tracked + dirty.
