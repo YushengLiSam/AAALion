@@ -503,4 +503,34 @@ def test_compute_due_items_p95_under_50ms_at_1000_purchases():
 
 ---
 
-**Status: 设计 freeze。等面试 + 部署完成后启动 Phase 0-5。**
+**Status update (Yusheng 7f15720 / iOS bb6 of this branch):**
+
+Phase 0-5 (server) ✅ + Phase B (client integration) ✅ both shipped.
+
+Shipped (server):
+- `server/app/services/repurchase_db.py` — SQLite + algorithm + tests
+- `server/app/routes/repurchase.py` — 2 endpoints
+- `server/tests/test_repurchase.py` — 7 tests passing in 0.07s
+- 6 e2e curl scenarios all green
+
+Shipped (client, R8.F.1):
+- `client/.../Models/RepurchaseReminder.swift` — Codable types
+- `client/.../Services/DeviceIdentity.swift` — IDFV + UserDefaults
+  cached user_id
+- `client/.../Services/RepurchaseService.swift` — fetch + recordPurchase
+- `client/.../Views/RepurchaseBannerView.swift` — horizontal banner card
+  with bell badge + days-overdue chip + "再来一单" button + dismiss X
+- `client/.../ViewModels/ChatViewModel.swift` — `repurchaseReminders`,
+  `fetchRepurchaseRemindersIfNeeded` (one-shot on view appear),
+  `reorderFromReminder` (POST purchase + seed composer),
+  `dismissReminder` (local-only)
+- `client/.../Views/ChatView.swift` — banner above messageList, fired
+  by `.task` modifier on the NavigationStack
+- xcodebuild simulator → **BUILD SUCCEEDED**
+
+Not yet shipped:
+- Phase C stretch (same-category recommendations / LLM personalized
+  text with cache / routine grouping) — each independently optional
+- Chat-route intent detection that auto-records a purchase when the
+  user says "我买了" — stretch
+- On-device end-to-end demo recording — pending teammate device setup

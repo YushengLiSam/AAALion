@@ -39,8 +39,24 @@ struct ChatView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.red.opacity(0.08))
                 }
+                // Proactive repurchase reminder banner — only renders when
+                // the server returned ≥ 1 due item. Empty list → no UI at
+                // all (no placeholder), so the open-app experience is
+                // unchanged for users who have nothing due.
+                if !viewModel.repurchaseReminders.isEmpty {
+                    RepurchaseBannerView(
+                        reminders: viewModel.repurchaseReminders,
+                        onReorder: { viewModel.reorderFromReminder($0) },
+                        onDismiss: { viewModel.dismissReminder($0) }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 messageList
                 composer
+            }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.repurchaseReminders.count)
+            .task {
+                viewModel.fetchRepurchaseRemindersIfNeeded()
             }
             .navigationTitle("狮选")
             .navigationBarTitleDisplayMode(.inline)

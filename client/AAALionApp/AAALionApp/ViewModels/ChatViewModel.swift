@@ -17,6 +17,14 @@ final class ChatViewModel {
     /// Most recent cart intent emitted by the backend (consumed by ChatView).
     var cartIntent: String? = nil
 
+    /// Proactive repurchase reminders, fetched once when the chat view
+    /// first appears. Rendered as a horizontal banner above the chat
+    /// stream. Empty list = nothing to show, banner is hidden.
+    /// Backend contract: `docs/REPURCHASE_PLAN.md` §3.2.
+    var repurchaseReminders: [RepurchaseReminder] = []
+    private let repurchaseService = RepurchaseService()
+    private var didFetchReminders = false
+
     /// Remaining slots in the composer. Surfaced to ChatView so the
     /// PhotosPicker can ask for `maxSelectionCount: remaining` and the
     /// "+" menu can grey itself out when 0.
@@ -149,6 +157,66 @@ final class ChatViewModel {
     func speakAssistant(text: String) {
         guard !text.isEmpty else { return }
         TTSService.shared.speak(text)
+    }
+
+    // MARK: - Repurchase reminders (open-screen proactive).
+    //
+    // Called once from ChatView.onAppear. We don't poll — snooze
+    // semantics live server-side (24 h dedup), so re-fetching on every
+    // view re-render would only yield "fresh" data after the snooze
+    // window expires anyway.
+
+    /// One-shot fetch of due reminders for the open-screen banner.
+    /// Fails soft — a transport / decode error leaves the banner empty
+    /// rather than triggering a red `errorMessage` (proactive features
+    /// shouldn't yell at the user on every cold launch).
+    func fetchRepurchaseRemindersIfNeeded() {
+        guard !didFetchReminders else { return }
+        didFetchReminders = true
+        let userId = DeviceIdentity.userId
+        Task { @MainActor in
+            do {
+                let items = try await repurchaseService.fetchReminders(userId: userId, limit: 3)
+                self.repurchaseReminders = items
+            } catch {
+                // Silent failure on purpose. Log to console for debug;
+                // production-grade observability would route this to
+                // a metrics endpoint instead.
+                print("[repurchase] reminders fetch failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// User tapped "再来一单" on a reminder card. Records a new
+    /// purchase server-side (resets the cycle for that product) and
+    /// pre-fills the composer with a follow-up question so the user
+    /// can keep chatting / browse alternatives.
+    func reorderFromReminder(_ reminder: RepurchaseReminder) {
+        // Dismiss locally right away so the user sees responsiveness.
+        repurchaseReminders.removeAll { $0.id == reminder.id }
+        let userId = DeviceIdentity.userId
+        Task { @MainActor in
+            do {
+                _ = try await repurchaseService.recordPurchase(
+                    userId: userId,
+                    productId: reminder.productId
+                )
+                // Seed the composer so the user can continue naturally.
+                if draft.isEmpty {
+                    draft = "我准备再来一单「\(reminder.product.title)」,有什么需要注意的?"
+                }
+            } catch {
+                self.errorMessage = "记录购买失败: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    /// User explicitly closed (X) a reminder card. Local-only dismiss;
+    /// server snooze already kicked in when /reminders returned the
+    /// item (mark-shown is automatic on read), so the same item won't
+    /// reappear for 24 h regardless of this action.
+    func dismissReminder(_ reminder: RepurchaseReminder) {
+        repurchaseReminders.removeAll { $0.id == reminder.id }
     }
 
     // MARK: - Voice input.
