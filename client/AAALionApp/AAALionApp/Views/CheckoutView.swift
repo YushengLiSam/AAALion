@@ -101,7 +101,12 @@ struct CheckoutView: View {
                 TextField("电话 / Phone", text: $phone).keyboardType(.phonePad)
                 TextField("地址 / Address", text: $addressLine, axis: .vertical)
             }
-            if hasForeignLine {
+            // R8.F.4 fix: always show the picker as long as the cart has
+            // anything in it. The first cut only surfaced it when the cart
+            // contained a foreign-currency line, but the user reasonably
+            // expects the option to settle a pure-CNY cart in USD too
+            // (e.g. mental conversion for an international invoice).
+            if !cart.items.isEmpty {
                 Section {
                     Picker("结算货币 / Settle in", selection: $settleCurrencyRaw) {
                         ForEach(SettlementCurrency.allCases) { c in
