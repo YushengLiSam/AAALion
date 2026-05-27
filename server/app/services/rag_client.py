@@ -29,6 +29,43 @@ def _negation_signals(text: str) -> bool:
     return any(s in text for s in ("不要", "不含", "不带", "除了", "排除", "no ", "without"))
 
 
+# R8.F.6: well-known Apple product-line tokens the user might type. When
+# any of these shows up in the query, the result list is filtered to only
+# products whose title contains the same token (case-insensitive). This
+# fixes the "iPhone13" → iPad Pro 13英寸 cross-confusion where the digit
+# "13" matched screen size everywhere.
+#
+# Conservative list — only product LINES with one-token names that
+# unambiguously identify the line. "Apple" / "苹果" alone are too broad
+# (the user could mean any Apple product). Galaxy / Pixel etc. can be
+# added when the catalog grows to include them.
+_PRODUCT_LINE_ANCHORS: tuple[str, ...] = (
+    "iphone", "ipad", "macbook", "airpods", "homepod",
+    "imac", "mac mini", "mac studio", "mac pro", "vision pro",
+    "apple watch",
+)
+
+
+def _filter_by_product_line(text: str, candidates: list[dict]) -> list[dict]:
+    """If the user typed a known product-line anchor (e.g. "iPhone"),
+    drop candidates whose title doesn't contain that token. Fail-soft:
+    if filtering leaves nothing, return the original list unchanged so
+    the user always gets something on screen.
+    """
+    if not text or not candidates:
+        return candidates
+    text_lower = text.lower()
+    matched = [a for a in _PRODUCT_LINE_ANCHORS if a in text_lower]
+    if not matched:
+        return candidates
+    filtered: list[dict] = []
+    for p in candidates:
+        title = (p.get("title") or "").lower()
+        if any(a in title for a in matched):
+            filtered.append(p)
+    return filtered if filtered else candidates
+
+
 def _is_specific_query(text: str) -> bool:
     """Fast-path detector: when the query mentions a known catalog brand,
     dense + BM25 hybrid already converges strongly enough that the
@@ -162,6 +199,20 @@ def top_k(
             candidates = candidates[:rerank_limit]
     else:
         candidates = candidates[:rerank_limit]
+
+    # 4.5) Product-line anchor filter (R8.F.6).
+    #
+    # User typed "iPhone13" / "iPhone 13" and got iPad Pro 13英寸. Root cause:
+    # the digit "13" tokenizes the same as "13英寸" (screen size), so iPad
+    # Pro / MacBook 13 inch products scored high on BM25 *and* the
+    # cross-encoder couldn't separate "iPhone 13 model" from "iPad 13 inch"
+    # semantically — both look like "Apple device, 13".
+    #
+    # Fix is product-line aware: if the user explicitly named a product line
+    # (iPhone / iPad / MacBook / AirPods / Watch), require that token to
+    # appear in the result title. Fail-soft: if the filter would empty the
+    # list, keep the original rerank result (we never strand the user).
+    candidates = _filter_by_product_line(text, candidates)
 
     # 5) Re-check hard constraints after retrieval. Foreign-source products
     # receive live CNY values only here, so RMB budgets become strict now.
