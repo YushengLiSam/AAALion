@@ -17,6 +17,12 @@ struct Message: Identifiable, Hashable {
     /// backend as multiple `image_url` parts inside the OpenAI-style
     /// content array.
     var attachments: [Attachment]
+    /// R9.A.5 — proposal #8 fact-check summary. Set when the backend
+    /// emits a `claim_summary` event after streaming the assistant
+    /// reply. iOS renders a small footer "✓ N 条已验证 · ? M 条推断"
+    /// under the message bubble. Nil for messages that don't carry
+    /// markers (older cached replies, error replies, user messages).
+    var claimSummary: ClaimSummary?
 
     init(
         id: UUID = UUID(),
@@ -24,7 +30,8 @@ struct Message: Identifiable, Hashable {
         text: String = "",
         products: [ProductCard] = [],
         isStreaming: Bool = false,
-        attachments: [Attachment] = []
+        attachments: [Attachment] = [],
+        claimSummary: ClaimSummary? = nil
     ) {
         self.id = id
         self.role = role
@@ -32,7 +39,13 @@ struct Message: Identifiable, Hashable {
         self.products = products
         self.isStreaming = isStreaming
         self.attachments = attachments
+        self.claimSummary = claimSummary
     }
+}
+
+struct ClaimSummary: Hashable {
+    let verified: Int
+    let inferred: Int
 }
 
 extension Message {

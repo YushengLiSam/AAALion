@@ -130,6 +130,10 @@ final class ChatViewModel {
                         await MainActor.run { self.appendProduct(card, to: assistantId) }
                     case .cartIntent(let action):
                         await MainActor.run { self.cartIntent = action }
+                    case .claimSummary(let v, let i):
+                        await MainActor.run {
+                            self.setClaimSummary(.init(verified: v, inferred: i), to: assistantId)
+                        }
                     case .error(let message):
                         await MainActor.run { self.errorMessage = message }
                     case .done:
@@ -324,6 +328,11 @@ final class ChatViewModel {
         if autoTTSEnabled {
             maybeSpeakFirstParagraph(messageID: id)
         }
+    }
+
+    private func setClaimSummary(_ summary: ClaimSummary, to id: UUID) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[index].claimSummary = summary
     }
 
     private func appendProduct(_ card: ProductCard, to id: UUID) {

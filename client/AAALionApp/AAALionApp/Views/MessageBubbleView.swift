@@ -59,6 +59,28 @@ struct MessageBubbleView: View {
                         .background(Color.gray.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
+                // R9.A.5 — proposal #8 fact-check footer. Renders only on
+                // assistant messages where the backend emitted a
+                // claim_summary event. Visible per-message claim tally.
+                if message.role == .assistant, let summary = message.claimSummary,
+                   summary.verified + summary.inferred > 0 {
+                    HStack(spacing: 6) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(Color.green)
+                            Text("\(summary.verified) 条已验证")
+                        }
+                        Text("·").foregroundStyle(.secondary)
+                        HStack(spacing: 3) {
+                            Image(systemName: "questionmark.bubble")
+                                .foregroundStyle(Color.orange)
+                            Text("\(summary.inferred) 条推断")
+                        }
+                    }
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                }
                 if !message.products.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {

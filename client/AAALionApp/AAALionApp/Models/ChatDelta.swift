@@ -5,6 +5,9 @@ enum ChatDelta: Decodable {
     case product(ProductCard)
     case cartIntent(String)      // "add" | "checkout"
     case error(String)
+    /// R9.A.5 — proposal #8 fact-check summary. Carries the counts of
+    /// `[目录✓]` and `[推断?]` markers the LLM emitted in this reply.
+    case claimSummary(verified: Int, inferred: Int)
     case done
 
     private enum CodingKeys: String, CodingKey {
@@ -13,6 +16,8 @@ enum ChatDelta: Decodable {
         case product
         case action
         case message
+        case verified
+        case inferred
     }
 
     init(from decoder: Decoder) throws {
@@ -28,6 +33,10 @@ enum ChatDelta: Decodable {
             self = .cartIntent(action)
         case "error":
             self = .error(try container.decode(String.self, forKey: .message))
+        case "claim_summary":
+            let v = (try? container.decode(Int.self, forKey: .verified)) ?? 0
+            let i = (try? container.decode(Int.self, forKey: .inferred)) ?? 0
+            self = .claimSummary(verified: v, inferred: i)
         case "done":
             self = .done
         default:

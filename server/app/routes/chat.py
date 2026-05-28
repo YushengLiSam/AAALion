@@ -208,6 +208,53 @@ def _product_card_event(p: dict) -> dict:
 _ADD_TO_CART = re.compile(r"加入?购物?车|加购|加入车|放购物?车")
 _CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单")
 
+# R9.A.5 — comparison-intent detector (proposal #10). When the user asks
+# to compare two specific products ("A 和 B 哪个更好 / vs / 对比"), we
+# nudge the LLM to emit a structured markdown table — much clearer than
+# a paragraph for side-by-side decisions.
+_COMPARISON_INTENT = re.compile(r"vs\.?|哪个(?:更|比较)|对比|比一?比|比较一?下|甲乙|哪款")
+
+# R9.A.5 — scene/intent detector (proposal #9, scene builder). When the
+# user names a scenario rather than a category, we steer the LLM to pick
+# 3-4 COMPLEMENTARY products across multiple categories instead of 3
+# variants of one product. Examples that hit:
+#   "露营要带的东西" → 防晒 + 户外鞋 + 食品 + 充电宝
+#   "母亲节送什么" → 护肤 + 数码 + 食品 + 服饰
+#   "新生入学清单" → 笔电 + 书 + 日用品
+_SCENE_KEYWORDS = (
+    "露营", "健身", "新生", "入学", "母亲节", "父亲节", "情人节",
+    "送礼", "送什么", "婚礼", "婚庆", "出差", "旅行", "野餐",
+    "聚会", "派对", "搬家", "结婚", "宝宝", "礼物", "套装",
+)
+
+
+def _is_comparison_query(text: str) -> bool:
+    if not text:
+        return False
+    return _COMPARISON_INTENT.search(text) is not None
+
+
+def _detect_scene(text: str) -> str | None:
+    if not text:
+        return None
+    for kw in _SCENE_KEYWORDS:
+        if kw in text:
+            return kw
+    return None
+
+
+def _count_claim_markers(text: str) -> dict[str, int]:
+    """R9.A.5 — count provenance markers emitted by the LLM (per
+    proposal #8 fact-check). Returns {"verified": N, "inferred": M}.
+    iOS renders a small footer under the assistant bubble showing how
+    many claims of each kind the model produced."""
+    if not text:
+        return {"verified": 0, "inferred": 0}
+    return {
+        "verified": text.count("[目录✓]"),
+        "inferred": text.count("[推断?]"),
+    }
+
 # 纯正则识别用户意图是不是「加购」或「下单」。
 # 匹配到就立刻返回 cart_intent 事件,iOS 收到后**先于 LLM 回复**弹购物车 UI。
 # 这是 4.1 题面要求的购物车流——意图识别**不走 LLM**(LLM 慢且不稳),
@@ -456,7 +503,31 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     cached_events = cache.get(cache_key)
 
     # Build messages + provider ------------------------------------------------
-    system = _PROMPT.format(catalog=_build_catalog(products))
+    # R9.A.5 — query-shape addendums to the system prompt.
+    #   * Comparison intent: nudge the LLM to emit a markdown table for
+    #     side-by-side answers (proposal #10).
+    #   * Scene query: instruct the LLM to pick complementary products
+    #     across categories instead of three variants of one product
+    #     (proposal #9 scene builder).
+    addendum = ""
+    if _is_comparison_query(user_text):
+        addendum += (
+            "\n\n6. **本轮是商品对比**: 用 Markdown 表格输出对比 — "
+            "表头一行,每个商品一列,行包括「价格」「主要特点」「适用场景」「优劣势」。"
+            "示例:\n"
+            "| 维度 | 商品A | 商品B |\n"
+            "| --- | --- | --- |\n"
+            "| 价格 | ¥720 | ¥760 |\n"
+            "| 适用场景 | 熬夜修护 | 日常稳肌 |\n"
+        )
+    scene_kw = _detect_scene(user_text)
+    if scene_kw:
+        addendum += (
+            f"\n\n7. **本轮是场景搭配 ({scene_kw})**: 不要推同类目 3 个,而是从目录里挑 "
+            "3-4 件互补的商品凑成一套(尽量来自不同类目, 比如食品+数码+服饰)。每件用 "
+            "[目录✓] 标注价格/品牌,简短说明该件在该场景中的用途。"
+        )
+    system = _PROMPT.format(catalog=_build_catalog(products)) + addendum
     if _has_image(req.messages):
         last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
         user_content = last_user.model_dump()["content"] if last_user else user_text
@@ -516,6 +587,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             return
 
         # Cache miss: stream from LLM with retry/backoff.
+        assistant_text_chunks: list[str] = []
         try:
             async for delta in _stream_chat_with_retry(provider, history):
                 if await request.is_disconnected():
@@ -524,12 +596,24 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 ev = {"type": "delta", "text": delta}
                 yield _sse(ev)
                 events_to_cache.append(ev)
+                assistant_text_chunks.append(delta)
                 if t_first_delta is None:
                     t_first_delta = time.perf_counter()
         except Exception as e:  # noqa: BLE001
             err = {"type": "error", "message": str(e), "code": "UPSTREAM"}
             yield _sse(err)
             events_to_cache.append(err)
+
+        # R9.A.5 — proposal #8 fact-check: count provenance markers in
+        # the assistant's reply. iOS renders a small footer
+        # "✓ N 条已验证 · ? M 条推断" under the message bubble so the
+        # user sees claim-level transparency without expanding anything.
+        full_text = "".join(assistant_text_chunks)
+        marker_counts = _count_claim_markers(full_text)
+        if marker_counts["verified"] or marker_counts["inferred"]:
+            claim_ev = {"type": "claim_summary", **marker_counts}
+            yield _sse(claim_ev)
+            events_to_cache.append(claim_ev)
 
         for p in products:
             if await request.is_disconnected():
