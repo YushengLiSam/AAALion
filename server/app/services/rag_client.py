@@ -262,7 +262,21 @@ def top_k(
         for q in queries:
             for h in hybrid_topk(q, k=20, f=retrieval_filter):
                 if h.product_id not in seen:
-                    seen[h.product_id] = h.product
+                    # R9.A.2 — attach retrieval signals (rrf_score,
+                    # dense_rank, bm25_rank) onto the product dict so
+                    # chat.py can surface them in the "why this is
+                    # recommended" debug card. Stored in a private
+                    # "_retrieval" key that chat.py strips before the
+                    # client payload (only the cleaned subset goes to
+                    # iOS). Copy the dict to avoid polluting the shared
+                    # catalog stored in Chroma's row cache.
+                    p = dict(h.product)
+                    sig = p.setdefault("_retrieval", {})
+                    sig["rrf_score"] = round(float(h.rrf_score), 4) if h.rrf_score else None
+                    sig["dense_rank"] = h.dense_rank
+                    sig["bm25_rank"] = h.bm25_rank
+                    sig["query"] = q
+                    seen[h.product_id] = p
         candidates = list(seen.values())
     except Exception:
         try:

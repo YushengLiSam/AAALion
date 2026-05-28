@@ -47,6 +47,14 @@ struct ProductDetailView: View {
                 } else {
                     disabledStoreLink
                 }
+
+                // R9.A.2 — "Why this is recommended" debug card. Renders only
+                // when the backend attached retrieval_signals (skipped for
+                // cached responses or pre-R9 product cards). Defensive on
+                // every field — anything nil just doesn't render.
+                if let signals = product.retrievalSignals {
+                    whyRecommendedCard(signals: signals)
+                }
             }
             .padding()
         }
@@ -218,5 +226,93 @@ struct ProductDetailView: View {
         .background(Color.appAccentMuted.opacity(0.3))
         .foregroundStyle(Color.appTextSecondary)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    // R9.A.2 — "Why this is recommended" expandable debug card.
+    // Defense-grade transparency: shows the retrieval signals that
+    // ranked this product, plus the source citation (proposal #5).
+    @ViewBuilder
+    private func whyRecommendedCard(signals: RetrievalSignals) -> some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 10) {
+                // Source citation (proposal #5).
+                if !product.provenance.isDemo {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "book.closed")
+                            .foregroundStyle(Color.appTextSecondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("信源 / Source")
+                                .font(.system(size: 10, weight: .regular, design: .rounded))
+                                .foregroundStyle(Color.appTextSecondary)
+                            Text(product.provenance.sourcePlatform)
+                                .font(.appCaption)
+                            if let urlText = product.provenance.externalURL?.absoluteString,
+                               !urlText.isEmpty {
+                                Text(urlText)
+                                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                                    .foregroundStyle(Color.appAccent)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        Spacer()
+                    }
+                    Divider()
+                }
+                // Plain-language summary line.
+                if !signals.humanSummary.isEmpty {
+                    Text(signals.humanSummary)
+                        .font(.appCaption)
+                        .foregroundStyle(Color.appTextPrimary)
+                }
+                // Detailed rows. Each only renders if non-nil.
+                if let rerankRank = signals.rerankRank {
+                    signalRow(label: "最终排名", value: "#\(rerankRank + 1)")
+                }
+                if let rerankScore = signals.rerankScore {
+                    signalRow(label: "精排得分", value: String(format: "%.3f", rerankScore))
+                }
+                if let denseRank = signals.denseRank {
+                    signalRow(label: "语义检索排名", value: "#\(denseRank + 1)")
+                }
+                if let bm25Rank = signals.bm25Rank {
+                    signalRow(label: "关键词检索排名", value: "#\(bm25Rank + 1)")
+                }
+                if let rrfScore = signals.rrfScore {
+                    signalRow(label: "RRF 融合得分", value: String(format: "%.4f", rrfScore))
+                }
+                if let rerankModel = signals.rerankModel {
+                    signalRow(label: "精排模型", value: rerankModel)
+                }
+                Text("说明: 越靠前(数字小)越相关。语义检索抓「意思」, 关键词检索抓「字面」, 精排是 cross-encoder 做最终重排。")
+                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.appTextSecondary)
+                    .padding(.top, 4)
+            }
+            .padding(.top, 8)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(Color.appAccent)
+                Text("为何推荐这款 / Why this?")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextPrimary)
+            }
+        }
+        .padding(12)
+        .background(Color.appSurfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func signalRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.appCaption)
+                .foregroundStyle(Color.appTextSecondary)
+            Spacer()
+            Text(value)
+                .font(.appCaption.monospacedDigit())
+                .foregroundStyle(Color.appTextPrimary)
+        }
     }
 }

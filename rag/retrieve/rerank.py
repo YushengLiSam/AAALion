@@ -124,4 +124,15 @@ def rerank(query: str, candidates: Sequence[dict], top_k: int = 5) -> list[dict]
 
     scores = model.predict(pairs, batch_size=8, show_progress_bar=False)
     ranked = sorted(zip(list(candidates), scores), key=lambda x: float(x[1]), reverse=True)
-    return [p for p, _ in ranked[:top_k]]
+    # R9.A.2 — attach the rerank score to each product dict so chat.py can
+    # surface it on the iOS "why this is recommended" debug card. Stored in
+    # a private "_retrieval" key the chat route reads + strips before
+    # sending to the iOS client.
+    out: list[dict] = []
+    for rank_idx, (p, s) in enumerate(ranked[:top_k]):
+        sig = p.setdefault("_retrieval", {})
+        sig["rerank_score"] = float(s)
+        sig["rerank_rank"] = rank_idx
+        sig["rerank_model"] = model_name
+        out.append(p)
+    return out

@@ -164,6 +164,21 @@ def _provenance(p: dict) -> dict:
 # 一个 LLM 文字回复后通常会跟着 N 个 product_card 事件(N = top-K = 3 或 5)。
 # 字段精简到 iOS 需要的字段,不外传内部 rag_knowledge 这些。
 def _product_card_event(p: dict) -> dict:
+    # R9.A.2 — surface retrieval signals on the iOS "why this is recommended"
+    # debug card. The `_retrieval` dict is attached upstream in rag_client +
+    # rerank; the chat route picks only the user-facing fields so we don't
+    # leak internal-only fields like `query`.
+    retrieval_signals: dict | None = None
+    raw_retrieval = p.get("_retrieval")
+    if isinstance(raw_retrieval, dict):
+        retrieval_signals = {
+            "rrf_score": raw_retrieval.get("rrf_score"),
+            "dense_rank": raw_retrieval.get("dense_rank"),
+            "bm25_rank": raw_retrieval.get("bm25_rank"),
+            "rerank_score": raw_retrieval.get("rerank_score"),
+            "rerank_rank": raw_retrieval.get("rerank_rank"),
+            "rerank_model": raw_retrieval.get("rerank_model"),
+        }
     return {
         "type": "product_card",
         "product": {
@@ -175,6 +190,7 @@ def _product_card_event(p: dict) -> dict:
             "exchange_rate": p.get("exchange_rate"),
             "image_url": _image_url(p),
             "provenance": _provenance(p),
+            "retrieval_signals": retrieval_signals,
         },
     }
 
