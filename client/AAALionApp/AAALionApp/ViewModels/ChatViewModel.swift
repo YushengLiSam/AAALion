@@ -55,6 +55,16 @@ final class ChatViewModel {
     private var streamTask: Task<Void, Never>?
     private let service: ChatService
 
+    // R9.A.3 — voice-to-cart intent patterns. Mirrors the server-side
+    // _ADD_TO_CART / _CHECKOUT regex in chat.py — kept in sync so a typed
+    // and a spoken "加购" behave identically. Compiled once.
+    static let addCartIntentRegex: NSRegularExpression = {
+        try! NSRegularExpression(pattern: "加入?购物?车|加购|加入车|放购物?车", options: [])
+    }()
+    static let checkoutIntentRegex: NSRegularExpression = {
+        try! NSRegularExpression(pattern: "下单|结(账|算)|去结算|帮我下个?单|买单", options: [])
+    }()
+
     init(service: ChatService = ChatService()) {
         self.service = service
     }
@@ -242,7 +252,29 @@ final class ChatViewModel {
             // from a clean slate.
             self.draft = ""
             SpeechService.shared.onTranscript = { [weak self] text in
-                self?.draft = text
+                guard let self else { return }
+                self.draft = text
+                // R9.A.3 — voice-to-cart: if the live transcript matches a
+                // cart-intent regex (加购 / 加入购物车 / 下单 / 结算 etc.),
+                // fire the cart action directly without waiting for the
+                // user to tap Send. Mirrors ChatGPT's "Hey, add to cart"
+                // shortcut but works in zh-CN.
+                let lower = text.replacingOccurrences(of: " ", with: "")
+                if Self.checkoutIntentRegex.firstMatch(
+                    in: lower,
+                    range: NSRange(lower.startIndex..., in: lower)
+                ) != nil {
+                    self.cartIntent = "checkout"
+                    self.draft = ""
+                    SpeechService.shared.stop()
+                } else if Self.addCartIntentRegex.firstMatch(
+                    in: lower,
+                    range: NSRange(lower.startIndex..., in: lower)
+                ) != nil {
+                    self.cartIntent = "add"
+                    self.draft = ""
+                    SpeechService.shared.stop()
+                }
             }
             SpeechService.shared.onError = { [weak self] msg in
                 self?.errorMessage = msg

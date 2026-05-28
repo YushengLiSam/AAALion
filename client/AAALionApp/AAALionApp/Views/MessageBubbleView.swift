@@ -19,7 +19,11 @@ struct MessageBubbleView: View {
                     attachmentGrid
                 }
                 if !message.text.isEmpty {
-                    Text(message.text)
+                    // R9.A.3 — assistant messages render with claim-provenance
+                    // badges inline. [目录✓] turns green, [推断?] turns amber.
+                    // User messages render plain. Defensive: if the LLM
+                    // didn't emit markers, output is identical to plain text.
+                    Text(renderedMessageText)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(message.role == .user ? Color.accentColor.opacity(0.15) : Color.gray.opacity(0.12))
@@ -99,6 +103,35 @@ struct MessageBubbleView: View {
             }
         }
         .frame(maxWidth: 96 * 5 + 6 * 4, alignment: message.role == .user ? .trailing : .leading)
+    }
+
+    // R9.A.3 — convert raw LLM text into AttributedString with claim
+    // provenance badges. The LLM is instructed to emit `[目录✓]` /
+    // `[推断?]` immediately after each fact (see _PROMPT in chat.py).
+    // We color those markers green / amber so the user sees per-claim
+    // provenance at a glance. Non-assistant messages and assistants that
+    // forgot to emit markers come through unchanged.
+    private var renderedMessageText: AttributedString {
+        var attr = AttributedString(message.text)
+        guard message.role == .assistant else { return attr }
+
+        // Highlight verified markers in green.
+        var search = attr.startIndex..<attr.endIndex
+        while let range = attr[search].range(of: "[目录✓]") {
+            attr[range].foregroundColor = Color.green
+            attr[range].font = .system(size: 11, weight: .bold)
+            search = range.upperBound..<attr.endIndex
+        }
+
+        // Highlight inferred markers in amber.
+        search = attr.startIndex..<attr.endIndex
+        while let range = attr[search].range(of: "[推断?]") {
+            attr[range].foregroundColor = Color.orange
+            attr[range].font = .system(size: 11, weight: .bold)
+            search = range.upperBound..<attr.endIndex
+        }
+
+        return attr
     }
 
     @ViewBuilder
