@@ -12,6 +12,11 @@
 
 LionPick is a native iOS shopping assistant. The FastAPI backend streams responses over SSE, retrieves real products from a vector index (Chroma + `bge-small-zh-v1.5` + OpenCLIP ViT-B/32 on A100), and uses a vision-capable LLM via TokenRouter for grounded generation. Multi-turn dialogue, negation/exclusion, comparison, photo-to-product search, voice input, TTS playback.
 
+> **New to the project, or not an engineer?** Start with the plain-English
+> tour at [`docs/explainers/README.md`](docs/explainers/README.md) —
+> 15 short topic explainers written for anyone with introductory CS, no
+> ML background required.
+
 <br clear="all"/>
 
 ## Live status (2026-05-25 evening, Round 8 — multi-turn negation + cache panel)

@@ -81,6 +81,7 @@ Last touched: **Round 8 (2026-05-25 evening) — multi-turn negation persistence
 | Eval | Sam + Tujie | `rag/eval/core.py` + `rag/eval/golden.jsonl` (59 cases, 49 positive, 10 no-match, 5 multi-turn) | Merged report: recall@5=0.880, MRR=0.828, negation=1.000 |
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
+| Presentation material | Shufeng | `docs/explainers/README.md` | 15 CS-sophomore-friendly explainers; start here for non-engineer audiences |
 
 ---
 
