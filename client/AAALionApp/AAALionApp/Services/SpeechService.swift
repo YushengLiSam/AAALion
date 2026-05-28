@@ -32,12 +32,24 @@ final class SpeechService {
     /// (see `lastTranscript`). If the user stops talking, the recognizer
     /// may still emit "same text" partials from ambient noise — those
     /// must NOT extend the window, or the mic never releases.
-    /// idleTimeout = 1.8 s matches the ChatGPT/Claude iOS app feel.
+    ///
+    /// R9.A.7 — TWO timeouts:
+    ///   * `firstUtteranceTimeout` = 6 s — wait for the user to start
+    ///     speaking. Tapping mic and thinking what to say can easily
+    ///     take 3-5 s; 1.8 s here was killing the recording before
+    ///     the user could open their mouth.
+    ///   * `idleTimeout` = 1.8 s — switches in AFTER the first partial
+    ///     arrives. Now we're confident the user is mid-utterance, so
+    ///     the tighter window catches end-of-speech promptly.
     private var idleTimer: Timer?
+    private let firstUtteranceTimeout: TimeInterval = 6.0
     private let idleTimeout: TimeInterval = 1.8
     /// Last partial transcript seen this session. Used to suppress the
     /// "noise keeps re-firing the same text" idle-timer extension.
     private var lastTranscript: String = ""
+    /// True once the user has produced ANY non-empty partial transcript.
+    /// Drives the timeout switch from firstUtteranceTimeout → idleTimeout.
+    private var hasReceivedFirstUtterance: Bool = false
 
     private(set) var isRecording = false
     var onTranscript: ((String) -> Void)?
@@ -50,14 +62,17 @@ final class SpeechService {
 
     private init() {}
 
-    /// Schedule (or re-schedule) the silence-timeout. Called once at
-    /// `start()` so a tap-with-no-speech still releases, and again on
-    /// every *meaningful* partial result so an active speaker doesn't
-    /// get cut off. Uses RunLoop.main with .common modes so it still
-    /// fires while the user is scrolling the chat view.
+    /// Schedule (or re-schedule) the silence-timeout. Two-stage policy
+    /// (R9.A.7): use the longer firstUtteranceTimeout before any partial
+    /// arrives (give the user time to think + start speaking), then
+    /// switch to the tight idleTimeout once they've started.
+    ///
+    /// Uses RunLoop.main with .common modes so it still fires while the
+    /// user is scrolling.
     private func resetIdleTimer() {
         idleTimer?.invalidate()
-        let t = Timer(timeInterval: idleTimeout, repeats: false) { [weak self] _ in
+        let interval = hasReceivedFirstUtterance ? idleTimeout : firstUtteranceTimeout
+        let t = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
                 // Guard against firing after an explicit stop or after
@@ -133,6 +148,13 @@ final class SpeechService {
                     // lastTranscript` is the cheapest correct guard.
                     if newText != self.lastTranscript {
                         self.lastTranscript = newText
+                        // R9.A.7 — once the first NON-EMPTY transcript
+                        // arrives, switch from the long pre-utterance
+                        // grace window to the tight 1.8s end-of-speech
+                        // window.
+                        if !newText.isEmpty {
+                            self.hasReceivedFirstUtterance = true
+                        }
                         self.resetIdleTimer()
                     }
                 }
@@ -172,6 +194,7 @@ final class SpeechService {
         task = nil
         isRecording = false
         lastTranscript = ""
+        hasReceivedFirstUtterance = false
         // Release the audio session so subsequent sessions start clean.
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         // R8.E-VOICE-FIX: notify the ViewModel so its own `isRecording`
