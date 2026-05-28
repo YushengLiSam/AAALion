@@ -181,7 +181,49 @@ def top_k(
             raw_cat and inh_brands and not raw_brands and raw_cat != inh_cat
         )
 
-        if cat_conflict or brand_conflict or category_vs_brand_conflict:
+        # R9.A.1 — Path C: sub_categories conflict.
+        # The leakiest dimension per Sam's CONTEXT_CONTAMINATION_DIAGNOSIS.md.
+        # Inherited sub_categories from an earlier turn (e.g. ['洁面']
+        # from "推荐适合敏感肌的洁面") survive through unrelated turns
+        # (iPad / 鞋子 / 纸尿片) because none of them produce a category
+        # signal AND none mention 洁面. By turn 5, the final query
+        # "护肤品" matches the inherited category (美妆护肤) so
+        # cat_conflict above doesn't fire — but sub_categories=['洁面']
+        # is still there, narrowing retrieval to a single product class.
+        #
+        # Detection: inherited has sub_categories AND
+        #   (a) current raw turn extracts its OWN sub_categories that
+        #       don't intersect the inherited ones, OR
+        #   (b) current turn produced no sub_categories AND its text
+        #       doesn't mention any inherited sub_category token AND
+        #       it carries a fresh topical signal (category or brand).
+        # Case (b) treats "iPad" / "护肤品" / etc. as topic switches
+        # without false-positive-ing on "再便宜点的" follow-ups (which
+        # have no category/brand signal of their own).
+        inh_sub_cats = list(conversation_filter.sub_categories or [])
+        if conversation_filter.sub_category and conversation_filter.sub_category not in inh_sub_cats:
+            inh_sub_cats.append(conversation_filter.sub_category)
+        raw_sub_cats: list[str] = []
+        if raw_filter is not None:
+            raw_sub_cats = list(raw_filter.sub_categories or [])
+            if raw_filter.sub_category and raw_filter.sub_category not in raw_sub_cats:
+                raw_sub_cats.append(raw_filter.sub_category)
+
+        sub_conflict = False
+        if inh_sub_cats:
+            text_mentions_inherited = any(
+                tok and tok in raw_message_for_anchor for tok in inh_sub_cats
+            )
+            if raw_sub_cats:
+                # Case (a): both have sub_cats — conflict if no overlap.
+                sub_conflict = not (set(raw_sub_cats) & set(inh_sub_cats))
+            elif not text_mentions_inherited and (raw_cat or raw_brands):
+                # Case (b): inherited has stale sub_cats, current turn
+                # has a fresh topical signal but doesn't reference any
+                # inherited sub_cat → topic switch.
+                sub_conflict = True
+
+        if cat_conflict or brand_conflict or category_vs_brand_conflict or sub_conflict:
             topic_switch = True
 
     if topic_switch:
