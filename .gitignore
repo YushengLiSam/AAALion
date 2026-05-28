@@ -55,6 +55,10 @@ data/repurchase.db
 data/repurchase.db-journal
 data/repurchase.db-wal
 data/repurchase.db-shm
+data/price_watch.db
+data/price_watch.db-journal
+data/price_watch.db-wal
+data/price_watch.db-shm
 qdrant_storage/
 
 # Logs / temp

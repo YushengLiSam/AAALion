@@ -8,6 +8,14 @@ struct ProductDetailView: View {
     /// adding to cart, then resets so the user could add another one.
     @State private var justAdded = false
     @Environment(\.openURL) private var openURL
+    // R9.A.4 — price-watch state. Modal collects the target price; the
+    // success/error toast is reused via `addedToast` to keep the UX
+    // consistent.
+    @State private var showPriceWatchSheet = false
+    @State private var priceWatchTargetText: String = ""
+    @State private var priceWatchSubmitting = false
+    @State private var priceWatchError: String?
+    private let priceWatchService = PriceWatchService()
 
     var body: some View {
         ScrollView {
@@ -47,6 +55,9 @@ struct ProductDetailView: View {
                 } else {
                     disabledStoreLink
                 }
+
+                // R9.A.4 — "Notify me on price drop" button.
+                priceWatchButton
 
                 // R9.A.2 — "Why this is recommended" debug card. Renders only
                 // when the backend attached retrieval_signals (skipped for
@@ -313,6 +324,113 @@ struct ProductDetailView: View {
             Text(value)
                 .font(.appCaption.monospacedDigit())
                 .foregroundStyle(Color.appTextPrimary)
+        }
+    }
+
+    // R9.A.4 — proposal #7 price-tracking.
+    private var priceWatchButton: some View {
+        Button {
+            // Default the modal text to 90% of current price as a sensible
+            // starting point — most users want a small discount, not 50% off.
+            let suggested = max(1, Int((product.displayedPrice * 0.9).rounded()))
+            priceWatchTargetText = String(suggested)
+            priceWatchError = nil
+            showPriceWatchSheet = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "bell.badge")
+                Text("提醒我降价 / Notify me on price drop")
+            }
+            .font(.appCaption)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.appAccentMuted.opacity(0.5))
+            .foregroundStyle(Color.appTextPrimary)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .sheet(isPresented: $showPriceWatchSheet) {
+            priceWatchSheet
+                .presentationDetents([.medium])
+        }
+    }
+
+    private var priceWatchSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text("当前价格").foregroundStyle(Color.appTextSecondary)
+                        Spacer()
+                        Text("¥\(String(format: "%.2f", product.displayedPrice))")
+                            .font(.appBody.monospacedDigit())
+                    }
+                    HStack(spacing: 4) {
+                        Text("¥")
+                            .foregroundStyle(Color.appTextSecondary)
+                        TextField("目标价 (例如 \(Int(product.displayedPrice * 0.9))) ", text: $priceWatchTargetText)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(.plain)
+                            .font(.appBody.monospacedDigit())
+                    }
+                    if let err = priceWatchError {
+                        Text(err).font(.appCaption).foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("设置目标价")
+                } footer: {
+                    Text("当该商品价格 ≤ 你设置的目标价,我们会在你下次打开 App 时提醒你。")
+                }
+            }
+            .navigationTitle("提醒我降价")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { showPriceWatchSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        submitPriceWatch()
+                    } label: {
+                        if priceWatchSubmitting {
+                            ProgressView()
+                        } else {
+                            Text("保存")
+                        }
+                    }
+                    .disabled(priceWatchSubmitting)
+                }
+            }
+        }
+    }
+
+    private func submitPriceWatch() {
+        guard let target = Double(priceWatchTargetText.trimmingCharacters(in: .whitespaces)),
+              target > 0 else {
+            priceWatchError = "请输入大于 0 的目标价"
+            return
+        }
+        priceWatchError = nil
+        priceWatchSubmitting = true
+        let userId = DeviceIdentity.userId
+        let productId = product.productId
+        Task { @MainActor in
+            defer { priceWatchSubmitting = false }
+            do {
+                _ = try await priceWatchService.startWatch(
+                    userId: userId,
+                    productId: productId,
+                    targetPriceCNY: target
+                )
+                showPriceWatchSheet = false
+                // Reuse the addedToast pattern.
+                withAnimation { addedToast = true }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.6))
+                    withAnimation { addedToast = false }
+                }
+            } catch {
+                priceWatchError = error.localizedDescription
+            }
         }
     }
 }

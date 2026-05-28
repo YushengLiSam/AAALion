@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import cache_stats, chat, currency, products, health, repurchase
+from app.routes import cache_stats, chat, currency, price_watch, products, health, repurchase
 
 log = logging.getLogger("startup")
 
@@ -29,6 +29,13 @@ async def lifespan(app: FastAPI):
         await asyncio.to_thread(_init_repurchase)
     except Exception:  # noqa: BLE001
         log.exception("Repurchase schema init failed (route will 500 on use)")
+    # R9.A.4 — price-watch schema init. Same pattern as repurchase.
+    try:
+        from app.services.price_watch_db import init_schema as _init_price_watch
+
+        await asyncio.to_thread(_init_price_watch)
+    except Exception:  # noqa: BLE001
+        log.exception("Price-watch schema init failed (route will 500 on use)")
     try:
         from app.services.retrieval_readiness import warm_retrieval_pipeline
 
@@ -66,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(cache_stats.router)
     app.include_router(repurchase.router)
     app.include_router(currency.router)
+    app.include_router(price_watch.router)
 
     # Serve seed images for the demo (production would put these behind a CDN).
     images_root = settings.repo_root / "data" / "seed"
