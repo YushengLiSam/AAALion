@@ -2,12 +2,21 @@ import Foundation
 
 enum Config {
     private static let userDefaultsKey = "lionpick.backendURL"
+    /// R9.A — keyed UserDefault that records WHICH baked default URL
+    /// the stored UserDefaults override was set against. If the app
+    /// boots with a different `defaultBackendURL` (because we rebaked
+    /// after the tunnel rotated) we auto-purge the stale override so
+    /// the new default takes effect. Without this, every URL rotation
+    /// would require the user to manually delete the app.
+    private static let userDefaultsBaselineKey = "lionpick.backendURL.bakedAgainst"
 
     /// Backend URL the iOS app talks to.
     ///
     /// Resolution order:
     /// 1. Process env `PUBLIC_BACKEND_URL` (Xcode-scheme debug runs).
-    /// 2. `UserDefaults.standard["lionpick.backendURL"]` (set via Settings sheet).
+    /// 2. `UserDefaults.standard["lionpick.backendURL"]` (set via Settings sheet)
+    ///    — auto-purged on launch if the baseline doesn't match the current
+    ///    baked default (handles tunnel rotation).
     /// 3. `defaultBackendURL` baked at build time.
     ///
     /// Update `defaultBackendURL` only when you redeploy; users change the
@@ -31,7 +40,20 @@ enum Config {
            let url = URL(string: raw) {
             return url
         }
-        if let raw = UserDefaults.standard.string(forKey: userDefaultsKey),
+        // R9.A auto-purge: if the baked default URL changed (e.g. we
+        // rotated the cloudflared quick tunnel), any UserDefault saved
+        // against the old default is stale by definition. Wipe it on
+        // first launch with the new default so we don't fall back to a
+        // dead tunnel. If the user has TYPED a different URL via the
+        // dev-mode Settings sheet, setBackendURL() re-stamps the
+        // baseline so their override survives the next rebake.
+        let defaults = UserDefaults.standard
+        let lastBakedDefault = defaults.string(forKey: userDefaultsBaselineKey)
+        if lastBakedDefault != defaultBackendURL {
+            defaults.removeObject(forKey: userDefaultsKey)
+            defaults.set(defaultBackendURL, forKey: userDefaultsBaselineKey)
+        }
+        if let raw = defaults.string(forKey: userDefaultsKey),
            !raw.isEmpty,
            let url = URL(string: raw) {
             // R8 defensive: a stale `localhost` UserDefault from an earlier
