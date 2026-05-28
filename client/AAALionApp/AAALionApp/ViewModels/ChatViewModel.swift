@@ -17,6 +17,18 @@ final class ChatViewModel {
     /// Most recent cart intent emitted by the backend (consumed by ChatView).
     var cartIntent: String? = nil
 
+    /// Proactive repurchase reminders, fetched once when the chat view
+    /// first appears. Rendered as a horizontal banner above the chat
+    /// stream. Empty list = nothing to show, banner is hidden.
+    /// Backend contract: `docs/REPURCHASE_PLAN.md` §3.2.
+    var repurchaseReminders: [RepurchaseReminder] = []
+    /// Toast shown briefly after "再来一单" tap. Drives the small
+    /// "已加入购物车" pill rendered by ChatView. Cleared automatically
+    /// after ~1.5s; the toast is purely an acknowledgement, not a queue.
+    var repurchaseToast: String?
+    private let repurchaseService = RepurchaseService()
+    private var didFetchReminders = false
+
     /// Remaining slots in the composer. Surfaced to ChatView so the
     /// PhotosPicker can ask for `maxSelectionCount: remaining` and the
     /// "+" menu can grey itself out when 0.
@@ -149,6 +161,68 @@ final class ChatViewModel {
     func speakAssistant(text: String) {
         guard !text.isEmpty else { return }
         TTSService.shared.speak(text)
+    }
+
+    // MARK: - Repurchase reminders (open-screen proactive).
+    //
+    // Called once from ChatView.onAppear. We don't poll — snooze
+    // semantics live server-side (24 h dedup), so re-fetching on every
+    // view re-render would only yield "fresh" data after the snooze
+    // window expires anyway.
+
+    /// One-shot fetch of due reminders for the open-screen banner.
+    /// Fails soft — a transport / decode error leaves the banner empty
+    /// rather than triggering a red `errorMessage` (proactive features
+    /// shouldn't yell at the user on every cold launch).
+    func fetchRepurchaseRemindersIfNeeded() {
+        guard !didFetchReminders else { return }
+        didFetchReminders = true
+        let userId = DeviceIdentity.userId
+        Task { @MainActor in
+            do {
+                let items = try await repurchaseService.fetchReminders(userId: userId, limit: 3)
+                self.repurchaseReminders = items
+            } catch {
+                // Silent failure on purpose. Log to console for debug;
+                // production-grade observability would route this to
+                // a metrics endpoint instead.
+                print("[repurchase] reminders fetch failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// User tapped "再来一单" on a reminder card. R8.F.2 fix: this now
+    /// **adds to cart directly** instead of seeding the chat composer
+    /// (which was a shortcut that conflated re-ordering with chatting).
+    /// Semantics:
+    ///   * cart.add() — the same code path as the regular product card
+    ///     "+ 加入购物车" pill, so the cart UI is consistent.
+    ///   * NO POST /repurchase/purchase here — adding to cart is intent,
+    ///     not purchase. The actual `record_purchase` fires at checkout
+    ///     time (CheckoutView's "确认下单" button), so the cycle resets
+    ///     only when the user truly buys.
+    ///   * Banner snooze (24h dedup) is already locked in by the server
+    ///     at the moment GET /reminders returned this row, so the same
+    ///     item won't reappear regardless of this tap.
+    func reorderFromReminder(_ reminder: RepurchaseReminder) {
+        CartStore.shared.add(reminder.product)
+        repurchaseReminders.removeAll { $0.id == reminder.id }
+        repurchaseToast = "已加入购物车 · \(reminder.product.title)"
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.6))
+            // Only clear if no newer toast superseded ours.
+            if repurchaseToast?.contains(reminder.product.title) == true {
+                repurchaseToast = nil
+            }
+        }
+    }
+
+    /// User explicitly closed (X) a reminder card. Local-only dismiss;
+    /// server snooze already kicked in when /reminders returned the
+    /// item (mark-shown is automatic on read), so the same item won't
+    /// reappear for 24 h regardless of this action.
+    func dismissReminder(_ reminder: RepurchaseReminder) {
+        repurchaseReminders.removeAll { $0.id == reminder.id }
     }
 
     // MARK: - Voice input.

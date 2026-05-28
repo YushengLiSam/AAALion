@@ -45,6 +45,36 @@ _INFERRED_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("食品饮料", ("速溶咖啡", "咖啡", "牛奶")),
 )
 
+# R8.F.8 (expanded in R8.F.8.1): topic-switch ONLY keywords. These are
+# checked by rag_client's topic-switch detector to recognize a domain
+# pivot in the user's raw message. NOT used by hard filtering — adding
+# them above would narrow retrieval too aggressively on single-turn
+# queries.
+TOPIC_SWITCH_HINTS: dict[str, tuple[str, ...]] = {
+    "美妆护肤": ("美妆", "化妆品", "彩妆", "口红"),
+    "数码电子": ("电脑", "智能手表", "音箱"),
+    "服饰运动": ("运动鞋", "跑鞋", "T恤", "外套", "裤子", "衣服", "夹克", "鞋",
+                  "鞋子", "上衣", "短裤"),
+    "食品饮料": ("饮料", "茶", "矿泉水"),
+    "食品生活": ("零食", "巧克力", "饼干", "薯片", "洗衣液", "牙膏", "酱油"),
+    "母婴健康": ("奶粉", "尿不湿", "纸尿裤", "纸尿片", "婴儿用品", "童装", "母婴"),
+    "家居家具": ("沙发", "床", "餐具", "桌椅", "家具"),
+    "图书音像": ("书", "教材"),
+}
+
+
+def detect_topic_switch_category(text: str) -> str | None:
+    """Return a category if the raw text contains a switch-hint keyword.
+    Used by the multi-turn topic-switch detector — does NOT participate
+    in hard filter construction (which would over-narrow single-turn queries).
+    """
+    if not text:
+        return None
+    for cat, words in TOPIC_SWITCH_HINTS.items():
+        if any(w in text for w in words):
+            return cat
+    return None
+
 # A user concept may span several source sub-categories.
 _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
     (("洗面奶", "洁面"), ["洁面"]),

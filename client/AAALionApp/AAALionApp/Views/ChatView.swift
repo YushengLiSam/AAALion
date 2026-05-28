@@ -26,6 +26,10 @@ struct ChatView: View {
     // OFF so users never see infra config.
     @AppStorage("lionpick.devMode") private var devMode: Bool = false
     @State private var devModeToast: String?
+    /// Drives the cart-icon bounce when a new item is added anywhere in
+    /// the app. Watches cart.totalQuantity for upward transitions only —
+    /// remove / decrement does not animate. R8.F.5.
+    @State private var cartIconBounce = false
 
     var body: some View {
         NavigationStack {
@@ -39,8 +43,24 @@ struct ChatView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.red.opacity(0.08))
                 }
+                // Proactive repurchase reminder banner — only renders when
+                // the server returned ≥ 1 due item. Empty list → no UI at
+                // all (no placeholder), so the open-app experience is
+                // unchanged for users who have nothing due.
+                if !viewModel.repurchaseReminders.isEmpty {
+                    RepurchaseBannerView(
+                        reminders: viewModel.repurchaseReminders,
+                        onReorder: { viewModel.reorderFromReminder($0) },
+                        onDismiss: { viewModel.dismissReminder($0) }
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 messageList
                 composer
+            }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.repurchaseReminders.count)
+            .task {
+                viewModel.fetchRepurchaseRemindersIfNeeded()
             }
             .navigationTitle("狮选")
             .navigationBarTitleDisplayMode(.inline)
@@ -53,8 +73,25 @@ struct ChatView: View {
                         .background(.ultraThinMaterial, in: Capsule())
                         .padding(.top, 8)
                         .transition(.move(edge: .top).combined(with: .opacity))
+                } else if let cartToast = viewModel.repurchaseToast {
+                    // R8.F.2: "已加入购物车" feedback after "再来一单" tap.
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.appAccent)
+                        Text(cartToast)
+                            .font(.appCaption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.top, 8)
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
+            .animation(.easeOut(duration: 0.2), value: viewModel.repurchaseToast)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 14) {
@@ -72,8 +109,18 @@ struct ChatView: View {
                                         .background(Color.appAccent)
                                         .clipShape(Capsule())
                                         .offset(x: 10, y: -8)
+                                        // The badge gets its own little pop so the count
+                                        // change is also obviously animated.
+                                        .scaleEffect(cartIconBounce ? 1.25 : 1.0)
                                 }
                             }
+                            // R8.F.5: spring-scale the whole cart cluster when a new
+                            // item lands. Provides feedback even if the user added from
+                            // ProductDetailView (where they can't see the button morph
+                            // because they're scrolled away) or from the repurchase
+                            // banner's "再来一单".
+                            .scaleEffect(cartIconBounce ? 1.18 : 1.0)
+                            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: cartIconBounce)
                         }
                         .accessibilityLabel("Cart")
                         Button {
@@ -104,6 +151,16 @@ struct ChatView: View {
             }
             .sheet(isPresented: $showCart) {
                 CartSheet(cart: cart)
+            }
+            // R8.F.5: bounce the cart toolbar icon whenever totalQuantity
+            // *increases* (item added from anywhere — chat, ProductDetail,
+            // reminder banner). Decrement / remove doesn't animate.
+            .onChange(of: cart.totalQuantity) { oldQty, newQty in
+                guard newQty > oldQty else { return }
+                cartIconBounce = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    cartIconBounce = false
+                }
             }
             .onChange(of: viewModel.cartIntent) { _, intent in
                 guard let intent else { return }
