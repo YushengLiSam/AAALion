@@ -96,8 +96,13 @@ def top_k(
     *,
     conversation_filter=None,
     intent_text: str | None = None,
+    user_id: str | None = None,
 ) -> list[dict]:
-    """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products."""
+    """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products.
+
+    R9.B: when `user_id` is given, a gentle preference prior (from the
+    user's 👍/👎 history) re-orders the final list before truncation.
+    """
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
     rerank_on = os.getenv("RAG_RERANK", "1") == "1"
@@ -373,6 +378,21 @@ def top_k(
                 preference_text,
                 enforce_ranges=not has_price_filter,
             )
+        except Exception:
+            pass
+
+    # 7) R9.B — closed-loop preference prior (proposal #12). Gentle,
+    # bounded re-order by the user's 👍/👎 history. No-ops when the user
+    # has no recorded preferences. Applied LAST so relevance + hard
+    # constraints are already settled; preference only nudges near-ties.
+    pref_on = os.getenv("RAG_PREFERENCES", "1") == "1"
+    if pref_on and user_id:
+        try:
+            from app.services.preferences_db import get_weights
+            from rag.retrieve.preferences import apply_preference_prior
+
+            weights = get_weights(user_id)
+            candidates = apply_preference_prior(candidates, weights)
         except Exception:
             pass
 

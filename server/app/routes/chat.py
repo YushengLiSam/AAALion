@@ -45,6 +45,11 @@ log = logging.getLogger("chat")
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     filters: ChatFilters | None = Field(default=None)
+    # R9.B — anonymous per-device id (iOS identifierForVendor). When
+    # present, the retrieval layer applies this user's 👍/👎 preference
+    # prior. Optional: omitting it just disables personalization for
+    # that request (pure relevance).
+    user_id: str | None = Field(default=None)
 
 
 # 把字典编码成 SSE(Server-Sent Events)标准格式:`data: {json}\n\n`。
@@ -485,6 +490,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             filters=explicit_filters,
             conversation_filter=conversation_filter,
             intent_text=user_text,
+            user_id=req.user_id,
         )
     products = await asyncio.to_thread(normalize_product_prices, products)
     t_retrieval = time.perf_counter()

@@ -59,6 +59,10 @@ data/price_watch.db
 data/price_watch.db-journal
 data/price_watch.db-wal
 data/price_watch.db-shm
+data/preferences.db
+data/preferences.db-journal
+data/preferences.db-wal
+data/preferences.db-shm
 qdrant_storage/
 
 # Logs / temp
