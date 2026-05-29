@@ -33,7 +33,7 @@ enum Config {
     // For Mac-side dev (simulator), `PUBLIC_BACKEND_URL=http://localhost:8000`
     // env var in the Xcode scheme overrides this to avoid round-tripping
     // through the public internet.
-    static let defaultBackendURL = "https://motor-unlikely-trees-expansion.trycloudflare.com"
+    static let defaultBackendURL = "https://actions-funeral-treating-trigger.trycloudflare.com"
 
     static var backendURL: URL {
         if let raw = ProcessInfo.processInfo.environment["PUBLIC_BACKEND_URL"],
