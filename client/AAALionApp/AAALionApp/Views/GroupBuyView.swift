@@ -143,8 +143,15 @@ struct GroupBuyView: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                // Native share invite.
-                ShareLink(item: inviteText(g)) {
+                // Native share invite. R9.B-FIX: share a URL (not a bare
+                // String) + a message — WeChat / 微信's share extension
+                // accepts URLs reliably but often rejects loose text, which
+                // is why "invite to WeChat" failed before.
+                ShareLink(
+                    item: inviteURL(g),
+                    subject: Text("狮选拼单邀请"),
+                    message: Text(inviteText(g))
+                ) {
                     Label("邀请好友拼单 / Invite friends", systemImage: "square.and.arrow.up")
                         .font(.appBody)
                         .frame(maxWidth: .infinity)
@@ -166,7 +173,15 @@ struct GroupBuyView: View {
     }
 
     private func inviteText(_ g: GroupBuy) -> String {
-        "我在「狮选 LionPick」发起了拼单：\(product.title)，拼单价 ¥\(String(format: "%.2f", g.groupPriceCNY ?? product.displayedPrice))（立省\(g.discountPct)%）。还差 \(g.remaining) 人，一起拼吧！(group: \(g.groupId))"
+        "我在「狮选 LionPick」发起了拼单：\(product.title)，拼单价 ¥\(String(format: "%.2f", g.groupPriceCNY ?? product.displayedPrice))（立省\(g.discountPct)%）。还差 \(g.remaining) 人，一起拼吧！"
+    }
+
+    /// A shareable URL for the group. WeChat's share extension accepts a
+    /// URL where it rejects bare text, so this is what we hand to ShareLink.
+    /// Points at the backend's group endpoint (resolves to live JSON;
+    /// good enough for a demo invite).
+    private func inviteURL(_ g: GroupBuy) -> URL {
+        Config.backendURL.appendingPathComponent("groupbuy/\(g.groupId)")
     }
 
     // MARK: - Networking

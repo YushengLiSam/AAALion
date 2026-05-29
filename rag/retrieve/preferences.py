@@ -9,9 +9,11 @@ Design intent — GENTLE, VISIBLE, BOUNDED:
   * The reranked list is the relevance backbone. Preference only nudges.
   * Each candidate keeps a base score = (N - rank_index), i.e. 1.0 of
     spacing per position. Preference adds `alpha * sum(matching dim
-    scores)`. With alpha=0.3 and scores clamped to ±10, a strongly-liked
-    brand moves at most ~3 positions — enough to SEE in a demo, not
-    enough to surface an irrelevant product.
+    scores)`. With alpha=0.5 and scores clamped to ±10, a single 👎
+    (brand −2 + category −1 + sub −2 ≈ −5 → −2.5 bonus) already drops a
+    product ~2 positions — visible after ONE tap in a demo — while a
+    strongly-disliked cluster can sink ~5, still bounded so we never
+    surface an irrelevant product above a strong match.
   * Stable sort: ties preserve the original rerank order.
 
 This is deliberately NOT machine learning. It's a transparent additive
@@ -52,7 +54,7 @@ def apply_preference_prior(
     """
     if not weights or len(candidates) <= 1:
         return candidates
-    a = alpha if alpha is not None else float(os.getenv("PREF_ALPHA", "0.3"))
+    a = alpha if alpha is not None else float(os.getenv("PREF_ALPHA", "0.5"))
     n = len(candidates)
     scored: list[tuple[float, int, dict]] = []
     for idx, p in enumerate(candidates):

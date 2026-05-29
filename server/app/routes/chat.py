@@ -501,8 +501,25 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # Cache --------------------------------------------------------------------
     # R8.E: multi-attachment messages now hash the SORTED concat of all
     # image SHAs so the cache key is order-invariant and bounded.
+    # R9.B-FIX: fold the user's CURRENT preference state into the key. The
+    # preference prior (proposal #12) re-orders products inside top_k, but
+    # the response cache replays stored events on a hit — so without this,
+    # tapping 👍/👎 and re-asking the SAME query would replay the stale
+    # (pre-preference) order. Hashing the weights means any change to the
+    # user's preferences busts the cache for that user and a fresh,
+    # re-ranked response is generated. Empty for users with no taps, so
+    # cross-user caching is unaffected.
+    pref_token = ""
+    if req.user_id:
+        try:
+            from app.services.preferences_db import get_weights as _get_weights
+            _w = await asyncio.to_thread(_get_weights, req.user_id)
+            if _w:
+                pref_token = json.dumps(_w, sort_keys=True, ensure_ascii=False)
+        except Exception:
+            pref_token = ""
     cache_key = make_key(
-        system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}",
+        system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}|pref={pref_token}",
         messages_json=req.model_dump_json(),
         image_sha=hash_image_bytes_list(img_bytes_list),
     )

@@ -160,8 +160,11 @@ def create_group(
 
 
 def join_group(group_id: str, user_id: str, *, now: int | None = None) -> dict[str, Any]:
-    """A real user joins (the 'I tapped the invite' path). Idempotent —
-    re-joining is a no-op. Raises ValueError if the group is unknown."""
+    """A real user joins (the '我也来拼 / I tapped the invite' path).
+    Idempotent for the same user_id. In this demo, a real join also
+    materializes any remaining seats with simulated neighbours so the
+    group completes immediately — the satisfying "拼单成功" moment.
+    Raises ValueError if the group is unknown."""
     ts = int(now or time.time())
     conn = _connection()
     with _conn_lock:
@@ -177,36 +180,65 @@ def join_group(group_id: str, user_id: str, *, now: int | None = None) -> dict[s
                 "INSERT INTO group_members (group_id, user_id, kind, joined_at) VALUES (?, ?, 'real', ?)",
                 (group_id, user_id, ts),
             )
+        # Fill any leftover seats with sticky simulated neighbours so the
+        # tap visibly completes the group.
+        _ensure_simulated(conn, g, ts, fill_to_complete=True)
     return get_group(group_id, now=ts)
 
 
-def _simulated_join_count(created_at: int, now: int, target_size: int, real_count: int) -> int:
-    """How many simulated neighbours have 'joined' by `now`. Caps so the
-    total never exceeds target_size − 1 (leave the last seat for a real
-    tap) and never goes negative."""
-    elapsed = max(0, now - created_at)
-    by_time = elapsed // SIM_JOIN_INTERVAL_SEC
-    headroom = max(0, target_size - 1 - real_count)
-    return int(min(by_time, headroom))
+def _ensure_simulated(conn: sqlite3.Connection, g: sqlite3.Row, now: int, *, fill_to_complete: bool = False) -> None:
+    """Persist simulated neighbours as STICKY rows (additive-only — never
+    removed). Without `fill_to_complete`, neighbours trickle in over time
+    (1 per SIM_JOIN_INTERVAL_SEC) up to target_size; with it, all
+    remaining seats fill at once (used by the 我也来拼 tap).
+
+    Sticky persistence is the fix for the 'tap join → neighbour vanishes'
+    bug: because the simulated members are real rows, a subsequent real
+    join can't shrink them back out via dynamic recomputation.
+    Assumes the caller holds `_conn_lock`."""
+    gid = g["group_id"]
+    target = g["target_size"]
+    rows = conn.execute(
+        "SELECT kind FROM group_members WHERE group_id = ?", (gid,)
+    ).fetchall()
+    total = len(rows)
+    cur_sim = sum(1 for r in rows if r["kind"] == "simulated")
+    if total >= target:
+        return
+    if fill_to_complete:
+        desired_total = target
+    else:
+        elapsed = max(0, now - g["created_at"])
+        # Non-sim seats already taken (opener + real joins).
+        non_sim = total - cur_sim
+        by_time = non_sim + (elapsed // SIM_JOIN_INTERVAL_SEC)
+        desired_total = int(min(target, by_time))
+    to_add = max(0, desired_total - total)
+    for i in range(to_add):
+        conn.execute(
+            "INSERT INTO group_members (group_id, user_id, kind, joined_at) VALUES (?, ?, 'simulated', ?)",
+            (gid, f"邻居{cur_sim + i + 1}", now),
+        )
 
 
 def get_group(group_id: str, *, now: int | None = None) -> dict[str, Any]:
-    """Return the group's live state, including the time-derived simulated
-    member count. Marks the group complete/expired as appropriate."""
+    """Return the group's live state. Time-based simulated neighbours are
+    persisted (sticky) on read so progress is monotonic. Marks the group
+    complete/expired as appropriate."""
     ts = int(now or time.time())
     conn = _connection()
     with _conn_lock:
         g = conn.execute("SELECT * FROM groups WHERE group_id = ?", (group_id,)).fetchone()
         if g is None:
             raise ValueError(f"group {group_id!r} not found")
+        # Materialize any neighbours due by now (additive, sticky).
+        _ensure_simulated(conn, g, ts, fill_to_complete=False)
         members = conn.execute(
-            "SELECT user_id, kind, joined_at FROM group_members WHERE group_id = ? ORDER BY joined_at",
+            "SELECT user_id, kind, joined_at FROM group_members WHERE group_id = ? ORDER BY joined_at, id",
             (group_id,),
         ).fetchall()
 
-    real_count = len(members)
-    sim_count = _simulated_join_count(g["created_at"], ts, g["target_size"], real_count)
-    filled = real_count + sim_count
+    filled = len(members)
     expired = ts >= g["expires_at"]
     complete = filled >= g["target_size"]
     status = "complete" if complete else ("expired" if expired else "open")
@@ -219,9 +251,6 @@ def get_group(group_id: str, *, now: int | None = None) -> dict[str, Any]:
         {"user_id": m["user_id"], "kind": m["kind"], "joined_at": m["joined_at"]}
         for m in members
     ]
-    # Render simulated neighbours as anonymized entries.
-    for i in range(sim_count):
-        member_list.append({"user_id": f"邻居{i+1}", "kind": "simulated", "joined_at": None})
 
     return {
         "group_id": group_id,
