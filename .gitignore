@@ -67,6 +67,10 @@ data/group_buy.db
 data/group_buy.db-journal
 data/group_buy.db-wal
 data/group_buy.db-shm
+data/users.db
+data/users.db-journal
+data/users.db-wal
+data/users.db-shm
 qdrant_storage/
 
 # Logs / temp
