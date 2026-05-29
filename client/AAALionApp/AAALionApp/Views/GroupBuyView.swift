@@ -16,6 +16,8 @@ struct GroupBuyView: View {
     @State private var errorText: String?
     @State private var pollTask: Task<Void, Never>?
     @State private var joining = false
+    @State private var showCheckout = false      // R9.B-FIX B1
+    @State private var copiedToast = false        // R9.B-FIX B2
     private let service = GroupBuyService()
 
     var body: some View {
@@ -124,9 +126,24 @@ struct GroupBuyView: View {
     private func actionButtons(_ g: GroupBuy) -> some View {
         VStack(spacing: 10) {
             if g.isComplete {
-                Label("拼单成功，可以去支付（演示）", systemImage: "checkmark.seal.fill")
-                    .font(.appBody)
-                    .foregroundStyle(Color.green)
+                // R9.B-FIX B1: real checkout button (was a static label).
+                // Adds the product to the cart at the group price, then
+                // opens the existing CheckoutView.
+                Button {
+                    CartStore.shared.add(product)
+                    showCheckout = true
+                } label: {
+                    Label("拼单成功 · 去支付（演示）", systemImage: "checkmark.seal.fill")
+                        .font(.appBody.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.green)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .sheet(isPresented: $showCheckout) {
+                    CheckoutView(cart: CartStore.shared)
+                }
             } else {
                 // "I'll join too" fills a seat (acts as the real user tap).
                 Button {
@@ -143,22 +160,39 @@ struct GroupBuyView: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                // Native share invite. R9.B-FIX: share a URL (not a bare
-                // String) + a message — WeChat / 微信's share extension
-                // accepts URLs reliably but often rejects loose text, which
-                // is why "invite to WeChat" failed before.
-                ShareLink(
-                    item: inviteURL(g),
-                    subject: Text("狮选拼单邀请"),
-                    message: Text(inviteText(g))
-                ) {
-                    Label("邀请好友拼单 / Invite friends", systemImage: "square.and.arrow.up")
-                        .font(.appBody)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                        .background(Color.appAccentMuted.opacity(0.4))
-                        .foregroundStyle(Color.appTextPrimary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                // R9.B-FIX B2: share clean, human-readable invite TEXT —
+                // NOT the backend JSON URL (which rendered as mojibake in
+                // WeChat). A real Universal Link awaits the Phase-2 cloud
+                // domain; until then text + a copyable code is the clean
+                // path. Copy button is the reliable fallback if a given
+                // share target is finicky.
+                HStack(spacing: 10) {
+                    ShareLink(item: inviteText(g)) {
+                        Label("邀请好友", systemImage: "square.and.arrow.up")
+                            .font(.appBody)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 11)
+                            .background(Color.appAccentMuted.opacity(0.4))
+                            .foregroundStyle(Color.appTextPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    Button {
+                        UIPasteboard.general.string = inviteText(g)
+                        withAnimation { copiedToast = true }
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.4))
+                            withAnimation { copiedToast = false }
+                        }
+                    } label: {
+                        Label(copiedToast ? "已复制" : "复制邀请", systemImage: copiedToast ? "checkmark" : "doc.on.doc")
+                            .font(.appBody)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 11)
+                            .background(Color.appAccentMuted.opacity(0.4))
+                            .foregroundStyle(Color.appTextPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
                 }
             }
         }
@@ -173,15 +207,18 @@ struct GroupBuyView: View {
     }
 
     private func inviteText(_ g: GroupBuy) -> String {
-        "我在「狮选 LionPick」发起了拼单：\(product.title)，拼单价 ¥\(String(format: "%.2f", g.groupPriceCNY ?? product.displayedPrice))（立省\(g.discountPct)%）。还差 \(g.remaining) 人，一起拼吧！"
-    }
-
-    /// A shareable URL for the group. WeChat's share extension accepts a
-    /// URL where it rejects bare text, so this is what we hand to ShareLink.
-    /// Points at the backend's group endpoint (resolves to live JSON;
-    /// good enough for a demo invite).
-    private func inviteURL(_ g: GroupBuy) -> URL {
-        Config.backendURL.appendingPathComponent("groupbuy/\(g.groupId)")
+        let price = String(format: "%.2f", g.groupPriceCNY ?? product.displayedPrice)
+        // Short, friendly join code derived from the group id (the friend
+        // will type this into the join screen once accounts ship; for now
+        // it makes the invite feel real).
+        let code = "LP-" + g.groupId.uppercased().suffix(5)
+        return """
+        🦁 我在「狮选 LionPick」发起了拼单！
+        \(product.title)
+        拼单价 ¥\(price)（立省\(g.discountPct)%）
+        还差 \(g.remaining) 人就拼成，一起来吧～
+        拼单码：\(code)
+        """
     }
 
     // MARK: - Networking

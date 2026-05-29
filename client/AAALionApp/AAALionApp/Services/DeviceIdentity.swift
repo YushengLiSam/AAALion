@@ -24,6 +24,18 @@ enum DeviceIdentity {
     /// The opaque, stable identifier to send as `user_id` to the backend.
     /// Computed once and cached in UserDefaults.
     static var userId: String {
+        // R10: prefer the signed-in account id so every feature re-keys to
+        // the account (cross-device once Sam's cloud store lands). Falls
+        // back to the anonymous device id when not signed in.
+        if let account = AuthState.shared.user?.userId, !account.isEmpty {
+            return account
+        }
+        return rawDeviceId
+    }
+
+    /// The anonymous per-device id (IDFV-backed), independent of sign-in.
+    /// Used as the migrate-from id when the user first signs in.
+    static var rawDeviceId: String {
         if let cached = UserDefaults.standard.string(forKey: userDefaultsKey),
            !cached.isEmpty {
             return cached

@@ -20,6 +20,10 @@ struct SettingsView: View {
     // R9.B / #12 — my-preferences panel.
     @State private var prefItems: [PreferenceItem] = []
 
+    // R10 — account section.
+    @State private var auth = AuthState.shared
+    @State private var showLogin = false
+
     enum ProbeResult: Equatable {
         case ok(version: String)
         case failed(message: String)
@@ -28,6 +32,34 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // R10 — account section (sign in / out).
+                Section {
+                    if auth.isSignedIn {
+                        HStack {
+                            Image(systemName: "person.crop.circle.fill")
+                                .foregroundStyle(Color.appAccent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(auth.displayName).font(.subheadline)
+                                Text(auth.user?.provider == "apple" ? "Apple 登录" : "手机号登录")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        Button(role: .destructive) { auth.signOut() } label: {
+                            Label("退出登录 / Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } else {
+                        Button { showLogin = true } label: {
+                            Label("登录 / Sign in", systemImage: "person.crop.circle.badge.plus")
+                        }
+                    }
+                } header: {
+                    Text("我的账号 / Account")
+                } footer: {
+                    Text("登录后,你的偏好 / 降价提醒 / 复购记录会跟随账号(未来云端跨设备),并可与好友真实拼单。未登录时按本机匿名 ID 使用。\n" +
+                         "Signed in, your data follows the account (cross-device once the cloud store lands) and real group-buy with friends works.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
                 if devMode {
                     Section {
                         TextField("https://your-tunnel.trycloudflare.com or http://192.168.0.1:8000", text: $backendURLText)
@@ -158,6 +190,9 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showLogin) {
+                LoginView()
             }
             .onAppear {
                 backendURLText = Config.backendURL.absoluteString
