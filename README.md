@@ -1,12 +1,21 @@
-<img align="right" width="140" src="client/AAALionApp/AAALionApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" alt="狮选 LionPick app icon"/>
-
-# 狮选 LionPick
-
-> **基于 RAG 的多模态电商智能导购 AI Agent** · _A RAG-powered multimodal e-commerce shopping agent_
->
-> 团队 / Team: **AAALion** · 比赛 / Competition: ByteDance 2026 AI 全栈挑战赛
->
-> 代码冻结 / Code freeze: 2026-06-10 · 答辩 / Defense: 2026-06-11 → 2026-06-19
+<!-- Header laid out as a table so the icon and the title/subtitle sit in
+     separate cells and never overlap. (A right-floated <img> used to let
+     the subtitle's blockquote bar render across the icon on GitHub.) -->
+<table border="0">
+  <tr>
+    <td width="150" valign="middle" align="center">
+      <img width="130" src="client/AAALionApp/AAALionApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" alt="狮选 LionPick app icon"/>
+    </td>
+    <td valign="middle">
+      <h1>狮选 LionPick</h1>
+      <b>基于 RAG 的多模态电商智能导购 AI Agent</b> · <i>A RAG-powered multimodal e-commerce shopping agent</i>
+      <br/><br/>
+      团队 / Team: <b>AAALion</b> · 比赛 / Competition: ByteDance 2026 AI 全栈挑战赛
+      <br/>
+      代码冻结 / Code freeze: 2026-06-10 · 答辩 / Defense: 2026-06-11 → 2026-06-19
+    </td>
+  </tr>
+</table>
 
 狮选 LionPick 是一款移动端的智能导购 Agent：iOS 原生客户端 + FastAPI 流式后端 + 向量检索 + 多模态大模型。用户可以用文字、语音、相机或图片描述需求，Agent 基于真实商品库进行多轮对话推荐，杜绝幻觉。
 
@@ -17,13 +26,19 @@ LionPick is a native iOS shopping assistant. The FastAPI backend streams respons
 > 15 short topic explainers written for anyone with introductory CS, no
 > ML background required.
 
-<br clear="all"/>
+## Live status (Round 9.A — agentic trust + transparency layer)
 
-## Live status (2026-05-25 evening, Round 8 — multi-turn negation + cache panel)
+**Retrieval headline (unchanged this round): recall@5 0.982 / MRR 0.856 / negation accuracy 1.000 on the audited 68-case golden set.** R9.A added a UX / trust / agentic layer on top of retrieval, so the search metrics above are intentionally flat — the new work is visible in the app, not in the recall numbers.
 
-**Headline: recall@5 0.983 / MRR 0.844 / negation accuracy 1.000 / median latency 68 ms on the audited 71-case set. Multi-turn "不要日系" now persists across turns.**
+**R9.A — 10 new capabilities (Tier 1 + Tier 2 of the innovation backlog), all verified on iPhone 13 Pro:**
+- **Multi-turn topic-switch reset** — "推荐 iPad" → "推荐洗面奶" no longer strands on the inherited category (closes the `sub_categories` contamination class).
+- **Per-claim provenance** — every LLM fact is tagged `[目录✓]` (catalog-verified) or `[推断?]` (inferred), with a per-message "✓ N 已验证 · ? M 推断" footer. Anti-sycophancy.
+- **"Why this is recommended" card** — tap any product to see its dense / BM25 / RRF / rerank scores + source citation (platform + URL).
+- **Voice-to-cart** — say "加入购物车 / 结算" and the cart action fires without tapping Send.
+- **Price-drop watch** — "提醒我降价" on any product; backend SQLite watch + alert endpoint.
+- **Comparison tables, scene/outfit sets, cross-language brand aliasing** (Nike = 耐克).
 
-Latest measured score: **91.5 / 100** ([`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
+Latest measured score: **~93 / 100** (self-assessed; up from R8 91.5 — see [`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
 Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/) (R8 — 9 scenarios including currency norm, stateful, multi-turn negation persistence).
 
 ### Round-by-round delta
@@ -42,6 +57,8 @@ Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/)
 | **R7.4 (2026-05-25, Tujie)** | **Category / brand / RMB-budget filters applied during dense + BM25 retrieval** | **0.981 (64-case)** | **0.846** |
 | **R7.5 (2026-05-25, Tujie)** | **Multi-turn constraint state: inherit / replace / cancel budget and brand filters** | **0.982 (68-case)** | **0.856** |
 | **R7.6 (2026-05-25, Tujie)** | **Docker model bake + startup retrieval prewarm + `/ready` gate** | **0.982 (68-case)** | **0.856** |
+| R8 (2026-05-25 eve, Shufeng) | Cache hit-rate panel, multi-turn negation persistence, brand-origin KR/DE/GB, Cloudflare Tunnel, dev-mode gate, voice idle-stop, multi-attachment (≤10) | 0.880 → 0.982 (carried) | 0.856 |
+| **R9.A (2026-05-28, Shufeng)** | **Agentic/trust layer: topic-switch reset · provenance tags · "why recommended" card · voice-to-cart · price-watch · comparison/scene · cross-lang brand alias** | *UX layer — retrieval flat* | — |
 
 ### Capability matrix
 
@@ -66,6 +83,12 @@ Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/)
 | **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
 | **Eval dashboard (68-case audited/regression golden, per-scenario, HTML)** | ✅ refreshed after multi-turn state | Sam + Tujie | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
 | Physical iPhone 13 Pro deploy | ✅ | Shufeng | weekly `aaalion resign` |
+| **Multi-turn topic-switch reset** (sub_categories contamination fix) | ✅ NEW | Shufeng (R9.A) | [`server/app/services/rag_client.py`](server/app/services/rag_client.py) Path C + [`test_context_contamination.py`](server/tests/test_context_contamination.py) |
+| **Per-claim provenance tags** `[目录✓]` / `[推断?]` + per-message tally | ✅ NEW | Shufeng (R9.A) | [`server/app/routes/chat.py`](server/app/routes/chat.py) prompt + [`MessageBubbleView.swift`](client/AAALionApp/AAALionApp/Views/MessageBubbleView.swift) |
+| **"Why this is recommended" card** (dense / BM25 / RRF / rerank scores + source citation) | ✅ NEW | Shufeng (R9.A) | [`ProductDetailView.swift`](client/AAALionApp/AAALionApp/Views/ProductDetailView.swift) |
+| **Voice-to-cart** ("加入购物车 / 结算" fires the cart action) | ✅ NEW | Shufeng (R9.A) | [`ChatViewModel.swift`](client/AAALionApp/AAALionApp/ViewModels/ChatViewModel.swift) |
+| **Price-drop watch** ("提醒我降价" → SQLite watch + alert) | ✅ NEW | Shufeng (R9.A) | [`price_watch_db.py`](server/app/services/price_watch_db.py) + [`price_watch.py`](server/app/routes/price_watch.py) |
+| **Comparison tables · scene/outfit sets · cross-language brand aliasing** | ✅ NEW | Shufeng (R9.A) | [`chat.py`](server/app/routes/chat.py) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
 
 > **R7.6 measured**: multi-turn retrieval persists or cancels filters correctly; Docker builds cache the text/reranker model weights, and FastAPI completes an end-to-end retrieval warmup before `/ready` succeeds. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md).
 
