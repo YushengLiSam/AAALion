@@ -63,6 +63,10 @@ data/preferences.db
 data/preferences.db-journal
 data/preferences.db-wal
 data/preferences.db-shm
+data/group_buy.db
+data/group_buy.db-journal
+data/group_buy.db-wal
+data/group_buy.db-shm
 qdrant_storage/
 
 # Logs / temp

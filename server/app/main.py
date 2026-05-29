@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.routes import cache_stats, chat, currency, preferences, price_watch, products, health, repurchase
+from app.routes import cache_stats, chat, currency, group_buy, preferences, price_watch, products, health, repurchase
 
 log = logging.getLogger("startup")
 
@@ -43,6 +43,13 @@ async def lifespan(app: FastAPI):
         await asyncio.to_thread(_init_preferences)
     except Exception:  # noqa: BLE001
         log.exception("Preferences schema init failed (route will 500 on use)")
+    # R9.B — group-buy schema init (proposal #11).
+    try:
+        from app.services.group_buy_db import init_schema as _init_group_buy
+
+        await asyncio.to_thread(_init_group_buy)
+    except Exception:  # noqa: BLE001
+        log.exception("Group-buy schema init failed (route will 500 on use)")
     try:
         from app.services.retrieval_readiness import warm_retrieval_pipeline
 
@@ -82,6 +89,7 @@ def create_app() -> FastAPI:
     app.include_router(currency.router)
     app.include_router(price_watch.router)
     app.include_router(preferences.router)
+    app.include_router(group_buy.router)
 
     # Serve seed images for the demo (production would put these behind a CDN).
     images_root = settings.repo_root / "data" / "seed"
