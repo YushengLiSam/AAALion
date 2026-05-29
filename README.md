@@ -109,11 +109,26 @@ python -m rag.eval.run               # CLI: 7 metrics × 3 retrieval strategies
 python -m rag.eval.report            # HTML dashboard → docs/eval_report.html
 ```
 
-### Docker backend on Windows
+### Docker deployment on Windows (copy and run)
+
+Run the following PowerShell block from the repository root. It deploys a
+fully functional local RAG backend without an API key: retrieval, filters,
+currency conversion and product cards are real; only answer generation uses
+the deterministic `echo` provider.
 
 ```powershell
-Copy-Item .env.example server/.env   # add TOKENROUTER_API_KEY, or set LLM_PROVIDER=echo
-docker compose -f server/docker-compose.yml up --build -d
+# Create local config once, then explicitly choose the free smoke-test provider.
+if (-not (Test-Path server/.env)) { Copy-Item .env.example server/.env }
+(Get-Content server/.env -Raw) -replace '(?m)^LLM_PROVIDER=.*$', 'LLM_PROVIDER=echo' |
+  Set-Content server/.env -Encoding UTF8
+
+# Build the model-cached image, persist the Chroma text index, and start services.
+docker compose -f server/docker-compose.yml down
+docker compose -f server/docker-compose.yml build backend
+docker compose -f server/docker-compose.yml run --rm --no-deps backend python -m rag.ingest.run
+docker compose -f server/docker-compose.yml up -d
+
+# Wait until model and full retrieval-path prewarm has completed.
 do {
   Start-Sleep -Seconds 1
   try { $ready = Invoke-RestMethod http://127.0.0.1:8000/ready } catch { $ready = $null }
@@ -121,9 +136,37 @@ do {
 $ready
 ```
 
-The first Docker build downloads and embeds the retrieval model weights into
-the image. The container does not accept chat traffic until `/ready` confirms
-that embedding, BM25, reranking and one complete retrieval path are warmed.
+Open `http://127.0.0.1:8000/docs` to test the API. To switch the running
+deployment to real TokenRouter-generated answers, paste and run this block;
+it prompts for the key without printing it and keeps the key only in the
+gitignored `server/.env` file.
+
+```powershell
+$secureKey = Read-Host "TOKENROUTER_API_KEY" -AsSecureString
+$tokenKey = [System.Net.NetworkCredential]::new("", $secureKey).Password
+$envText = Get-Content server/.env -Raw
+$envText = $envText -replace '(?m)^LLM_PROVIDER=.*$', 'LLM_PROVIDER=tokenrouter'
+if ($envText -match '(?m)^TOKENROUTER_API_KEY=') {
+  $envText = $envText -replace '(?m)^TOKENROUTER_API_KEY=.*$', "TOKENROUTER_API_KEY=$tokenKey"
+} else {
+  $envText += "`r`nTOKENROUTER_API_KEY=$tokenKey`r`n"
+}
+Set-Content server/.env $envText -Encoding UTF8
+Remove-Variable tokenKey, secureKey, envText
+docker compose -f server/docker-compose.yml up -d --force-recreate backend
+do {
+  Start-Sleep -Seconds 1
+  try { $ready = Invoke-RestMethod http://127.0.0.1:8000/ready } catch { $ready = $null }
+} until ($ready.status -eq "ready")
+$ready
+```
+
+The first build downloads and stores the embedding and reranker weights in
+the Docker image. The ingest command writes the Chroma index into `data/.chroma/`
+on the host, so it survives container replacement. Run the ingest command
+again after changing product data. The backend accepts chat traffic only after
+`/ready` confirms embedding, BM25, reranking and one complete retrieval path
+are warmed.
 
 ### Backend URL: how each developer points the app at their own Mac
 

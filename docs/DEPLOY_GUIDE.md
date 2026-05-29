@@ -70,8 +70,13 @@ If you only want UI dev without LLM cost: `LLM_PROVIDER=echo aaalion backend`. T
 On Windows or for an isolated reproducible backend, use Docker instead:
 
 ```powershell
-Copy-Item .env.example server/.env
-docker compose -f server/docker-compose.yml up --build -d
+if (-not (Test-Path server/.env)) { Copy-Item .env.example server/.env }
+(Get-Content server/.env -Raw) -replace '(?m)^LLM_PROVIDER=.*$', 'LLM_PROVIDER=echo' |
+  Set-Content server/.env -Encoding UTF8
+docker compose -f server/docker-compose.yml down
+docker compose -f server/docker-compose.yml build backend
+docker compose -f server/docker-compose.yml run --rm --no-deps backend python -m rag.ingest.run
+docker compose -f server/docker-compose.yml up -d
 do {
   Start-Sleep -Seconds 1
   try { $ready = Invoke-RestMethod http://127.0.0.1:8000/ready } catch { $ready = $null }
@@ -80,7 +85,11 @@ $ready
 ```
 
 The first Docker build caches both retrieval model weights in the image; later
-container starts only load and warm them before accepting chat requests.
+container starts only load and warm them before accepting chat requests. The
+ingest step persists the Chroma text index under `data/.chroma/`; run it again
+after catalog data changes. To enable real TokenRouter-generated answers after
+the no-key smoke deployment, use the secure key switch block in
+[`README.md`](../README.md#docker-deployment-on-windows-copy-and-run).
 
 ## 3. iOS Simulator (5 min)
 

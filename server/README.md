@@ -17,7 +17,10 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 cd server
 cp ../.env.example .env
-docker compose up --build -d
+sed -i 's/^LLM_PROVIDER=.*/LLM_PROVIDER=echo/' .env
+docker compose build backend
+docker compose run --rm --no-deps backend python -m rag.ingest.run
+docker compose up -d
 until curl -fsS http://localhost:8000/ready; do sleep 1; done
 ```
 
@@ -26,6 +29,8 @@ Chroma under `data/.chroma/`; rebuild that index with `python -m rag.ingest.run`
 after changing indexed metadata. The Docker build stores embedding and
 cross-encoder weights in the image; startup performs a complete retrieval
 warmup before `/ready` succeeds or chat traffic is accepted.
+For a copy-and-run Windows PowerShell deployment and TokenRouter switch
+instructions, see the root [`README.md`](../README.md#docker-deployment-on-windows-copy-and-run).
 
 ## Layout
 
