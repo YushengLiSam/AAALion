@@ -16,6 +16,10 @@ struct ProductDetailView: View {
     @State private var priceWatchSubmitting = false
     @State private var priceWatchError: String?
     private let priceWatchService = PriceWatchService()
+    // R9.B / #12 — closed-loop preference. nil = no feedback yet this view,
+    // +1 = liked, -1 = disliked. Drives the button highlight.
+    @State private var prefSignal: Int? = nil
+    private let preferenceService = PreferenceService()
 
     var body: some View {
         ScrollView {
@@ -49,6 +53,10 @@ struct ProductDetailView: View {
                 provenanceCard
 
                 addToCartButton
+
+                // R9.B / #12 — 👍 / 👎 feedback. Taps train the on-backend
+                // per-device preference prior that re-ranks future results.
+                preferenceButtons
 
                 if let url = product.provenance.externalURL {
                     storeLinkButton(url: url)
@@ -325,6 +333,47 @@ struct ProductDetailView: View {
                 .font(.appCaption.monospacedDigit())
                 .foregroundStyle(Color.appTextPrimary)
         }
+    }
+
+    // R9.B / proposal #12 — closed-loop preference feedback.
+    private var preferenceButtons: some View {
+        HStack(spacing: 10) {
+            Button {
+                sendPreference(1)
+            } label: {
+                Label("喜欢", systemImage: prefSignal == 1 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                    .font(.appCaption)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(prefSignal == 1 ? Color.green.opacity(0.18) : Color.appAccentMuted.opacity(0.3))
+                    .foregroundStyle(prefSignal == 1 ? Color.green : Color.appTextSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            Button {
+                sendPreference(-1)
+            } label: {
+                Label("不喜欢", systemImage: prefSignal == -1 ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                    .font(.appCaption)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(prefSignal == -1 ? Color.orange.opacity(0.18) : Color.appAccentMuted.opacity(0.3))
+                    .foregroundStyle(prefSignal == -1 ? Color.orange : Color.appTextSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    private func sendPreference(_ signal: Int) {
+        // Toggle off if tapping the same signal again.
+        let newSignal: Int? = (prefSignal == signal) ? nil : signal
+        withAnimation { prefSignal = newSignal }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        // Only POST a concrete +1/-1 (not the toggle-off). Fire-and-forget;
+        // a network hiccup shouldn't block the UI.
+        guard let s = newSignal else { return }
+        let userId = DeviceIdentity.userId
+        let productId = product.productId
+        Task { try? await preferenceService.sendFeedback(userId: userId, productId: productId, signal: s) }
     }
 
     // R9.A.4 — proposal #7 price-tracking.
