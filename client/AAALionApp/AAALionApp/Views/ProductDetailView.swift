@@ -20,6 +20,8 @@ struct ProductDetailView: View {
     // +1 = liked, -1 = disliked. Drives the button highlight.
     @State private var prefSignal: Int? = nil
     private let preferenceService = PreferenceService()
+    // R9.B / #11 — group-buy modal.
+    @State private var showGroupBuy = false
 
     var body: some View {
         ScrollView {
@@ -53,6 +55,9 @@ struct ProductDetailView: View {
                 provenanceCard
 
                 addToCartButton
+
+                // R9.B / #11 — start a group buy (拼单).
+                groupBuyButton
 
                 // R9.B / #12 — 👍 / 👎 feedback. Taps train the on-backend
                 // per-device preference prior that re-ranks future results.
@@ -332,6 +337,27 @@ struct ProductDetailView: View {
             Text(value)
                 .font(.appCaption.monospacedDigit())
                 .foregroundStyle(Color.appTextPrimary)
+        }
+    }
+
+    // R9.B / proposal #11 — group-buy entry button.
+    private var groupBuyButton: some View {
+        Button {
+            showGroupBuy = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "person.2.fill")
+                Text("发起拼单 · 立省 15% / Start a group buy")
+            }
+            .font(.appCaption)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.appAccent.opacity(0.12))
+            .foregroundStyle(Color.appAccent)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .sheet(isPresented: $showGroupBuy) {
+            GroupBuyView(product: product)
         }
     }
 
