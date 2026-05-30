@@ -42,7 +42,15 @@ if _LEGACY_MODEL and not _FORCE_MODEL:
 @lru_cache(maxsize=4)
 def _model(name: str):
     from sentence_transformers import CrossEncoder
-    return CrossEncoder(name, max_length=256)
+    # R10.perf — max_length is the dominant CPU cost knob for the
+    # cross-encoder (attention is ~quadratic in sequence length). The
+    # reranker doc is title+brand+a description snippet; 256 tokens keeps
+    # the full snippet, 128 truncates the long tail with negligible
+    # relevance loss (title/brand/category carry the signal). Env-tunable
+    # so we can trade a little recall for latency on the CPU VM and revert
+    # instantly. Default 256 = original behaviour.
+    max_len = int(os.getenv("RERANK_MAX_LENGTH", "256"))
+    return CrossEncoder(name, max_length=max_len)
 
 
 def _has_ascii_letter(text: str) -> bool:

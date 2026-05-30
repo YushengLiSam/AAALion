@@ -289,6 +289,15 @@ def _heavy_retrieve(
     rerank_limit = max(k, 20) if has_price_filter else (max(k, 10) if price_on else k)
     fast_path_on = os.getenv("RAG_FAST_PATH", "1") == "1"
     skip_rerank = fast_path_on and _is_specific_query(text) and not negation_on
+    # R10.perf — cap how many candidates the cross-encoder scores. The
+    # cross-encoder cost is ~linear in candidate count, and the hybrid
+    # pool is already RRF-ordered, so the relevant items sit near the top.
+    # Capping the rerank INPUT (not the output) trades a little tail recall
+    # for a big CPU-latency cut on the VM. Env-tunable; 0 = no cap = the
+    # original "rerank all ~20" behaviour.
+    rerank_input_cap = int(os.getenv("RERANK_INPUT_CAP", "0"))
+    if rerank_input_cap > 0 and len(candidates) > rerank_input_cap:
+        candidates = candidates[:rerank_input_cap]
     if rerank_on and len(candidates) > k and not skip_rerank:
         try:
             from rag.retrieve.rerank import rerank
