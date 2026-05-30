@@ -32,7 +32,7 @@ router = APIRouter(prefix="/repurchase", tags=["repurchase"])
 # that doesn't at least look like one to keep the table clean. Accept lower
 # or upper hex + dashes (UUID variants), 16-64 chars to allow custom client
 # ids during dev/test.
-_USER_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{8,64}$")
+_USER_ID_RE = re.compile(r"^[A-Za-z0-9_:.@\-]{8,64}$")
 
 
 class PurchaseRequest(BaseModel):

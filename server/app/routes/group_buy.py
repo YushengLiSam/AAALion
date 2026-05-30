@@ -29,7 +29,7 @@ from app.services.currency import normalize_product_prices
 
 router = APIRouter(prefix="/groupbuy", tags=["groupbuy"])
 
-_USER_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{8,64}$")
+_USER_ID_RE = re.compile(r"^[A-Za-z0-9_:.@\-]{8,64}$")
 
 
 class CreateRequest(BaseModel):

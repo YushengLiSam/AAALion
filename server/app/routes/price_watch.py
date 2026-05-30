@@ -30,8 +30,10 @@ from app.services.currency import normalize_product_prices
 
 router = APIRouter(prefix="/price_watch", tags=["price_watch"])
 
-# Same UUID-ish guard as repurchase.py — accept IDFV-style strings.
-_USER_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{8,64}$")
+# Accept IDFV-style strings AND account-prefixed ids (phone:..., apple:...,
+# pw:user@example.com). R10.bugfix: added ':', '.', '@' so signed-in users
+# whose user_id is `phone:13800001234` don't 400 here.
+_USER_ID_RE = re.compile(r"^[A-Za-z0-9_:.@\-]{8,64}$")
 
 
 class WatchRequest(BaseModel):

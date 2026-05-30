@@ -48,6 +48,17 @@ class PhoneVerifyRequest(BaseModel):
     code: str = Field(min_length=4, max_length=8)
 
 
+class PasswordRegisterRequest(BaseModel):
+    identifier: str = Field(min_length=3, max_length=128)   # email or phone
+    password: str = Field(min_length=6, max_length=128)
+    display_name: str | None = None
+
+
+class PasswordLoginRequest(BaseModel):
+    identifier: str = Field(min_length=3, max_length=128)
+    password: str = Field(min_length=1, max_length=128)
+
+
 class MigrateRequest(BaseModel):
     from_user_id: str = Field(min_length=1, max_length=128)
     to_user_id: str = Field(min_length=1, max_length=128)
@@ -86,6 +97,29 @@ async def phone_verify_endpoint(req: PhoneVerifyRequest) -> dict:
     store = get_user_store()
     try:
         user = await asyncio.to_thread(store.verify_phone, req.phone, req.code)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _with_token(user)
+
+
+@router.post("/register")
+async def password_register_endpoint(req: PasswordRegisterRequest) -> dict:
+    """R10.bugfix — email/phone + password registration (no SMS)."""
+    store = get_user_store()
+    try:
+        user = await asyncio.to_thread(
+            store.register_password, req.identifier, req.password, req.display_name
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _with_token(user)
+
+
+@router.post("/password/login")
+async def password_login_endpoint(req: PasswordLoginRequest) -> dict:
+    store = get_user_store()
+    try:
+        user = await asyncio.to_thread(store.verify_password, req.identifier, req.password)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return _with_token(user)
