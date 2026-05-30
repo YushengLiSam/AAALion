@@ -18,14 +18,42 @@ struct ProductDetailView: View {
     private let priceWatchService = PriceWatchService()
     // R9.B / #12 — closed-loop preference. nil = no feedback yet this view,
     // +1 = liked, -1 = disliked. Drives the button highlight.
+    //
+    // R10.bugfix: persisted in UserDefaults per (userId, productId) so leaving
+    // and re-entering the product page keeps the button state (the server's
+    // dimension scores persist regardless; this is purely UX continuity).
     @State private var prefSignal: Int? = nil
     private let preferenceService = PreferenceService()
+
+    private func prefStorageKey(_ uid: String, _ pid: String) -> String {
+        "lionpick.pref.signal.\(uid).\(pid)"
+    }
+
+    private func loadStoredPrefSignal() {
+        let key = prefStorageKey(DeviceIdentity.userId, product.productId)
+        if UserDefaults.standard.object(forKey: key) == nil {
+            prefSignal = nil
+            return
+        }
+        let v = UserDefaults.standard.integer(forKey: key)   // 0 if unset → coerced to nil above
+        prefSignal = (v == 1 || v == -1) ? v : nil
+    }
+
+    private func persistPrefSignal(_ signal: Int?) {
+        let key = prefStorageKey(DeviceIdentity.userId, product.productId)
+        if let s = signal {
+            UserDefaults.standard.set(s, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
     // R9.B / #11 — group-buy modal.
     @State private var showGroupBuy = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Color.clear.frame(height: 0).onAppear { loadStoredPrefSignal() }
                 AsyncImage(url: product.imageURL) { phase in
                     switch phase {
                     case .success(let image):
@@ -393,6 +421,7 @@ struct ProductDetailView: View {
         // Toggle off if tapping the same signal again.
         let newSignal: Int? = (prefSignal == signal) ? nil : signal
         withAnimation { prefSignal = newSignal }
+        persistPrefSignal(newSignal)         // R10.bugfix — survive view recycle
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         // Only POST a concrete +1/-1 (not the toggle-off). Fire-and-forget;
         // a network hiccup shouldn't block the UI.

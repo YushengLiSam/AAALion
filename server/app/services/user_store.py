@@ -32,8 +32,11 @@ to them.
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
 import json
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -61,6 +64,10 @@ class UserStore(Protocol):
     def verify_apple(self, identity_token: str, display_name: str | None) -> dict[str, Any]: ...
     def start_phone(self, phone: str) -> dict[str, Any]: ...
     def verify_phone(self, phone: str, code: str) -> dict[str, Any]: ...
+    # R10.bugfix — password auth (email/phone + password). Simpler than SMS
+    # for the demo; identifier is an email (contains '@') or a phone (digits).
+    def register_password(self, identifier: str, password: str, display_name: str | None) -> dict[str, Any]: ...
+    def verify_password(self, identifier: str, password: str) -> dict[str, Any]: ...
     def get_user(self, user_id: str) -> dict[str, Any] | None: ...
     def migrate(self, from_user_id: str, to_user_id: str) -> dict[str, Any]: ...
 
@@ -91,10 +98,12 @@ def init_schema() -> None:
         conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS users (
-                user_id      TEXT PRIMARY KEY,   -- 'apple:<sub>' | 'phone:<e164>'
-                provider     TEXT NOT NULL,      -- 'apple' | 'phone'
+                user_id      TEXT PRIMARY KEY,   -- 'apple:<sub>' | 'phone:<e164>' | 'pw:<identifier>'
+                provider     TEXT NOT NULL,      -- 'apple' | 'phone' | 'password'
                 display_name TEXT,
-                created_at   INTEGER NOT NULL
+                created_at   INTEGER NOT NULL,
+                pw_hash      TEXT,               -- hex(pbkdf2_hmac sha256); only for provider='password'
+                pw_salt      TEXT                -- hex(salt 16 bytes)
             );
             CREATE TABLE IF NOT EXISTS sms_codes (
                 phone      TEXT PRIMARY KEY,
@@ -103,6 +112,14 @@ def init_schema() -> None:
             );
             """
         )
+        # R10.bugfix — idempotent column adds for upgrade-in-place. If the
+        # users table existed before pw_hash/pw_salt, this brings it forward
+        # without dropping data.
+        existing_cols = {row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "pw_hash" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN pw_hash TEXT")
+        if "pw_salt" not in existing_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN pw_salt TEXT")
 
 
 def _reset_for_tests() -> None:
@@ -123,6 +140,29 @@ def _gen_code() -> str:
     in this runtime and we want non-predictable codes anyway)."""
     n = int.from_bytes(os.urandom(4), "big") % 1_000_000
     return f"{n:06d}"
+
+
+_PBKDF2_ITERS = 100_000  # stdlib pbkdf2_hmac; demo-tier security, no new deps.
+_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
+_PHONE_RE_LOCAL = re.compile(r"^\+?\d{6,15}$")
+
+
+def _normalize_identifier(identifier: str) -> str:
+    """Email → lowercased; phone → digits-only with optional leading '+'.
+    Returns "" if neither shape matches."""
+    s = identifier.strip()
+    if _EMAIL_RE.fullmatch(s):
+        return s.lower()
+    if _PHONE_RE_LOCAL.fullmatch(s):
+        return s
+    return ""
+
+
+def _hash_password(password: str, salt_hex: str | None = None) -> tuple[str, str]:
+    """Return (pw_hash_hex, salt_hex). salt is 16 random bytes if not supplied."""
+    salt = bytes.fromhex(salt_hex) if salt_hex else os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERS)
+    return digest.hex(), salt.hex()
 
 
 def _decode_apple_sub(identity_token: str) -> tuple[str, str | None]:
@@ -198,6 +238,54 @@ class LocalUserStore:
             conn.execute("DELETE FROM sms_codes WHERE phone=?", (phone,))
         return self._upsert(f"phone:{phone}", "phone", None)
 
+    def register_password(self, identifier: str, password: str, display_name: str | None) -> dict[str, Any]:
+        ident = _normalize_identifier(identifier)
+        if not ident:
+            raise ValueError("identifier must be an email or phone number")
+        if len(password) < 6:
+            raise ValueError("密码至少 6 位 / password must be ≥ 6 chars")
+        user_id = f"pw:{ident}"
+        ts = int(time.time())
+        pw_hash, pw_salt = _hash_password(password)
+        conn = _connection()
+        with _conn_lock:
+            existing = conn.execute(
+                "SELECT provider, pw_hash FROM users WHERE user_id=?", (user_id,)
+            ).fetchone()
+            if existing is not None and existing["pw_hash"]:
+                raise ValueError("账号已存在,请直接登录 / account already exists, please sign in")
+            if existing is None:
+                conn.execute(
+                    "INSERT INTO users (user_id, provider, display_name, created_at, pw_hash, pw_salt) "
+                    "VALUES (?,?,?,?,?,?)",
+                    (user_id, "password", display_name, ts, pw_hash, pw_salt),
+                )
+            else:
+                conn.execute(
+                    "UPDATE users SET provider='password', display_name=COALESCE(?, display_name), "
+                    "pw_hash=?, pw_salt=? WHERE user_id=?",
+                    (display_name, pw_hash, pw_salt, user_id),
+                )
+        return {"user_id": user_id, "provider": "password", "display_name": display_name}
+
+    def verify_password(self, identifier: str, password: str) -> dict[str, Any]:
+        ident = _normalize_identifier(identifier)
+        if not ident:
+            raise ValueError("identifier must be an email or phone number")
+        user_id = f"pw:{ident}"
+        conn = _connection()
+        with _conn_lock:
+            row = conn.execute(
+                "SELECT display_name, pw_hash, pw_salt FROM users WHERE user_id=?", (user_id,)
+            ).fetchone()
+        if row is None or not row["pw_hash"] or not row["pw_salt"]:
+            raise ValueError("账号或密码错误 / invalid account or password")
+        candidate, _ = _hash_password(password, row["pw_salt"])
+        # Constant-time compare to keep timing leaks off the table.
+        if not hmac.compare_digest(candidate, row["pw_hash"]):
+            raise ValueError("账号或密码错误 / invalid account or password")
+        return {"user_id": user_id, "provider": "password", "display_name": row["display_name"]}
+
     def get_user(self, user_id: str) -> dict[str, Any] | None:
         conn = _connection()
         with _conn_lock:
@@ -271,6 +359,12 @@ class CloudUserStore:
 
     def verify_phone(self, phone: str, code: str) -> dict[str, Any]:
         return self._post("/users/phone/verify", {"phone": phone, "code": code})
+
+    def register_password(self, identifier: str, password: str, display_name: str | None) -> dict[str, Any]:
+        return self._post("/users/password/register", {"identifier": identifier, "password": password, "display_name": display_name})
+
+    def verify_password(self, identifier: str, password: str) -> dict[str, Any]:
+        return self._post("/users/password/login", {"identifier": identifier, "password": password})
 
     def get_user(self, user_id: str) -> dict[str, Any] | None:
         try:

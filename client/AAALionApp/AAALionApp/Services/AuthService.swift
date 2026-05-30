@@ -53,6 +53,23 @@ struct AuthService {
         try await postUser("auth/phone/verify", ["phone": phone, "code": code])
     }
 
+    // MARK: - 邮箱 / 手机号 + 密码 (R10.bugfix — simpler than SMS for the demo)
+
+    func registerPassword(identifier: String, password: String, displayName: String?) async throws -> AuthUser {
+        try await postUser("auth/register", [
+            "identifier": identifier,
+            "password": password,
+            "display_name": displayName as Any,
+        ])
+    }
+
+    func loginPassword(identifier: String, password: String) async throws -> AuthUser {
+        try await postUser("auth/password/login", [
+            "identifier": identifier,
+            "password": password,
+        ])
+    }
+
     // MARK: - migrate anonymous data on first sign-in
 
     func migrate(from: String, to: String) async {

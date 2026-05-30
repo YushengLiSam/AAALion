@@ -25,7 +25,7 @@ from app.services.preferences_db import (
 
 router = APIRouter(prefix="/preferences", tags=["preferences"])
 
-_USER_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{8,64}$")
+_USER_ID_RE = re.compile(r"^[A-Za-z0-9_:.@\-]{8,64}$")
 
 
 class FeedbackRequest(BaseModel):
