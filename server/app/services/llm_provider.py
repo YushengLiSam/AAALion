@@ -102,7 +102,23 @@ class EchoProvider:
 #  Factory
 # --------------------------------------------------------------------------- #
 
+# R10 #4.4⭐⭐ — cache the provider (and therefore its AsyncOpenAI httpx
+# connection pool) for the process lifetime. Previously get_provider() built
+# a NEW client on every request, so every first-token paid a fresh TLS
+# handshake to the upstream. Reusing one client keeps connections alive →
+# lower, more consistent time-to-first-token. Env is stable within a process,
+# so a single instance is safe.
+_provider_singleton: "LLMProvider | None" = None
+
+
 def get_provider() -> LLMProvider:
+    global _provider_singleton
+    if _provider_singleton is None:
+        _provider_singleton = _build_provider()
+    return _provider_singleton
+
+
+def _build_provider() -> LLMProvider:
     requested = (os.getenv("LLM_PROVIDER") or "").lower().strip()
     if not requested:
         if os.getenv("TOKENROUTER_API_KEY"):

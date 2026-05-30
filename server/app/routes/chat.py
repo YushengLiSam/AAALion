@@ -688,6 +688,20 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             )
             return
 
+        # R10 #4.4⭐⭐ — 首屏极速响应 (pipeline ordering). Emit the product
+        # cards FIRST, before the LLM text stream. `products` is already the
+        # fully-reranked production set (computed before this generator), so
+        # this is a pure REORDER — no quality change, and the LLM is still
+        # grounded on the exact same set. Effect: the user sees the goods as
+        # soon as retrieval finishes (~0.3s cache-hit / sub-1s warm) instead
+        # of waiting out the whole LLM generation for the cards to appear.
+        for p in products:
+            if await request.is_disconnected():
+                return
+            ev = _product_card_event(p)
+            yield _sse(ev)
+            events_to_cache.append(ev)
+
         # Cache miss: stream from LLM with retry/backoff.
         assistant_text_chunks: list[str] = []
         try:
@@ -716,13 +730,6 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             claim_ev = {"type": "claim_summary", **marker_counts}
             yield _sse(claim_ev)
             events_to_cache.append(claim_ev)
-
-        for p in products:
-            if await request.is_disconnected():
-                return
-            ev = _product_card_event(p)
-            yield _sse(ev)
-            events_to_cache.append(ev)
 
         done = {"type": "done"}
         yield _sse(done)
