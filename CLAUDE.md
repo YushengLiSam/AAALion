@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **Round 8 (2026-05-25 evening) — multi-turn negation persistence + cache panel**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟).
+Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + backend deployed to the cloud**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟). Full timeline: [`docs/DEV_LOG.md`](docs/DEV_LOG.md).
 
 ---
 
@@ -52,8 +52,10 @@ Last touched: **Round 8 (2026-05-25 evening) — multi-turn negation persistence
 | Thing | Where | How to reach |
 |---|---|---|
 | Repo | `~/Desktop/rag/AAALion-/` on Shufeng's Mac | local |
-| Backend | `uvicorn` on Mac, port `8000`, bound `0.0.0.0` | `aaalion backend` |
-| Mac LAN IP | run `ipconfig getifaddr en0` each session | hardcoded in `client/AAALionApp/AAALionApp/Config.swift` (`defaultBackendURL`); also overridable from the in-app Settings sheet at runtime |
+| **Backend (prod)** | **GCP VM (Yusheng), `systemd`-managed, public HTTPS via Cloudflare tunnel** | tunnel URL baked into `Config.swift`; **ephemeral — changes on tunnel restart**, Yusheng re-broadcasts. Swagger at `/docs`. |
+| Backend (local dev) | `uvicorn` on Mac, port `8000`, bound `0.0.0.0` | `aaalion backend`; point the sim at it with `PUBLIC_BACKEND_URL=http://localhost:8000` |
+| Cloud sync | cloud VM pulls `origin/main` + `systemctl restart` | **Yusheng owns the redeploy** — a merge to main is NOT live on the cloud until he pulls |
+| Mac LAN IP | run `ipconfig getifaddr en0` each session | overridable from the in-app Settings sheet at runtime (long-press gear 1.5 s → dev mode) |
 | iOS app | iPhone 13 Pro UDID `7310469E-E396-5197-9408-FF1AD58D4CF2` | `aaalion ios-device` |
 | Chroma vector DB | in-process, persisted to `data/.chroma/` (gitignored) | implicit |
 | A100 GPU | `ssh uc` (host alias in `~/.ssh/config`) | scope is `~/shufeng/AAALion-/` only |
