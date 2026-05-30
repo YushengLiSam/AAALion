@@ -107,3 +107,4 @@ docs/WECHAT_*.md
 docs/wechat_*.md
 docs/wechat/
 client/AAALionApp/build/
+client/AAALionApp/build-device/
