@@ -84,6 +84,7 @@ Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + bac
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
 | Presentation material | Shufeng | `docs/explainers/README.md` | 15 CS-sophomore-friendly explainers; start here for non-engineer audiences |
+| Market research / competitive | Shufeng | `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` | Built with web research (see Conventions §Web research); see also `docs/PROPOSAL_2026-05-30.md` + R9–R10 documentary `docs/commits/20260530-017-r9-r10-documentary.md` |
 
 ---
 
@@ -228,6 +229,13 @@ Every other recurring hiccup: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.m
   `tools/git-pre-commit.sh`; runs `tools/check-secrets.sh`.
 - **A100 boundary**: every shell on uc must be inside `~/shufeng/AAALion-/`.
   Never `cd ../` past it. Never touch `~/shufeng/cuda-fuzzing/`.
+- **Web research**: this environment has live internet — `WebSearch` /
+  `WebFetch` tools plus a `deep-research` skill (and `general-purpose`
+  agents can search). Use them for competitive analysis, technical
+  state-of-the-art checks, and grounding forward proposals. Always cite
+  sources with URLs + access dates, and label vendor-reported numbers as
+  claims. Worked example: `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` and
+  `docs/PROPOSAL_2026-05-30.md` were both built this way (2026-05-30).
 
 ---
 
