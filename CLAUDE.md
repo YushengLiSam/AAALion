@@ -90,6 +90,7 @@ Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + bac
 | **Accounts / auth** | Shufeng | `server/app/routes/auth.py`, `services/user_store.py` | Apple / 手机号验证码 / 密码; `user_id` may be `phone:…`/`apple:…` (colon-ok, R10.bugfix) |
 | **Group-buy / preferences / price-watch** | Shufeng | `routes/group_buy.py` · `preferences.py` · `price_watch.py` (+ `*_db.py`) | R9.B/R10 closed-loop features; all SQLite |
 | **Scenario coverage (rubric)** | Sam + Shufeng | `routes/chat.py` intent detectors | comparison table / scene builder (#7) / conversational cart-delete (#8); see scenario audit in `docs/DEV_LOG.md` |
+| Market research / competitive | Shufeng | `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` | Built with web research (see Conventions §Web research); see also `docs/PROPOSAL_2026-05-30.md` + R9–R10 documentary `docs/commits/20260530-017-r9-r10-documentary.md` |
 
 ---
 
@@ -264,6 +265,13 @@ Every other recurring hiccup: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.m
   `tools/git-pre-commit.sh`; runs `tools/check-secrets.sh`.
 - **A100 boundary**: every shell on uc must be inside `~/shufeng/AAALion-/`.
   Never `cd ../` past it. Never touch `~/shufeng/cuda-fuzzing/`.
+- **Web research**: this environment has live internet — `WebSearch` /
+  `WebFetch` tools plus a `deep-research` skill (and `general-purpose`
+  agents can search). Use them for competitive analysis, technical
+  state-of-the-art checks, and grounding forward proposals. Always cite
+  sources with URLs + access dates, and label vendor-reported numbers as
+  claims. Worked example: `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` and
+  `docs/PROPOSAL_2026-05-30.md` were both built this way (2026-05-30).
 
 ---
 
