@@ -16,6 +16,9 @@ final class ChatViewModel {
     var isRecording: Bool = false
     /// Most recent cart intent emitted by the backend (consumed by ChatView).
     var cartIntent: String? = nil
+    /// R10 — ordinal carried by a "remove" cart intent ("删掉第二个" → 2;
+    /// -1 means "last"). nil for add / checkout.
+    var cartIntentIndex: Int? = nil
 
     /// Proactive repurchase reminders, fetched once when the chat view
     /// first appears. Rendered as a horizontal banner above the chat
@@ -128,8 +131,11 @@ final class ChatViewModel {
                         await MainActor.run { self.appendText(chunk, to: assistantId) }
                     case .product(let card):
                         await MainActor.run { self.appendProduct(card, to: assistantId) }
-                    case .cartIntent(let action):
-                        await MainActor.run { self.cartIntent = action }
+                    case .cartIntent(let action, let index):
+                        await MainActor.run {
+                            self.cartIntentIndex = index
+                            self.cartIntent = action
+                        }
                     case .claimSummary(let v, let i):
                         await MainActor.run {
                             self.setClaimSummary(.init(verified: v, inferred: i), to: assistantId)

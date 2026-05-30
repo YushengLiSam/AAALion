@@ -3,7 +3,7 @@ import Foundation
 enum ChatDelta: Decodable {
     case text(String)
     case product(ProductCard)
-    case cartIntent(String)      // "add" | "checkout"
+    case cartIntent(String, Int?)   // ("add"|"checkout"|"remove", ordinal index for remove)
     case error(String)
     /// R9.A.5 — proposal #8 fact-check summary. Carries the counts of
     /// `[目录✓]` and `[推断?]` markers the LLM emitted in this reply.
@@ -15,6 +15,7 @@ enum ChatDelta: Decodable {
         case text
         case product
         case action
+        case index
         case message
         case verified
         case inferred
@@ -30,7 +31,8 @@ enum ChatDelta: Decodable {
             self = .product(try container.decode(ProductCard.self, forKey: .product))
         case "cart_intent":
             let action = (try? container.decode(String.self, forKey: .action)) ?? "add"
-            self = .cartIntent(action)
+            let index = try? container.decode(Int.self, forKey: .index)
+            self = .cartIntent(action, index)
         case "error":
             self = .error(try container.decode(String.self, forKey: .message))
         case "claim_summary":

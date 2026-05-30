@@ -174,9 +174,28 @@ struct ChatView: View {
                     }
                 case "checkout":
                     showCart = true
+                case "remove":
+                    // R10 — conversational delete "删掉第二个". index is
+                    // 1-based; -1 means "last". Convert to a 0-based cart
+                    // position and remove that line, with a toast.
+                    if let ord = viewModel.cartIntentIndex, !cart.items.isEmpty {
+                        let pos = ord == -1 ? cart.items.count - 1 : ord - 1
+                        if cart.items.indices.contains(pos) {
+                            let removed = cart.items[pos]
+                            cart.remove(productId: removed.productId)
+                            viewModel.repurchaseToast = "已删除 · \(removed.title)"
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .seconds(1.6))
+                                if viewModel.repurchaseToast?.contains(removed.title) == true {
+                                    viewModel.repurchaseToast = nil
+                                }
+                            }
+                        }
+                    }
                 default: break
                 }
                 viewModel.cartIntent = nil
+                viewModel.cartIntentIndex = nil
             }
             .sheet(isPresented: $showCamera) {
                 CameraPicker { data in

@@ -230,6 +230,11 @@ _SCENE_KEYWORDS = (
     "露营", "健身", "新生", "入学", "母亲节", "父亲节", "情人节",
     "送礼", "送什么", "婚礼", "婚庆", "出差", "旅行", "野餐",
     "聚会", "派对", "搬家", "结婚", "宝宝", "礼物", "套装",
+    # R10 — broaden scene coverage (rubric "三亚度假/搭配方案" example
+    # missed because 度假/三亚/海岛 weren't here).
+    "度假", "三亚", "海岛", "海边", "沙滩", "出游", "踏青", "爬山",
+    "登山", "滑雪", "过年", "春节", "中秋", "国庆", "开学", "毕业",
+    "约会", "面试", "通勤", "搭配", "一套", "方案", "清单", "周末",
 )
 
 
@@ -260,15 +265,54 @@ def _count_claim_markers(text: str) -> dict[str, int]:
         "inferred": text.count("[推断?]"),
     }
 
-# 纯正则识别用户意图是不是「加购」或「下单」。
-# 匹配到就立刻返回 cart_intent 事件,iOS 收到后**先于 LLM 回复**弹购物车 UI。
-# 这是 4.1 题面要求的购物车流——意图识别**不走 LLM**(LLM 慢且不稳),
-# 关键词够用。匹配优先级:checkout 比 add 高(用户既说"加购"又说"下单"按下单算)。
+# R10 — conversational cart DELETE (rubric "删掉第二个"). Detects a remove
+# intent plus an ordinal so iOS can drop the Nth cart line. The ordinal is
+# 1-based (第一个=1); the client converts to a 0-based index. "最后一个"
+# maps to a sentinel -1 the client interprets as "last".
+_REMOVE_FROM_CART = re.compile(r"删(?:掉|除)?|去掉|移除|拿掉|不要(?!.*[?？])|清掉")
+_CN_NUM = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+           "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+_ORDINAL_RE = re.compile(r"第\s*([0-9一二两三四五六七八九十]+)\s*(?:个|件|款|项)?")
+_LAST_RE = re.compile(r"最后(?:一)?(?:个|件|款)?")
+
+
+def _parse_ordinal(text: str) -> int | None:
+    """Return a 1-based ordinal from '第二个'/'第2个', -1 for '最后一个',
+    or None if no ordinal is present."""
+    if _LAST_RE.search(text):
+        return -1
+    m = _ORDINAL_RE.search(text)
+    if not m:
+        return None
+    token = m.group(1)
+    if token.isdigit():
+        return int(token)
+    # Chinese numerals (handles 十/十N/N十 lightly — enough for a cart).
+    if token == "十":
+        return 10
+    if token.startswith("十"):
+        return 10 + _CN_NUM.get(token[1:], 0)
+    if token.endswith("十"):
+        return _CN_NUM.get(token[:-1], 0) * 10
+    return _CN_NUM.get(token)
+
+
+# 纯正则识别用户意图是不是「加购」「下单」或「删除」。
+# 匹配到就立刻返回 cart_intent 事件,iOS 收到后**先于 LLM 回复**操作购物车 UI。
+# 这是 4.1 题面要求的购物车流——意图识别**不走 LLM**(LLM 慢且不稳)。
+# 优先级:checkout > remove > add(下单最强;删除带序数;加购兜底)。
 def _detect_cart_intent(text: str) -> dict | None:
     if not text:
         return None
     if _CHECKOUT.search(text):
         return {"type": "cart_intent", "action": "checkout"}
+    # Remove only fires when there's BOTH a remove verb AND an ordinal /
+    # "最后" — keeps "不要日系" (a negation filter, not a cart op) from
+    # being misread as a delete.
+    if _REMOVE_FROM_CART.search(text):
+        ordinal = _parse_ordinal(text)
+        if ordinal is not None:
+            return {"type": "cart_intent", "action": "remove", "index": ordinal}
     if _ADD_TO_CART.search(text):
         return {"type": "cart_intent", "action": "add"}
     return None
