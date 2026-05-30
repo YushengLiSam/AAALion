@@ -274,6 +274,23 @@ _CN_NUM = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
            "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
 _ORDINAL_RE = re.compile(r"第\s*([0-9一二两三四五六七八九十]+)\s*(?:个|件|款|项)?")
 _LAST_RE = re.compile(r"最后(?:一)?(?:个|件|款)?")
+# R10 #4.1⭐⭐ — conversational quantity set ("把数量改成2" / "第二个改成3个").
+_SET_QTY_RE = re.compile(r"(?:改成|改为|设为|设成|调成|调为|换成|变成|要)\s*([0-9一二两三四五六七八九十]+)\s*(?:个|件|份|瓶|盒)?")
+_QTY_KEYWORD_RE = re.compile(r"数量|数目|几个")
+
+
+def _cn_to_int(token: str) -> int | None:
+    """Parse an Arabic or Chinese numeral token to int (handles 十/十N/N十
+    lightly — plenty for a shopping cart)."""
+    if token.isdigit():
+        return int(token)
+    if token == "十":
+        return 10
+    if token.startswith("十"):
+        return 10 + _CN_NUM.get(token[1:], 0)
+    if token.endswith("十"):
+        return _CN_NUM.get(token[:-1], 0) * 10
+    return _CN_NUM.get(token)
 
 
 def _parse_ordinal(text: str) -> int | None:
@@ -284,17 +301,30 @@ def _parse_ordinal(text: str) -> int | None:
     m = _ORDINAL_RE.search(text)
     if not m:
         return None
-    token = m.group(1)
-    if token.isdigit():
-        return int(token)
-    # Chinese numerals (handles 十/十N/N十 lightly — enough for a cart).
-    if token == "十":
-        return 10
-    if token.startswith("十"):
-        return 10 + _CN_NUM.get(token[1:], 0)
-    if token.endswith("十"):
-        return _CN_NUM.get(token[:-1], 0) * 10
-    return _CN_NUM.get(token)
+    return _cn_to_int(m.group(1))
+
+
+def _parse_set_quantity(text: str) -> tuple[int, int] | None:
+    """Return (index, quantity) for a conversational quantity-set, or None.
+
+    Fires ONLY when a set-verb+number is present AND the message carries a
+    strong cart-quantity signal — either an explicit '数量' keyword or an
+    ordinal (第N个). This keeps '我要2个面霜' (a new product search) from
+    being misread as a quantity edit.
+
+    index: 1-based ordinal of which cart line; -1 = last (default when no
+    ordinal). quantity: the target count (>0).
+    """
+    m = _SET_QTY_RE.search(text)
+    if not m:
+        return None
+    qty = _cn_to_int(m.group(1))
+    if qty is None or qty <= 0:
+        return None
+    ordinal = _parse_ordinal(text)
+    if ordinal is None and not _QTY_KEYWORD_RE.search(text):
+        return None  # too ambiguous (e.g. "要2个面霜") — not a cart edit
+    return (ordinal if ordinal is not None else -1, qty)
 
 
 # 纯正则识别用户意图是不是「加购」「下单」或「删除」。
@@ -306,6 +336,11 @@ def _detect_cart_intent(text: str) -> dict | None:
         return None
     if _CHECKOUT.search(text):
         return {"type": "cart_intent", "action": "checkout"}
+    # Quantity set ("把数量改成2" / "第二个改成3个") — checked before remove
+    # since both can mention an ordinal; the set-verb disambiguates.
+    sq = _parse_set_quantity(text)
+    if sq is not None:
+        return {"type": "cart_intent", "action": "set_quantity", "index": sq[0], "quantity": sq[1]}
     # Remove only fires when there's BOTH a remove verb AND an ordinal /
     # "最后" — keeps "不要日系" (a negation filter, not a cart op) from
     # being misread as a delete.

@@ -192,10 +192,32 @@ struct ChatView: View {
                             }
                         }
                     }
+                case "set_quantity":
+                    // R10 #4.1⭐⭐ — conversational quantity "把数量改成2".
+                    // index 1-based (-1 = last); quantity is the target count.
+                    if let qty = viewModel.cartIntentQuantity, !cart.items.isEmpty {
+                        let ord = viewModel.cartIntentIndex ?? -1
+                        let pos = ord == -1 ? cart.items.count - 1 : ord - 1
+                        if cart.items.indices.contains(pos) {
+                            let item = cart.items[pos]
+                            cart.setQuantity(productId: item.productId, quantity: qty)
+                            let title = item.title
+                            viewModel.repurchaseToast = qty <= 0
+                                ? "已删除 · \(title)"
+                                : "数量已改为 \(qty) · \(title)"
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .seconds(1.6))
+                                if viewModel.repurchaseToast?.contains(title) == true {
+                                    viewModel.repurchaseToast = nil
+                                }
+                            }
+                        }
+                    }
                 default: break
                 }
                 viewModel.cartIntent = nil
                 viewModel.cartIntentIndex = nil
+                viewModel.cartIntentQuantity = nil
             }
             .sheet(isPresented: $showCamera) {
                 CameraPicker { data in
