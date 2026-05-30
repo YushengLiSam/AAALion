@@ -16,6 +16,28 @@ struct CartSheet: View {
                     List {
                         ForEach(cart.items) { item in
                             row(for: item)
+                                // R10 #4.4⭐⭐⭐ — rich swipe (滑动) interactions.
+                                // Swipe left → delete (full-swipe enabled);
+                                // swipe right → 收藏 to the wishlist.
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            cart.remove(productId: item.productId)
+                                        }
+                                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                                    } label: {
+                                        Label("删除", systemImage: "trash.fill")
+                                    }
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    Button {
+                                        FavoritesStore.shared.toggle(item.productId)
+                                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                                    } label: {
+                                        Label("收藏", systemImage: "heart.fill")
+                                    }
+                                    .tint(.pink)
+                                }
                         }
                         .onDelete { indexes in
                             for i in indexes {

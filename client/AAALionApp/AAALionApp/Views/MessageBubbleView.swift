@@ -59,6 +59,19 @@ struct MessageBubbleView: View {
                         .background(Color.gray.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
+                // R10 #4.4⭐⭐⭐ — skeleton (骨架屏) while the answer is still
+                // streaming and no product cards have arrived yet. Matches the
+                // real card row's footprint so nothing jumps when cards land.
+                if message.role == .assistant && message.isStreaming && message.products.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                SkeletonCardView()
+                            }
+                        }
+                    }
+                    .transition(.opacity)
+                }
                 // R9.A.5 — proposal #8 fact-check footer. Renders only on
                 // assistant messages where the backend emitted a
                 // claim_summary event. Visible per-message claim tally.

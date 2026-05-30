@@ -7,6 +7,11 @@ struct ProductCardView: View {
     var onAddToCart: (() -> Void)? = nil
 
     @State private var justAdded = false
+    // R10 #4.4⭐⭐⭐ — favorite (收藏) state + bounce. Held as @State so the
+    // @Observable store's reads inside body re-render the heart when the
+    // same product is (un)favorited anywhere else in the app.
+    @State private var favorites = FavoritesStore.shared
+    @State private var heartScale: CGFloat = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -54,6 +59,9 @@ struct ProductCardView: View {
         }
         .overlay(alignment: .topTrailing) {
             addPill.padding(6)
+        }
+        .overlay(alignment: .bottomLeading) {
+            heartButton.padding(6)
         }
         .overlay(alignment: .bottomTrailing) {
             if justAdded {
@@ -110,6 +118,31 @@ struct ProductCardView: View {
         // Stop tap from bubbling up to the parent navigation Button.
         .simultaneousGesture(TapGesture().onEnded { })
         .accessibilityLabel("加入购物车")
+    }
+
+    // R10 #4.4⭐⭐⭐ — favorite heart with a spring "pop" on toggle. The
+    // bounce is a two-step animation (quick scale-up, then an underdamped
+    // spring settle that overshoots) so it reads as a satisfying商业-grade
+    // micro-interaction. Filled pink when favorited.
+    private var heartButton: some View {
+        let isFav = favorites.isFavorite(product.productId)
+        return Button {
+            let nowFav = favorites.toggle(product.productId)
+            UIImpactFeedbackGenerator(style: nowFav ? .medium : .light).impactOccurred()
+            withAnimation(.easeOut(duration: 0.1)) { heartScale = 1.4 }
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.4).delay(0.1)) { heartScale = 1.0 }
+        } label: {
+            Image(systemName: isFav ? "heart.fill" : "heart")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(isFav ? Color.pink : .white)
+                .frame(width: 24, height: 24)
+                .background(.ultraThinMaterial, in: Circle())
+                .scaleEffect(heartScale)
+                .shadow(color: Color.black.opacity(0.15), radius: 2, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded { })
+        .accessibilityLabel(isFav ? "取消收藏" : "收藏")
     }
 
     // MARK: - Brand line + price.
