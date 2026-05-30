@@ -54,7 +54,7 @@ Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + bac
 | Repo | `~/Desktop/rag/AAALion-/` on Shufeng's Mac | local |
 | **Backend (prod)** | **GCP VM (Yusheng), `systemd`-managed, public HTTPS via Cloudflare tunnel** | tunnel URL baked into `Config.swift`; **ephemeral — changes on tunnel restart**, Yusheng re-broadcasts. Swagger at `/docs`. |
 | Backend (local dev) | `uvicorn` on Mac, port `8000`, bound `0.0.0.0` | `aaalion backend`; point the sim at it with `PUBLIC_BACKEND_URL=http://localhost:8000` |
-| Cloud sync | **the VM is a TARBALL EXTRACT, NOT a git clone** — `git pull` does NOT work there. Redeploy = `git archive main \| scp \| extract over ~/AAALion-` (gitignored `.env` / `data/.chroma` / `data/*.db` survive) + `sudo systemctl restart lionpick` | **Yusheng owns the redeploy** — a merge to main is NOT live on the cloud until he re-deploys. VM external IP `34.139.88.204`. |
+| Cloud sync | **the VM is a GIT CLONE with auto-deploy (R10 CD)** — `lionpick-autodeploy.timer` runs `tools/cloud-autodeploy.sh` every ~2 min: `git fetch` → if `origin/main` advanced, `reset --hard` + `systemctl restart lionpick` + `/ready` check, **rolling back** on failure. **A merge to main is live on the cloud within ~2 min, hands-free** (gitignored `.env` / `data/.chroma` / `data/*.db` survive a `reset --hard`). Manual redeploy if needed: SSH in, `git pull && sudo systemctl restart lionpick`. VM external IP `34.139.88.204`. |
 | Mac LAN IP | run `ipconfig getifaddr en0` each session | overridable from the in-app Settings sheet at runtime (long-press gear 1.5 s → dev mode) |
 | iOS app | iPhone 13 Pro UDID `7310469E-E396-5197-9408-FF1AD58D4CF2` | `aaalion ios-device` |
 | Chroma vector DB | in-process, persisted to `data/.chroma/` (gitignored) | implicit |
@@ -84,7 +84,7 @@ Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + bac
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
 | Presentation material | Shufeng | `docs/explainers/README.md` | 15 CS-sophomore-friendly explainers; start here for non-engineer audiences |
-| **Cloud deploy (prod)** | **Sam** | GCP VM `lionpick-demo` + `systemd` (`lionpick`, `lionpick-tunnel`) | tarball deploy + direct-SSH (see §3 + §9.6-7). `tools/bench_cpu_latency.py` justifies CPU-only (no GPU) sizing |
+| **Cloud deploy (prod)** | **Sam** | GCP VM `lionpick-demo` + `systemd` (`lionpick`, `lionpick-tunnel`, `lionpick-autodeploy.timer`) | git-clone + auto-deploy on push-to-main (`tools/cloud-autodeploy.sh`, see §3 + §9.6-7); direct-SSH for ops. `tools/bench_cpu_latency.py` justifies CPU-only (no GPU) sizing |
 | **Retrieval cache** | **Sam** | `server/app/services/rag_client.py` `_heavy_retrieve` + `_retrieval_cache_*` | memoizes hybrid+rerank (R10 Option A); preference reorder stays outside so 👍/👎 is live. Stats via `retrieval_cache_stats()` |
 | **Repurchase reminders** | **Sam** | `server/app/services/repurchase_db.py`, `routes/repurchase.py` | SQLite, per-product cycle, 24h snooze; `docs/REPURCHASE_PLAN.md`. 7 tests |
 | **Accounts / auth** | Shufeng | `server/app/routes/auth.py`, `services/user_store.py` | Apple / 手机号验证码 / 密码; `user_id` may be `phone:…`/`apple:…` (colon-ok, R10.bugfix) |
@@ -213,11 +213,12 @@ Full teammate-onboarding guide: [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md).
    already installed the key):
    `ssh -i ~/.ssh/google_compute_engine yushengli@34.139.88.204 '<cmd>'`
    and `scp -i ~/.ssh/google_compute_engine <file> yushengli@34.139.88.204:~/`.
-7. **VM is a tarball extract, not a git clone** — see §3 Cloud sync. Don't
-   `git pull` on the VM; redeploy via `git archive`+scp+extract+restart.
-   `.env` (LLM keys, gitignored), `data/.chroma` (indexes), `data/*.db`
-   (auth/cart/prefs SQLite) all survive an extract because they aren't in
-   the archive.
+7. **VM is a git clone with auto-deploy** — see §3 Cloud sync. Push to main
+   and `lionpick-autodeploy.timer` deploys it within ~2 min (fetch → reset
+   --hard → restart → `/ready` check → roll back on failure). `.env` (LLM
+   keys, gitignored), `data/.chroma` (indexes), `data/*.db` (auth/cart/prefs
+   SQLite) survive a `reset --hard` because they're gitignored. Manual
+   deploy: `git pull && sudo systemctl restart lionpick`.
 8. **First-load HF model download hangs warmup** — the VM is far from
    huggingface.co (~10 s/req). Rerankers + CLIP must be pre-downloaded,
    then `HF_HUB_OFFLINE=1` is set in the systemd unit so startup loads
