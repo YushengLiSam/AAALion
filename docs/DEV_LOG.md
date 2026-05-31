@@ -15,6 +15,44 @@
 
 ---
 
+## 2026-05-30 (later) — R10.perf: first-screen speed + conversational cart + UX polish
+
+**by**: Yusheng (perf + client) · verified on cloud by Shufeng
+
+Yusheng landed a full performance + client-experience round, auto-deployed
+to the cloud (`123ef1b`). Verified live 2026-05-30:
+
+- **4.1 conversational quantity change** — "把第二个改成3个" → cloud returns
+  `{"type":"cart_intent","action":"set_quantity","index":2,"quantity":3}`
+  ✅; iOS updates the cart without tapping +/−. Backend regex + iOS link.
+- **4.4 首屏极速 (sub-second first screen)** — product cards now stream
+  **before** the LLM text (verified: 5 `product_card` events arrive before
+  any `delta` ✅; pure reorder, recall unchanged). Plus keep-alive LLM
+  connection + rerank candidate trimming. Measured by Yusheng: cache-hit
+  0.3 s, skip-rerank 0.14 s, cold 0.14–2.2 s (was 4–14 s, behind the whole
+  AI segment).
+- **4.4 client polish** — skeleton shimmer cards on send; favorite ❤️
+  (spring + haptics, local persist, `FavoritesStore`); cart swipe
+  (left-delete / right-favorite). New files `SkeletonCardView.swift`,
+  `FavoritesStore.swift`.
+- **rerank cost knobs** (`RERANK_INPUT_CAP` / `RERANK_MAX_LENGTH`) — cloud
+  3.8× faster (7884→2059 ms); golden recall@5 0.964→0.941, MRR flat,
+  negation 1.000 — quality holds, one-env-var rollback.
+- **Auto-deploy CD** — `lionpick-autodeploy.timer` git-fetches every ~2 min
+  and `reset --hard` + restart + `/ready` check with rollback. A merge to
+  main is live on the cloud hands-free within ~2 min. (Corrects the earlier
+  "tarball" note — the VM is a git clone.)
+
+Demo tip (Yusheng): pre-run the demo phrases into cache → 0.3 s first
+screen on stage. Cold-query LLM ~1.5 s is the network floor on CPU-only
+cloud (GPU only helps rerank, which the cache already skips).
+
+Open: `retrieval_cache_stats()` still not wired into `/cache/stats`
+(cosmetic); stable cloud domain still pending (tunnel URL ephemeral);
+Tujie's Docker docs branch still not merged to main.
+
+---
+
 ## 2026-05-30 — R10 accounts + backend goes to the cloud ☁️
 
 **by**: Shufeng (accounts) + Yusheng (cloud infra, RAG cache)
