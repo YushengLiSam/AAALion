@@ -15,6 +15,14 @@ struct CacheStats: Decodable, Equatable {
     let hitRate: Double
     let uptimeSec: Double
 
+    // R10 — retrieval cache (the hybrid+rerank memo; the dominant
+    // first-token win, ~8s→0.3s on repeats). Optional so older backends
+    // that don't emit these keys still decode cleanly.
+    let retrievalCacheHits: Int?
+    let retrievalCacheMisses: Int?
+    let retrievalCacheHitRate: Double?
+    let retrievalCacheSize: Int?
+
     enum CodingKeys: String, CodingKey {
         case size
         case maxSize = "max_size"
@@ -26,6 +34,10 @@ struct CacheStats: Decodable, Equatable {
         case totalRequests = "total_requests"
         case hitRate = "hit_rate"
         case uptimeSec = "uptime_sec"
+        case retrievalCacheHits = "retrieval_cache_hits"
+        case retrievalCacheMisses = "retrieval_cache_misses"
+        case retrievalCacheHitRate = "retrieval_cache_hit_rate"
+        case retrievalCacheSize = "retrieval_cache_size"
     }
 }
 

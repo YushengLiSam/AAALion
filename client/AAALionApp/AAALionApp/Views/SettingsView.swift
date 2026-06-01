@@ -263,6 +263,26 @@ struct SettingsView: View {
                 Spacer()
                 Text("\(Int(s.uptimeSec))s").font(.caption.monospacedDigit())
             }
+            // R10 — second cache layer: the retrieval (hybrid+rerank) memo.
+            // This is the one that turns an ~8s cold retrieval into ~0.3s on
+            // a repeat, so it's the headline latency win to show at demo.
+            if let rHit = s.retrievalCacheHitRate {
+                Divider().padding(.vertical, 2)
+                HStack {
+                    Text("检索缓存命中率 / Retrieval hit rate").font(.caption.bold())
+                    Spacer()
+                    Text(String(format: "%.1f%%", rHit * 100))
+                        .font(.system(.caption, design: .rounded).bold())
+                        .foregroundStyle(rHit >= 0.3 ? .green : .orange)
+                }
+                if let rh = s.retrievalCacheHits, let rm = s.retrievalCacheMisses {
+                    HStack {
+                        Text("命中/未命中 / Hits·Misses").font(.caption2).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(rh) · \(rm)").font(.caption2.monospacedDigit())
+                    }
+                }
+            }
         }
         .padding(.vertical, 2)
     }
