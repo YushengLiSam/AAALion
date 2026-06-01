@@ -45,9 +45,15 @@ log "deploying $local_sha -> $remote_sha"
 git reset --hard origin/main -q
 sudo systemctl restart lionpick
 
-# 3) Ready-check (warmup loads models; allow ~40 s).
+# 3) Ready-check. Warmup loads BOTH cross-encoder rerankers + CLIP +
+# embeddings; under CPU contention this can take ~60 s (measured), so allow
+# a generous 150 s before declaring the deploy failed. A too-tight window
+# FALSE-rolls-back a good-but-slow-warming deploy and marks it known-bad —
+# strictly worse than a slightly delayed rollback of a genuinely broken one
+# (rare, since we build/test before pushing). Was 40 s; that tripped on
+# 7c77ad1 whose warmup hit ~60 s under load.
 ok=0
-for _ in $(seq 1 20); do
+for _ in $(seq 1 75); do
   sleep 2
   if curl -sf "$READY_URL" 2>/dev/null | grep -q 'ready'; then ok=1; break; fi
 done
