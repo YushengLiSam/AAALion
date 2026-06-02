@@ -23,7 +23,16 @@ struct MessageBubbleView: View {
                     // badges inline. [目录✓] turns green, [推断?] turns amber.
                     // User messages render plain. Defensive: if the LLM
                     // didn't emit markers, output is identical to plain text.
-                    Text(renderedMessageText)
+                    Group {
+                        if message.role == .assistant {
+                            // R10 — render the LLM's markdown (headings, tables,
+                            // bold, bullets) properly instead of showing raw
+                            // syntax; provenance markers stay colored inside.
+                            MarkdownMessageView(text: message.text)
+                        } else {
+                            Text(message.text)
+                        }
+                    }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(message.role == .user ? Color.accentColor.opacity(0.15) : Color.gray.opacity(0.12))
