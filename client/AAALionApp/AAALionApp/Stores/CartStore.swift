@@ -7,7 +7,12 @@ import Observation
 final class CartStore {
     static let shared = CartStore()
 
-    private let userDefaultsKey = "lionpick.cart"
+    // R11 — the cart is PER-ACCOUNT: keyed by DeviceIdentity.userId (the
+    // signed-in account id, or the anonymous device id when logged out) so
+    // the cart follows the user across sign-in / sign-out / account switch.
+    private static let keyPrefix = "lionpick.cart."
+    private func storageKey(for userId: String) -> String { Self.keyPrefix + userId }
+    private var currentKey: String { storageKey(for: DeviceIdentity.userId) }
     private(set) var items: [CartItem] = []
 
     init() {
@@ -68,14 +73,34 @@ final class CartStore {
 
     private func persist() {
         if let data = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(data, forKey: userDefaultsKey)
+            UserDefaults.standard.set(data, forKey: currentKey)
         }
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: userDefaultsKey) else { return }
-        if let decoded = try? JSONDecoder().decode([CartItem].self, from: data) {
-            items = decoded
+        // Resets to [] when the current user has no saved cart — important so
+        // switching to a different account clears the previous one's items.
+        items = UserDefaults.standard.data(forKey: currentKey)
+            .flatMap { try? JSONDecoder().decode([CartItem].self, from: $0) } ?? []
+    }
+
+    /// R11 — reload the cart for whoever is the current user. Call when the
+    /// signed-in account changes so the cart follows the user.
+    func reloadForCurrentUser() { load() }
+
+    /// R11 — on first sign-in, carry the anonymous cart into the account
+    /// (move, not copy) when the account has no cart yet — mirrors the
+    /// backend anonymous-data migration. Then reload to the account's cart.
+    func handleSignIn(previousAnon: String, account: String) {
+        if previousAnon != account {
+            let anonKey = storageKey(for: previousAnon)
+            let accountKey = storageKey(for: account)
+            if UserDefaults.standard.data(forKey: accountKey) == nil,
+               let anonData = UserDefaults.standard.data(forKey: anonKey) {
+                UserDefaults.standard.set(anonData, forKey: accountKey)
+                UserDefaults.standard.removeObject(forKey: anonKey)
+            }
         }
+        load()
     }
 }

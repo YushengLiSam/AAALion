@@ -169,12 +169,19 @@ final class AuthState {
         if previousAnon != u.userId {
             Task { await AuthService().migrate(from: previousAnon, to: u.userId) }
         }
+        // R11 — the cart + favorites are per-account; make them follow the
+        // account (carry the anonymous ones in on first sign-in).
+        CartStore.shared.handleSignIn(previousAnon: previousAnon, account: u.userId)
+        FavoritesStore.shared.handleSignIn(previousAnon: previousAnon, account: u.userId)
     }
 
     @MainActor
     func signOut() {
         user = nil
         UserDefaults.standard.removeObject(forKey: key)
+        // R11 — fall back to the anonymous cart / favorites.
+        CartStore.shared.reloadForCurrentUser()
+        FavoritesStore.shared.reloadForCurrentUser()
     }
 
     private func persist() {
