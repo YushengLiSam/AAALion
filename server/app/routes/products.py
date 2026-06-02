@@ -36,4 +36,14 @@ async def get_product(product_id: str) -> dict:
     if path is None:
         raise HTTPException(status_code=404, detail="product not found")
     product = json.loads(path.read_text(encoding="utf-8"))
-    return await asyncio.to_thread(normalize_product_price, product)
+    product = await asyncio.to_thread(normalize_product_price, product)
+    # R11 fix — a product fetched by id (e.g. ProfileView 我的收藏) must
+    # render like a chat product card. The raw seed JSON only has a raw
+    # `image_path` and no `provenance`, so the card showed no image + a
+    # spurious 演示 badge. Add the same resolved `image_url` (percent-encoded
+    # /static path) and `provenance` the chat cards use. Additive — skus /
+    # rag_knowledge stay for any detail consumer.
+    from app.routes.chat import _image_url, _provenance
+    product["image_url"] = _image_url(product)
+    product["provenance"] = _provenance(product)
+    return product

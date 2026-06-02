@@ -39,6 +39,10 @@ class AppleRequest(BaseModel):
     display_name: str | None = None
 
 
+class WechatRequest(BaseModel):
+    display_name: str | None = None
+
+
 class PhoneStartRequest(BaseModel):
     phone: str = Field(min_length=6, max_length=16)
 
@@ -79,6 +83,17 @@ async def apple_endpoint(req: AppleRequest) -> dict:
         user = await asyncio.to_thread(store.verify_apple, req.identity_token, req.display_name)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    return _with_token(user)
+
+
+@router.post("/wechat")
+async def wechat_endpoint(req: WechatRequest) -> dict:
+    """R11 DEMO — mock WeChat login. **Not** real WeChat OAuth, which needs
+    企业资质 + 微信开放平台 SDK + review. Returns a stable demo WeChat account;
+    production swaps the real SDK in behind this same endpoint (the iOS
+    button is labelled 「演示」)."""
+    store = get_user_store()
+    user = await asyncio.to_thread(store.mock_wechat, req.display_name)
     return _with_token(user)
 
 
