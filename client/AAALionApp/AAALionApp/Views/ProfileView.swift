@@ -22,6 +22,12 @@ struct ProfileView: View {
     @State private var activeGroups: [GroupBuy] = []
     @State private var groupsLoading = false
 
+    // R11 — account management (change password / delete account).
+    @State private var showChangePassword = false
+    @State private var showDeleteConfirm = false
+    @State private var deletePassword = ""
+    @State private var deleteError: String?
+
     var body: some View {
         NavigationStack {
             Form {
@@ -29,6 +35,7 @@ struct ProfileView: View {
                 favoritesSection
                 preferencesSection
                 groupBuySection
+                accountSecuritySection
                 signOutSection
             }
             .navigationTitle("我的 / Account")
@@ -40,6 +47,18 @@ struct ProfileView: View {
             }
             .refreshable { await loadAll() }
             .task { await loadAll() }
+            .sheet(isPresented: $showChangePassword) {
+                ChangePasswordView(userId: auth.user?.userId ?? "")
+            }
+            .alert("注销账号?", isPresented: $showDeleteConfirm) {
+                if auth.user?.provider == "password" {
+                    SecureField("输入密码确认", text: $deletePassword)
+                }
+                Button("注销", role: .destructive) { performDelete() }
+                Button("取消", role: .cancel) { deletePassword = "" }
+            } message: {
+                Text("将删除你的账号及其偏好 / 收藏 / 拼单数据,不可恢复。")
+            }
         }
     }
 
@@ -258,6 +277,52 @@ struct ProfileView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(color, in: Capsule())
+    }
+
+    // MARK: - Account security (R11)
+
+    private var accountSecuritySection: some View {
+        Section {
+            if auth.user?.provider == "password" {
+                Button {
+                    showChangePassword = true
+                } label: {
+                    Label("修改密码 / Change password", systemImage: "key.fill")
+                }
+            }
+            Button(role: .destructive) {
+                deletePassword = ""
+                deleteError = nil
+                showDeleteConfirm = true
+            } label: {
+                Label("注销账号 / Delete account", systemImage: "trash")
+            }
+        } header: {
+            Text("账号安全 / Security")
+        } footer: {
+            if let err = deleteError {
+                Text("注销失败:\(err)").font(.caption).foregroundStyle(.red)
+            } else if auth.user?.provider != "password" {
+                Text("当前登录方式无密码,注销无需密码确认。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func performDelete() {
+        let pw = auth.user?.provider == "password" ? deletePassword : nil
+        let uid = auth.user?.userId ?? ""
+        deleteError = nil
+        Task { @MainActor in
+            do {
+                try await AuthService().deleteAccount(userId: uid, password: pw)
+                deletePassword = ""
+                auth.signOut()
+                dismiss()
+            } catch {
+                deleteError = error.localizedDescription
+            }
+        }
     }
 
     // MARK: - Sign out

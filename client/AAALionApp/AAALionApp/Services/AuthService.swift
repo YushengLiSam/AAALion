@@ -91,6 +91,80 @@ struct AuthService {
         _ = try? await URLSession.shared.data(for: req)
     }
 
+    // MARK: - R11 account management (change / reset / delete / admin)
+
+    /// Change password — caller supplies the current password. Returns the
+    /// re-issued user.
+    func changePassword(userId: String, oldPassword: String, newPassword: String) async throws -> AuthUser {
+        try await postUser("auth/password/change", [
+            "user_id": userId, "old_password": oldPassword, "new_password": newPassword,
+        ])
+    }
+
+    /// Forgot password — request a reset code. DEMO backend returns `devCode`
+    /// in the response (shown on screen); cloud sends a real email/SMS.
+    func startPasswordReset(_ identifier: String) async throws -> PhoneStartResult {
+        let url = baseURL.appendingPathComponent("auth/password/reset/start")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 30
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["identifier": identifier])
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw AuthError.http(-1, nil) }
+        guard http.statusCode == 200 else { throw AuthError.http(http.statusCode, detail(data)) }
+        return (try? JSONDecoder().decode(PhoneStartResult.self, from: data)) ?? PhoneStartResult(sent: true, devCode: nil)
+    }
+
+    /// Forgot password — verify the code + set a new password → account.
+    func verifyPasswordReset(identifier: String, code: String, newPassword: String) async throws -> AuthUser {
+        try await postUser("auth/password/reset/verify", [
+            "identifier": identifier, "code": code, "new_password": newPassword,
+        ])
+    }
+
+    /// Delete (注销) the account + purge its per-user data. Password accounts
+    /// must pass their password to confirm.
+    func deleteAccount(userId: String, password: String?) async throws {
+        var body: [String: Any] = ["user_id": userId]
+        if let password { body["password"] = password }
+        var req = URLRequest(url: baseURL.appendingPathComponent("auth/delete"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 30
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw AuthError.http(-1, nil) }
+        guard http.statusCode == 200 else { throw AuthError.http(http.statusCode, detail(data)) }
+    }
+
+    // MARK: Admin (sends X-Admin-Token; backend gates on LIONPICK_ADMIN_TOKEN)
+
+    func adminListUsers(token: String) async throws -> [AdminUser] {
+        var req = URLRequest(url: baseURL.appendingPathComponent("auth/admin/users"))
+        req.timeoutInterval = 30
+        req.setValue(token, forHTTPHeaderField: "X-Admin-Token")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+            guard let http = response as? HTTPURLResponse else { throw AuthError.http(-1, nil) }
+            guard http.statusCode == 200 else { throw AuthError.http(http.statusCode, detail(data)) }
+            do { return try JSONDecoder().decode(AdminUsersResponse.self, from: data).users }
+            catch { throw AuthError.decode(error) }
+        } catch let e as AuthError { throw e } catch { throw AuthError.transport(error) }
+    }
+
+    func adminDeleteUser(token: String, userId: String) async throws {
+        var req = URLRequest(url: baseURL.appendingPathComponent("auth/admin/delete"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(token, forHTTPHeaderField: "X-Admin-Token")
+        req.timeoutInterval = 30
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["user_id": userId])
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw AuthError.http(-1, nil) }
+        guard http.statusCode == 200 else { throw AuthError.http(http.statusCode, detail(data)) }
+    }
+
     // MARK: - helpers
 
     private func postUser(_ path: String, _ body: [String: Any]) async throws -> AuthUser {
@@ -136,6 +210,26 @@ struct AuthUser: Codable, Hashable {
         case token
     }
 }
+
+/// R11 — one row in the admin user list. NEVER carries a password hash
+/// (the backend only sends `has_password`).
+struct AdminUser: Codable, Identifiable, Hashable {
+    let userId: String
+    let provider: String
+    let displayName: String?
+    let createdAt: Int
+    let hasPassword: Int
+    var id: String { userId }
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case provider
+        case displayName = "display_name"
+        case createdAt = "created_at"
+        case hasPassword = "has_password"
+    }
+}
+
+struct AdminUsersResponse: Codable { let users: [AdminUser] }
 
 /// App-wide auth state. Persists the signed-in account in UserDefaults
 /// (the user_id is an opaque identifier, not a secret). `DeviceIdentity`

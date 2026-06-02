@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var cacheStats: CacheStats?
     @State private var cacheError: String?
     @State private var pollingTask: Task<Void, Never>?
+    @State private var showAdmin = false
 
     // R11 — account + my-preferences moved to ProfileView (reached from the
     // chat top-bar avatar). Settings now keeps only dev / cache / speech.
@@ -66,6 +67,20 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    Section {
+                        Button {
+                            showAdmin = true
+                        } label: {
+                            Label("用户管理 / Admin users", systemImage: "person.2.fill")
+                        }
+                    } header: {
+                        Text("管理员 / Admin  (dev)")
+                    } footer: {
+                        Text("列出 / 删除所有账号。需后端配置 LIONPICK_ADMIN_TOKEN 环境变量。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section {
@@ -111,6 +126,9 @@ struct SettingsView: View {
             }
             .navigationTitle("设置 / Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showAdmin) {
+                AdminUsersView()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消 / Cancel") { dismiss() }

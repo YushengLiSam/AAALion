@@ -54,6 +54,7 @@ struct LoginView: View {
     // Shared
     @State private var busy = false
     @State private var errorText: String?
+    @State private var showReset = false
     @FocusState private var focused: Field?
     private enum Field { case identifier, password, displayName, phone, code }
 
@@ -103,6 +104,9 @@ struct LoginView: View {
             .padding(.top, 14)
             .padding(.trailing, 16)
             .accessibilityLabel("关闭")
+        }
+        .sheet(isPresented: $showReset) {
+            PasswordResetView()
         }
     }
 
@@ -208,6 +212,15 @@ struct LoginView: View {
                 .foregroundStyle(Color.appAccent)
         }
         .frame(maxWidth: .infinity)
+
+        if !pwIsRegister {
+            Button { showReset = true } label: {
+                Text("忘记密码? / Forgot password")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextSecondary)
+            }
+            .frame(maxWidth: .infinity)
+        }
 
         Text("无需短信验证,直接注册 + 密码登录。密码本地以 PBKDF2-SHA256 哈希存储。")
             .font(.system(size: 11))
