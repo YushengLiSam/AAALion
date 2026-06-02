@@ -27,12 +27,13 @@ struct LoginView: View {
 
     // MARK: - Method selection
     enum AuthMode: String, CaseIterable, Hashable {
-        case password, phone, apple
+        case password, phone, apple, wechat
         var label: String {
             switch self {
             case .password: return "密码"
             case .phone: return "短信"
             case .apple: return "Apple"
+            case .wechat: return "微信"
             }
         }
     }
@@ -148,6 +149,7 @@ struct LoginView: View {
             case .password: passwordFields
             case .phone:    phoneFields
             case .apple:    appleFields
+            case .wechat:   wechatFields
             }
         }
         .padding(18)
@@ -271,6 +273,55 @@ struct LoginView: View {
         Text("Sign in with Apple 需付费开发者账号方可启用,免费开发者账号会失败。演示请使用「密码」登录。")
             .font(.system(size: 11))
             .foregroundStyle(Color.appTextSecondary)
+    }
+
+    // MARK: - 微信 (R11 DEMO — labelled mock, not real WeChat OAuth)
+
+    @ViewBuilder
+    private var wechatFields: some View {
+        Button {
+            runWechat()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "message.fill")
+                Text("微信登录").font(.appBody.weight(.semibold))
+                if busy {
+                    ProgressView().tint(.white).padding(.leading, 4)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .foregroundStyle(.white)
+            // WeChat brand green.
+            .background(Color(red: 0.02, green: 0.76, blue: 0.30),
+                        in: RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(busy)
+
+        // Honest label — this is a mock, not real OAuth.
+        HStack(alignment: .top, spacing: 6) {
+            Text("演示")
+                .font(.system(size: 10, weight: .bold))
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Color.orange.opacity(0.15), in: Capsule())
+                .foregroundStyle(.orange)
+            Text("演示版:真实微信授权需企业资质 + 官方 SDK + 审核;生产环境接入同一接口即可。")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.appTextSecondary)
+        }
+    }
+
+    private func runWechat() {
+        busy = true; errorText = nil
+        Task { @MainActor in
+            defer { busy = false }
+            do {
+                let user = try await auth.signInWithWechat()
+                succeed(user)
+            } catch {
+                errorText = "微信登录失败:\(error.localizedDescription)"
+            }
+        }
     }
 
     // MARK: - Skip

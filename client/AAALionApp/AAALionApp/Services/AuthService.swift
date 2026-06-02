@@ -30,6 +30,15 @@ struct AuthService {
         ])
     }
 
+    // MARK: - 微信 (R11 DEMO — mock, not real WeChat OAuth)
+
+    /// Demo-only WeChat sign-in. The backend returns a stable `wechat:demo`
+    /// account; real WeChat OAuth needs 企业资质 + the official SDK, so the
+    /// UI button is labelled 「演示」. Production swaps the SDK in here.
+    func signInWithWechat() async throws -> AuthUser {
+        try await postUser("auth/wechat", [:])
+    }
+
     // MARK: - 手机号 + 验证码
 
     /// Request an SMS code. In the local demo backend the response carries
