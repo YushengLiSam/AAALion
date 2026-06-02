@@ -22,6 +22,9 @@ final class ChatViewModel {
     /// R10 #4.1⭐⭐ — target quantity carried by a "set_quantity" intent
     /// ("把数量改成2" → 2). nil for other actions.
     var cartIntentQuantity: Int? = nil
+    /// R10 #5 — 主动反问 quick-reply chips for the current clarification turn.
+    /// Rendered above the composer; tapping one sends it as the next message.
+    var clarifyChips: [String] = []
 
     /// Proactive repurchase reminders, fetched once when the chat view
     /// first appears. Rendered as a horizontal banner above the chat
@@ -108,10 +111,19 @@ final class ChatViewModel {
 
     // MARK: - Send / cancel.
 
+    /// R10 #5 — tapping a clarification chip sends it as the next message.
+    func sendChip(_ chip: String) {
+        guard !isStreaming else { return }
+        draft = chip
+        send()
+    }
+
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (!text.isEmpty || !pendingAttachments.isEmpty), !isStreaming else { return }
         draft = ""
+        // R10 #5 — a new turn supersedes any pending clarification chips.
+        clarifyChips = []
         let staged = pendingAttachments
         pendingAttachments = []
 
@@ -140,6 +152,8 @@ final class ChatViewModel {
                             self.cartIntentQuantity = quantity
                             self.cartIntent = action
                         }
+                    case .clarify(let chips):
+                        await MainActor.run { self.clarifyChips = chips }
                     case .claimSummary(let v, let i):
                         await MainActor.run {
                             self.setClaimSummary(.init(verified: v, inferred: i), to: assistantId)

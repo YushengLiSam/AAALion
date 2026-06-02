@@ -4,6 +4,7 @@ enum ChatDelta: Decodable {
     case text(String)
     case product(ProductCard)
     case cartIntent(String, Int?, Int?)   // (action, ordinal index, quantity for set_quantity)
+    case clarify([String])                // R10 #5 — 反问 quick-reply chips
     case error(String)
     /// R9.A.5 — proposal #8 fact-check summary. Carries the counts of
     /// `[目录✓]` and `[推断?]` markers the LLM emitted in this reply.
@@ -17,6 +18,7 @@ enum ChatDelta: Decodable {
         case action
         case index
         case quantity
+        case chips
         case message
         case verified
         case inferred
@@ -35,6 +37,9 @@ enum ChatDelta: Decodable {
             let index = try? container.decode(Int.self, forKey: .index)
             let quantity = try? container.decode(Int.self, forKey: .quantity)
             self = .cartIntent(action, index, quantity)
+        case "clarify":
+            let chips = (try? container.decode([String].self, forKey: .chips)) ?? []
+            self = .clarify(chips)
         case "error":
             self = .error(try container.decode(String.self, forKey: .message))
         case "claim_summary":

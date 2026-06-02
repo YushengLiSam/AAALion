@@ -630,6 +630,17 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # retrieval entirely (no product cards) and let the LLM ask a clarifying
     # question via _CLARIFY_PROMPT below.
     clarify_dims = _needs_clarification(user_text, req.messages)
+    # R10 #5 — tappable quick-reply chips for the clarification turn. Each
+    # chip is a ready-made next message; tapping it sends concrete signal
+    # (品类/预算/对象) so the FOLLOW-UP turn retrieves normally.
+    clarify_chips: list[str] = []
+    if clarify_dims:
+        if _GIFT_HINT.search(user_text):
+            clarify_chips = ["送女友", "送男友", "送长辈", "送朋友",
+                             "预算 300 以内", "预算 300-800", "生日礼物"]
+        else:
+            clarify_chips = ["美妆护肤", "数码电子", "服饰运动", "食品零食",
+                             "500 元以内", "1000 左右"]
     if clarify_dims is None:
         if _has_image(req.messages):
             img_bytes_list = _extract_image_bytes_list(req.messages)
@@ -750,6 +761,13 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         if cart_event:
             yield _sse(cart_event)
             events_to_cache.append(cart_event)
+
+        # R10 #5 — clarification chips, emitted early so iOS can render the
+        # tappable quick-replies alongside the LLM's 反问 question.
+        if clarify_chips:
+            clarify_ev = {"type": "clarify", "chips": clarify_chips}
+            yield _sse(clarify_ev)
+            events_to_cache.append(clarify_ev)
 
         # Cache hit: replay quickly.
         if cached_events:

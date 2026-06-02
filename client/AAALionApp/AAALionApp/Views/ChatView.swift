@@ -388,6 +388,31 @@ struct ChatView: View {
 
     private var composer: some View {
         VStack(spacing: 8) {
+            // R10 #5 — 主动反问 quick-reply chips. When the agent asks a
+            // clarifying question, render the suggested answers as tappable
+            // capsules just above the composer; tapping one sends it.
+            if !viewModel.clarifyChips.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.clarifyChips, id: \.self) { chip in
+                            Button {
+                                viewModel.sendChip(chip)
+                            } label: {
+                                Text(chip)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(Color.appAccent.opacity(0.12), in: Capsule())
+                                    .foregroundStyle(Color.appAccent)
+                                    .overlay(Capsule().stroke(Color.appAccent.opacity(0.35), lineWidth: 0.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .transition(.opacity)
+            }
             // R8.E-VOICE: "正在听..." hint mirrors the ChatGPT/Claude mic
             // affordance. Combined with the SpeechService 1.8s idle-timer,
             // this tells the user the app is actively listening and that
