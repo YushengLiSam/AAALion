@@ -74,6 +74,12 @@ class UserStore(Protocol):
     # 企业资质 + 微信开放平台 SDK + review); returns a stable demo account so
     # the production SDK can swap in behind this same method later.
     def mock_wechat(self, display_name: str | None) -> dict[str, Any]: ...
+    # R11 — account management (change password / forgot-reset / delete / admin list).
+    def change_password(self, user_id: str, old_password: str, new_password: str) -> dict[str, Any]: ...
+    def start_password_reset(self, identifier: str) -> dict[str, Any]: ...
+    def verify_password_reset(self, identifier: str, code: str, new_password: str) -> dict[str, Any]: ...
+    def delete_user(self, user_id: str, password: str | None = None, require_password: bool = True) -> dict[str, Any]: ...
+    def list_users(self, limit: int = 200) -> list[dict[str, Any]]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +120,11 @@ def init_schema() -> None:
                 code       TEXT NOT NULL,
                 expires_at INTEGER NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS reset_codes (
+                identifier TEXT PRIMARY KEY,   -- normalized email/phone for password reset
+                code       TEXT NOT NULL,
+                expires_at INTEGER NOT NULL
+            );
             """
         )
         # R10.bugfix — idempotent column adds for upgrade-in-place. If the
@@ -133,6 +144,7 @@ def _reset_for_tests() -> None:
             try:
                 _conn.execute("DROP TABLE IF EXISTS users")
                 _conn.execute("DROP TABLE IF EXISTS sms_codes")
+                _conn.execute("DROP TABLE IF EXISTS reset_codes")
                 _conn.close()
             except Exception:
                 pass
@@ -328,6 +340,120 @@ class LocalUserStore:
                 continue
         return {"migrated": migrated}
 
+    # ----- R11 account management -----
+
+    def change_password(self, user_id: str, old_password: str, new_password: str) -> dict[str, Any]:
+        if len(new_password) < 6:
+            raise ValueError("新密码至少 6 位 / new password must be ≥ 6 chars")
+        conn = _connection()
+        with _conn_lock:
+            row = conn.execute(
+                "SELECT provider, display_name, pw_hash, pw_salt FROM users WHERE user_id=?", (user_id,)
+            ).fetchone()
+            if row is None or row["provider"] != "password" or not row["pw_hash"]:
+                raise ValueError("该账号不支持修改密码(仅密码账号可改)/ password change not supported for this account")
+            candidate, _ = _hash_password(old_password, row["pw_salt"])
+            if not hmac.compare_digest(candidate, row["pw_hash"]):
+                raise ValueError("原密码错误 / wrong current password")
+            new_hash, new_salt = _hash_password(new_password)
+            conn.execute("UPDATE users SET pw_hash=?, pw_salt=? WHERE user_id=?", (new_hash, new_salt, user_id))
+        return {"user_id": user_id, "provider": "password", "display_name": row["display_name"]}
+
+    def start_password_reset(self, identifier: str) -> dict[str, Any]:
+        """Begin a forgot-password reset. DEMO: returns the code in the
+        response (email/SMS is mocked). To avoid leaking which accounts
+        exist, always reports {"sent": true}; the code is only generated /
+        returned when a password account actually exists for this identifier."""
+        ident = _normalize_identifier(identifier)
+        if not ident:
+            raise ValueError("identifier must be an email or phone number")
+        conn = _connection()
+        with _conn_lock:
+            exists = conn.execute(
+                "SELECT 1 FROM users WHERE user_id=? AND pw_hash IS NOT NULL", (f"pw:{ident}",)
+            ).fetchone()
+            if exists is None:
+                return {"sent": True, "demo": True}     # don't reveal non-existence
+            code = _gen_code()
+            ts = int(time.time())
+            conn.execute(
+                "INSERT INTO reset_codes (identifier, code, expires_at) VALUES (?,?,?) "
+                "ON CONFLICT(identifier) DO UPDATE SET code=excluded.code, expires_at=excluded.expires_at",
+                (ident, code, ts + SMS_CODE_TTL_SEC),
+            )
+        return {"sent": True, "dev_code": code, "demo": True}
+
+    def verify_password_reset(self, identifier: str, code: str, new_password: str) -> dict[str, Any]:
+        ident = _normalize_identifier(identifier)
+        if not ident:
+            raise ValueError("identifier must be an email or phone number")
+        if len(new_password) < 6:
+            raise ValueError("新密码至少 6 位 / new password must be ≥ 6 chars")
+        user_id = f"pw:{ident}"
+        ts = int(time.time())
+        conn = _connection()
+        with _conn_lock:
+            row = conn.execute(
+                "SELECT code, expires_at FROM reset_codes WHERE identifier=?", (ident,)
+            ).fetchone()
+            if row is None or ts > row["expires_at"]:
+                raise ValueError("验证码已过期或不存在 / reset code expired or not found")
+            if code != row["code"]:
+                raise ValueError("验证码错误 / wrong reset code")
+            urow = conn.execute("SELECT display_name FROM users WHERE user_id=?", (user_id,)).fetchone()
+            if urow is None:
+                raise ValueError("账号不存在 / account not found")
+            new_hash, new_salt = _hash_password(new_password)
+            conn.execute("UPDATE users SET pw_hash=?, pw_salt=? WHERE user_id=?", (new_hash, new_salt, user_id))
+            conn.execute("DELETE FROM reset_codes WHERE identifier=?", (ident,))
+        return {"user_id": user_id, "provider": "password", "display_name": urow["display_name"]}
+
+    def delete_user(self, user_id: str, password: str | None = None, require_password: bool = True) -> dict[str, Any]:
+        """Delete the account + purge its per-user data (preferences /
+        price-watch / repurchase). Password accounts must confirm with their
+        password on the user-initiated path (`require_password=True`); the
+        admin path passes `require_password=False`."""
+        conn = _connection()
+        with _conn_lock:
+            row = conn.execute(
+                "SELECT provider, pw_hash, pw_salt FROM users WHERE user_id=?", (user_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("账号不存在 / account not found")
+            if require_password and row["provider"] == "password" and row["pw_hash"]:
+                if not password:
+                    raise ValueError("请输入密码确认注销 / password required to delete")
+                candidate, _ = _hash_password(password, row["pw_salt"])
+                if not hmac.compare_digest(candidate, row["pw_hash"]):
+                    raise ValueError("密码错误 / wrong password")
+            conn.execute("DELETE FROM users WHERE user_id=?", (user_id,))
+        purged: dict[str, int] = {}
+        for table, db_file in _REKEY_TABLES:
+            try:
+                path = REPO_ROOT / "data" / db_file
+                if not path.exists():
+                    continue
+                c = sqlite3.connect(str(path), isolation_level=None)
+                cur = c.execute(f"DELETE FROM {table} WHERE user_id=?", (user_id,))
+                purged[table] = cur.rowcount
+                c.close()
+            except Exception:
+                continue
+        return {"deleted": True, "user_id": user_id, "purged": purged}
+
+    def list_users(self, limit: int = 200) -> list[dict[str, Any]]:
+        """Admin: all accounts, newest first. NEVER returns pw_hash/pw_salt —
+        only whether a password is set (has_password)."""
+        conn = _connection()
+        with _conn_lock:
+            rows = conn.execute(
+                "SELECT user_id, provider, display_name, created_at, "
+                "(pw_hash IS NOT NULL) AS has_password "
+                "FROM users ORDER BY created_at DESC LIMIT ?",
+                (int(limit),),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
 
 # ---------------------------------------------------------------------------
 # Cloud implementation (thin HTTP proxy to Sam's service) — the seam
@@ -387,6 +513,22 @@ class CloudUserStore:
 
     def mock_wechat(self, display_name: str | None) -> dict[str, Any]:
         return self._post("/users/wechat", {"display_name": display_name})
+
+    def change_password(self, user_id: str, old_password: str, new_password: str) -> dict[str, Any]:
+        return self._post("/users/password/change", {"user_id": user_id, "old_password": old_password, "new_password": new_password})
+
+    def start_password_reset(self, identifier: str) -> dict[str, Any]:
+        return self._post("/users/password/reset/start", {"identifier": identifier})
+
+    def verify_password_reset(self, identifier: str, code: str, new_password: str) -> dict[str, Any]:
+        return self._post("/users/password/reset/verify", {"identifier": identifier, "code": code, "new_password": new_password})
+
+    def delete_user(self, user_id: str, password: str | None = None, require_password: bool = True) -> dict[str, Any]:
+        return self._post("/users/delete", {"user_id": user_id, "password": password, "require_password": require_password})
+
+    def list_users(self, limit: int = 200) -> list[dict[str, Any]]:
+        resp = self._get("/users/list", {"limit": limit})
+        return resp if isinstance(resp, list) else resp.get("users", [])
 
 
 # ---------------------------------------------------------------------------

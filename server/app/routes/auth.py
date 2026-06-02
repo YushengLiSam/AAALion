@@ -19,9 +19,11 @@ real signed token here without any client change.
 from __future__ import annotations
 
 import asyncio
+import hmac
+import os
 import re
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.services.user_store import get_user_store
@@ -66,6 +68,32 @@ class PasswordLoginRequest(BaseModel):
 class MigrateRequest(BaseModel):
     from_user_id: str = Field(min_length=1, max_length=128)
     to_user_id: str = Field(min_length=1, max_length=128)
+
+
+# R11 — account management requests.
+class PasswordChangeRequest(BaseModel):
+    user_id: str = Field(min_length=1, max_length=128)
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class PasswordResetStartRequest(BaseModel):
+    identifier: str = Field(min_length=3, max_length=128)
+
+
+class PasswordResetVerifyRequest(BaseModel):
+    identifier: str = Field(min_length=3, max_length=128)
+    code: str = Field(min_length=4, max_length=8)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class DeleteAccountRequest(BaseModel):
+    user_id: str = Field(min_length=1, max_length=128)
+    password: str | None = None
+
+
+class AdminDeleteRequest(BaseModel):
+    user_id: str = Field(min_length=1, max_length=128)
 
 
 def _with_token(user: dict) -> dict:
@@ -153,3 +181,99 @@ async def me_endpoint(user_id: str) -> dict:
 async def migrate_endpoint(req: MigrateRequest) -> dict:
     store = get_user_store()
     return await asyncio.to_thread(store.migrate, req.from_user_id, req.to_user_id)
+
+
+# ---------------------------------------------------------------------------
+# R11 — account management: change password / forgot-reset / delete
+# ---------------------------------------------------------------------------
+
+
+@router.post("/password/change")
+async def password_change_endpoint(req: PasswordChangeRequest) -> dict:
+    """R11 — change password (caller must supply the current password)."""
+    store = get_user_store()
+    try:
+        user = await asyncio.to_thread(
+            store.change_password, req.user_id, req.old_password, req.new_password
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _with_token(user)
+
+
+@router.post("/password/reset/start")
+async def password_reset_start_endpoint(req: PasswordResetStartRequest) -> dict:
+    """R11 — forgot password: request a reset code. DEMO returns `dev_code`
+    in the response (email/SMS is mocked); cloud sends a real message."""
+    store = get_user_store()
+    try:
+        return await asyncio.to_thread(store.start_password_reset, req.identifier)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/password/reset/verify")
+async def password_reset_verify_endpoint(req: PasswordResetVerifyRequest) -> dict:
+    """R11 — forgot password: verify the code + set the new password → user."""
+    store = get_user_store()
+    try:
+        user = await asyncio.to_thread(
+            store.verify_password_reset, req.identifier, req.code, req.new_password
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _with_token(user)
+
+
+@router.post("/delete")
+async def delete_account_endpoint(req: DeleteAccountRequest) -> dict:
+    """R11 — delete (注销) the current account + purge its per-user data
+    (preferences / price-watch / repurchase). Password accounts must include
+    their password to confirm."""
+    store = get_user_store()
+    try:
+        return await asyncio.to_thread(store.delete_user, req.user_id, req.password, True)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# R11 — admin: list / delete accounts. Gated by the LIONPICK_ADMIN_TOKEN env
+# var (sent as the X-Admin-Token header); the API is DISABLED unless that env
+# var is set, so it never opens up by accident.
+# ---------------------------------------------------------------------------
+
+
+def _check_admin(token: str | None) -> None:
+    expected = os.getenv("LIONPICK_ADMIN_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="admin API disabled (set LIONPICK_ADMIN_TOKEN)")
+    if not token or not hmac.compare_digest(token, expected):
+        raise HTTPException(status_code=403, detail="forbidden")
+
+
+@router.get("/admin/users")
+async def admin_users_endpoint(
+    x_admin_token: str | None = Header(default=None),
+    limit: int = 200,
+) -> dict:
+    """R11 — admin: list all accounts (never returns password hashes).
+    Requires `X-Admin-Token` == LIONPICK_ADMIN_TOKEN."""
+    _check_admin(x_admin_token)
+    store = get_user_store()
+    users = await asyncio.to_thread(store.list_users, max(1, min(limit, 1000)))
+    return {"users": users, "count": len(users)}
+
+
+@router.post("/admin/delete")
+async def admin_delete_endpoint(
+    req: AdminDeleteRequest,
+    x_admin_token: str | None = Header(default=None),
+) -> dict:
+    """R11 — admin: delete any account by id (no per-user password needed)."""
+    _check_admin(x_admin_token)
+    store = get_user_store()
+    try:
+        return await asyncio.to_thread(store.delete_user, req.user_id, None, False)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
