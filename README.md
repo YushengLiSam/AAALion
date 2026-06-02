@@ -19,27 +19,27 @@
 
 狮选 LionPick 是一款移动端的智能导购 Agent：iOS 原生客户端 + FastAPI 流式后端 + 向量检索 + 多模态大模型。用户可以用文字、语音、相机或图片描述需求，Agent 基于真实商品库进行多轮对话推荐，杜绝幻觉。
 
-LionPick is a native iOS shopping assistant. The FastAPI backend streams responses over SSE, retrieves real products from a vector index (Chroma + `bge-small-zh-v1.5` + OpenCLIP ViT-B/32 on A100), and uses a vision-capable LLM via TokenRouter for grounded generation. Multi-turn dialogue, negation/exclusion, comparison, photo-to-product search, voice input, TTS playback.
+LionPick is a native iOS shopping assistant. The FastAPI backend — **deployed to a GCP cloud VM with push-to-`main` continuous deploy** — streams responses over SSE, retrieves real products from a vector index (Chroma + `bge-small-zh-v1.5` + OpenCLIP ViT-B/32), and uses a vision-capable LLM via TokenRouter for grounded generation. Multi-turn dialogue, negation/exclusion, comparison, photo-to-product search, proactive clarification, conversational cart, voice input, TTS playback.
 
 > **New to the project, or not an engineer?** Start with the plain-English
 > tour at [`docs/explainers/README.md`](docs/explainers/README.md) —
 > 15 short topic explainers written for anyone with introductory CS, no
 > ML background required.
 
-## Live status (Round 9.A — agentic trust + transparency layer)
+## Live status (Round 10 — cloud deploy + cart depth + latency/UX polish)
 
-**Retrieval headline (unchanged this round): recall@5 0.982 / MRR 0.856 / negation accuracy 1.000 on the audited 68-case golden set.** R9.A added a UX / trust / agentic layer on top of retrieval, so the search metrics above are intentionally flat — the new work is visible in the app, not in the recall numbers.
+**The backend now runs in the cloud** (GCP VM, `systemd`-managed, public HTTPS via Cloudflare tunnel) with **continuous deploy**: a push to `main` auto-deploys in ~2 min with a `/ready` health-check and automatic rollback (`tools/cloud-autodeploy.sh`). The iOS app points at the cloud by default, so **a demo no longer depends on anyone's Mac being on**.
 
-**R9.A — 10 new capabilities (Tier 1 + Tier 2 of the innovation backlog), all verified on iPhone 13 Pro:**
-- **Multi-turn topic-switch reset** — "推荐 iPad" → "推荐洗面奶" no longer strands on the inherited category (closes the `sub_categories` contamination class).
-- **Per-claim provenance** — every LLM fact is tagged `[目录✓]` (catalog-verified) or `[推断?]` (inferred), with a per-message "✓ N 已验证 · ? M 推断" footer. Anti-sycophancy.
-- **"Why this is recommended" card** — tap any product to see its dense / BM25 / RRF / rerank scores + source citation (platform + URL).
-- **Voice-to-cart** — say "加入购物车 / 结算" and the cart action fires without tapping Send.
-- **Price-drop watch** — "提醒我降价" on any product; backend SQLite watch + alert endpoint.
-- **Comparison tables, scene/outfit sets, cross-language brand aliasing** (Nike = 耐克).
+**Retrieval headline: negation accuracy = 1.000 across 20 negation cases (doubled this round with 6 adversarial multi-turn/conflicting-constraint cases); recall@5 ≈ 0.93–0.96 on the current 82-case golden set** depending on the rerank-latency config. Run `python -m rag.eval.run` for the live number.
 
-Latest measured score: **~93 / 100** (self-assessed; up from R8 91.5 — see [`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)).
-Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/) (R8 — 9 scenarios including currency norm, stateful, multi-turn negation persistence).
+**R10 — what landed (all live-verified on the cloud + iPhone 12 Pro Max / iPad Air):**
+- **4.1 cart depth (full)** — conversational add, **quantity change** ("把数量改成2" / "第二个改成3个"), **delete** ("删掉第二个"), swipe-to-delete, and checkout (address + summary + mock complete).
+- **4.4 latency** — **首屏极速**: product cards stream *before* the LLM text (pure reorder, recall unchanged) → cards in **~0.3s on cache-hit**; **two-layer cache** (response + retrieval memo, 8s→0.3s on repeats) surfaced at `GET /cache/stats`; cached LLM provider connection; env-tunable rerank cost knobs.
+- **4.4 端侧打磨** — **骨架屏** shimmer placeholders, **收藏 ❤️** with spring bounce + haptic, **滑动** cart swipe-actions; plus proper **Markdown rendering** of replies (real tables/headings/bold instead of raw syntax).
+- **#5 主动反问** — when a request is too vague to recommend ("推荐个礼物" / "随便看看"), the agent **asks a clarifying question** instead of guessing, with **tappable quick-reply chips** above the composer.
+- **拍照找货 on the cloud** — OpenCLIP image→image retrieval (145 product-image vectors) now runs on the prod VM, not the A100.
+
+Self-assessed score: **~93–94 / 100**. See [`docs/RUBRIC_MAPPING.md`](docs/RUBRIC_MAPPING.md) for the per-item map and [`docs/DEV_LOG.md`](docs/DEV_LOG.md) for the round narrative.
 
 ### Round-by-round delta
 
@@ -59,6 +59,7 @@ Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/)
 | **R7.6 (2026-05-25, Tujie)** | **Docker model bake + startup retrieval prewarm + `/ready` gate** | **0.982 (68-case)** | **0.856** |
 | R8 (2026-05-25 eve, Shufeng) | Cache hit-rate panel, multi-turn negation persistence, brand-origin KR/DE/GB, Cloudflare Tunnel, dev-mode gate, voice idle-stop, multi-attachment (≤10) | 0.880 → 0.982 (carried) | 0.856 |
 | **R9.A (2026-05-28, Shufeng)** | **Agentic/trust layer: topic-switch reset · provenance tags · "why recommended" card · voice-to-cart · price-watch · comparison/scene · cross-lang brand alias** | *UX layer — retrieval flat* | — |
+| **R10 (2026-06-01, Yusheng)** | **Cloud deploy + CD (autodeploy/rollback) · 4.1 conversational quantity/delete · 4.4 首屏 cards-first + two-layer cache + `/cache/stats` · 端侧打磨 (skeleton/❤️/swipe) · Markdown rendering · #5 主动反问 + chips · CLIP on cloud · image-path fix** | 0.93–0.96 (82-case) | — |
 
 ### Capability matrix
 
@@ -75,9 +76,13 @@ Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/)
 | **Docker readiness prewarm** (no first-user model download) | ✅ NEW | **Tujie (R7.6)** | [`Dockerfile.rag`](Dockerfile.rag) + [`retrieval_readiness.py`](server/app/services/retrieval_readiness.py) + [`/ready`](docs/API.md) |
 | Negation / exclusion (4.3 ⭐⭐) | ✅ **audited: accuracy 1.000** | Shufeng + Yusheng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
 | Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-24/03-comparison.png`](docs/demos/2026-05-24/03-comparison.png) |
-| OpenCLIP image retrieval on A100 (4.2 ⭐⭐⭐) | ✅ | Shufeng (R3) | 100 images indexed |
+| OpenCLIP image→image retrieval (4.2 ⭐⭐⭐) | ✅ **on cloud VM** | Shufeng + Yusheng | 145 image vectors; `rag/retrieve/query.py:query_image` |
 | Voice input + TTS (4.2 ⭐ + ⭐⭐) | ✅ | Shufeng (R3) | Speech / AVSpeechSynthesizer |
-| **4.1 Cart + inline-add + CNY-normalized totals + 去原页** | ✅ | Shufeng + Tujie | [`docs/demos/2026-05-24/04-cart-intent.png`](docs/demos/2026-05-24/04-cart-intent.png) |
+| **4.1 Cart — full** (add · conversational **quantity** · **delete** · swipe · checkout) | ✅ **R10** | Shufeng + Yusheng | `_detect_cart_intent` + `CartStore` + `CheckoutView` |
+| **4.4 首屏极速 + two-layer cache + `/cache/stats`** | ✅ **R10** | Yusheng | cards-first reorder + `rag_client` retrieval memo |
+| **4.4 端侧打磨** (skeleton · ❤️ favorite · swipe · Markdown render) | ✅ **R10** | Yusheng | `SkeletonCardView` · `FavoritesStore` · `MarkdownMessageView` |
+| **#5 主动反问** (vague query → clarify + tappable chips) | ✅ **R10** | Yusheng | `_needs_clarification` + `clarify` SSE event |
+| **Cloud deploy + CD** (autodeploy + rollback) | ✅ **R10** | Yusheng | `tools/cloud-autodeploy.sh` |
 | **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
 | **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
 | **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
@@ -109,8 +114,9 @@ Latest demos: [`docs/demos/2026-05-25-evening/`](docs/demos/2026-05-25-evening/)
 - **客户端 / Client**: Swift 5.9, SwiftUI, iOS 17+. Speech.framework + AVSpeechSynthesizer + PhotosPicker + UIImagePickerController + .fileImporter.
 - **后端 / Backend**: Python 3.12, FastAPI, SSE, Pydantic v2 multimodal content union.
 - **汇率 / FX display**: Frankfurter v2 latest reference rates (keyless; cached server-side; original source price retained).
-- **向量库 / Vector DB**: Chroma in-process. Two collections: `products_text` (1082 chunks via `BAAI/bge-small-zh-v1.5`) + `products_image` (100 vectors via OpenCLIP ViT-B/32 on A100).
+- **向量库 / Vector DB**: Chroma in-process. Two collections: `products_text` (1082 chunks via `BAAI/bge-small-zh-v1.5`) + `products_image` (145 vectors via OpenCLIP ViT-B/32) — both served from the cloud VM.
 - **LLM**: `claude-haiku-4-5` (vision-capable) via TokenRouter. Swappable to Doubao, OpenAI, Anthropic, or local echo via `LLM_PROVIDER` env.
+- **部署 / Deploy**: GCP VM + `systemd` (`lionpick`, `lionpick-tunnel`, `lionpick-autodeploy.timer`) + Cloudflare tunnel for public HTTPS. Push to `main` → auto-deploy in ~2 min with `/ready` check + rollback (`tools/cloud-autodeploy.sh`).
 - **Design tokens**: Claude-designed warm-ivory + amber-gold + deep-espresso palette (see [`client/AAALionApp/design-tokens.json`](client/AAALionApp/design-tokens.json)).
 
 ## Quickstart / 快速开始
@@ -153,26 +159,24 @@ The first Docker build downloads and embeds the retrieval model weights into
 the image. The container does not accept chat traffic until `/ready` confirms
 that embedding, BM25, reranking and one complete retrieval path are warmed.
 
-### Backend URL: how each developer points the app at their own Mac
+### Backend URL: where the app points
 
-Default in `Config.swift` is `http://localhost:8000` — that works for **everyone's
-simulator without any setup** (the simulator shares the Mac's network). For a
-physical iPhone over LAN you need your Mac's LAN IP, and there are three ways
-to set it (each `Config.swift` resolves in this order):
+`Config.swift`'s `defaultBackendURL` is the **live cloud tunnel** (Cloudflare),
+so a freshly-installed app works on **any network — Wi-Fi or cellular — with no
+setup**, and a demo doesn't depend on a Mac being on. `Config.swift` resolves in
+this order:
 
 | Scenario | What to do | Persistence |
 |---|---|---|
-| **Mac simulator** | Nothing. `localhost` already works. | — |
-| **Real iPhone, day-to-day** | Open the app → ⚙ Settings → enter `http://<your-mac-LAN-IP>:8000` → Test Connection → Save | UserDefaults, survives app relaunch |
-| **One-off testing** | Xcode → Product → Scheme → Edit Scheme → Run → Environment Variables → add `PUBLIC_BACKEND_URL=http://…:8000` | Only while debugging through Xcode |
-| **Rebuild-needed override** | Edit `defaultBackendURL` in `Config.swift` (NOT recommended — your change will collide with teammates') | Compile-time |
+| **Cloud (default)** | Nothing. The baked-in tunnel URL just works on the device/simulator. | Compile-time default |
+| **Local backend (dev)** | Open the app → ⚙ Settings → enter `http://localhost:8000` (sim) or `http://<your-mac-LAN-IP>:8000` (device) → Test → Save | UserDefaults, survives relaunch |
+| **One-off testing** | Xcode → Edit Scheme → Run → Environment Variables → `PUBLIC_BACKEND_URL=http://…:8000` | Only while debugging through Xcode |
 
-Find your Mac's LAN IP: `ipconfig getifaddr en0`. The backend must be running
-bound to `0.0.0.0` (default in `aaalion backend`), not `127.0.0.1`.
-
-**Do not** commit a personal LAN IP into `Config.swift` — leave the default as
-`localhost`. Each developer / evaluator picks the right path above for their
-device.
+> The Cloudflare **quick-tunnel** URL is stable while the tunnel process runs but
+> can change if it restarts; Yusheng re-bakes/re-broadcasts it when it does.
+> A named-tunnel (permanent domain) upgrade is the one open ops item. For a
+> local backend, run `aaalion backend` (binds `0.0.0.0`, not `127.0.0.1`); find
+> your Mac's LAN IP with `ipconfig getifaddr en0`.
 
 Foreign-source products retain their original amount (for example `$398.00 USD`) and are displayed/totaled in RMB using the latest available reference rate fetched by the backend. This is a shopping-display conversion, not a payment settlement quote; the card detail exposes the rate date and provider.
 
@@ -199,8 +203,9 @@ tools/     aaalion + screenshot + check-secrets
 | Document | Purpose |
 |---|---|
 | ⭐ [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) | Single-page index — start here if new to the repo |
-| 📋 [docs/PROPOSAL_2026-05-24.md](docs/PROPOSAL_2026-05-24.md) | Next-iteration proposal (awaiting team review) |
-| [docs/RUBRIC_MAPPING.md](docs/RUBRIC_MAPPING.md) | PDF §4 → code/artifact mapping for defense |
+| 📓 [docs/DEV_LOG.md](docs/DEV_LOG.md) | Rolling dev log — newest shipping moments at the top |
+| 📋 [docs/PROPOSAL_2026-05-30.md](docs/PROPOSAL_2026-05-30.md) | Latest forward plan (to code-freeze) · [competitive analysis](docs/COMPETITIVE_ANALYSIS_2026-05-30.md) |
+| [docs/RUBRIC_MAPPING.md](docs/RUBRIC_MAPPING.md) | PDF §4 → code/artifact mapping for defense (refreshed R10) |
 | [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) | Step-by-step for a teammate's MacBook + iPhone ≥13 |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | All gotchas + fixes |
 | [docs/demos/](docs/demos/) | All recorded demo screenshots + verdicts |

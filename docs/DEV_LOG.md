@@ -15,6 +15,48 @@
 
 ---
 
+## 2026-06-01 — R10.2: clarification, eval hardening, Markdown, image fix, CD bugfix, device deploy
+
+**by**: Yusheng · all live-verified on cloud + device
+
+Continuation of the R10 round; all merged to `main` and auto-deployed.
+
+- **#5 主动反问 (proactive clarification)** — vague first-turn requests
+  ("推荐个礼物" / "随便看看" / "送女友什么礼物") now make the agent **ask a
+  clarifying question** instead of dumping products: a conservative backend
+  detector (`_needs_clarification`) skips retrieval/cards and swaps in a
+  `_CLARIFY_PROMPT`. The backend emits a `clarify` SSE event with **tappable
+  quick-reply chips** (gift → 对象/预算/场合; generic → 品类/预算); tapping
+  one sends it as the next turn. Live-verified: vague → ask + chips, all
+  concrete/negation/compare queries unaffected (no misfire).
+- **P2 — eval hardening** — added 6 adversarial negation/multi-turn golden
+  cases (golden.jsonl 76→82), each live-verified to exclude the forbidden
+  products before adding. Headline: persistent negation (防晒→不要日系→再便宜
+  点 still drops the Japanese 安热沙). **negation accuracy held at 1.000 over
+  20 cases (doubled)**; recall@5 0.932 on the 82-case set.
+- **P1 — RUBRIC_MAPPING refresh** — the mapping had gone stale (listed 4.1
+  cart as "deferred", 4.4 cache as "partial" when both are shipped). Rewrote
+  it to current reality with verification tags.
+- **Markdown rendering** — assistant replies showed raw markdown (pipe-and-
+  dash tables, literal `##`/`**`). New `MarkdownMessageView` renders
+  headings/tables/bold/bullets as real SwiftUI views while preserving the
+  `[目录✓]`/`[推断?]` provenance coloring; no markdown dependency.
+- **Image-path fix** — seed image paths contain Chinese category folders
+  (`/static/1_美妆护肤/…`); emitted un-encoded, iOS `URL(string:)` failed to
+  load them intermittently. Backend now `quote()`s the path → all images
+  200 via the tunnel. Backend-only fix; no reinstall needed.
+- **`/cache/stats` now surfaces the retrieval cache** (proposal P3) — was
+  response-cache only; merged `retrieval_cache_stats()` in (back-compat) +
+  an iOS Settings row showing the retrieval hit-rate (the 8s→0.3s win).
+- **CD bugfix** — the autodeploy ready-check waited only 40 s, but warmup
+  under load hits ~60 s, so it **false-rolled-back a good commit and marked
+  it bad**. Widened to 150 s; re-verified end-to-end (push → auto-deploy →
+  `deploy OK`, no rollback).
+- **Device deploy** — 狮选 installed on iPhone 12 Pro Max + iPad Air (5th
+  gen) for live testing (free Personal Team, team `C3Y9PC45F8`).
+
+---
+
 ## 2026-05-30 (later) — R10.perf: first-screen speed + conversational cart + UX polish
 
 **by**: Yusheng (perf + client) · verified on cloud by Shufeng
