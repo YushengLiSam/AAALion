@@ -66,6 +66,15 @@ struct ChatService {
 
         let messages: [WireMessage]
         let filters: Filters?
+        // R9.B — anonymous per-device id so the backend can apply this
+        // user's 👍/👎 preference prior. Omitted (nil) → pure relevance.
+        var userId: String? = nil
+
+        enum CodingKeys: String, CodingKey {
+            case messages
+            case filters
+            case userId = "user_id"
+        }
     }
 
     func stream(messages: [Message], filters: ChatRequest.Filters? = nil) -> AsyncThrowingStream<ChatDelta, Error> {
@@ -124,22 +133,33 @@ struct ChatService {
         let wire = ChatRequest(
             messages: messages.map { msg in
                 let content: ChatRequest.Content
-                if let imageData = msg.imageData {
-                    // Multimodal: text + base64 image part.
-                    let b64 = imageData.base64EncodedString()
-                    let dataURL = "data:image/jpeg;base64,\(b64)"
+                // R8.E: send up to `Attachment.maxCount` image parts. Vision-
+                // capable LLMs (Claude / GPT-4o / Doubao Vision) handle
+                // multi-image content arrays natively; the backend forwards
+                // the entire list to the provider, while the CLIP retriever
+                // currently uses only attachments[0] (see chat.py
+                // `_extract_image_bytes_list`).
+                let imageAttachments = msg.attachments.filter { $0.isImage }
+                if !imageAttachments.isEmpty {
                     var parts: [ChatRequest.ContentPart] = []
                     if !msg.text.isEmpty {
                         parts.append(.text(.init(text: msg.text)))
                     }
-                    parts.append(.image(.init(image_url: .init(url: dataURL))))
+                    for attachment in imageAttachments {
+                        let b64 = attachment.data.base64EncodedString()
+                        let dataURL = "data:\(attachment.mime);base64,\(b64)"
+                        parts.append(.image(.init(image_url: .init(url: dataURL))))
+                    }
                     content = .parts(parts)
                 } else {
                     content = .plain(msg.text)
                 }
                 return .init(role: msg.role.rawValue, content: content)
             },
-            filters: filters
+            filters: filters,
+            // R9.B — attach the anonymous device id so the backend applies
+            // this user's 👍/👎 preference prior to the results.
+            userId: DeviceIdentity.userId
         )
         request.httpBody = try JSONEncoder().encode(wire)
         return request

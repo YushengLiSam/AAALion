@@ -84,8 +84,11 @@ Event types:
 
 | `type` | Payload | Meaning |
 |---|---|---|
+| `product_card` | `{"product": {...}}` | Show a product card. **R10**: emitted *before* the `delta` text (首屏极速 — cards lead the LLM) |
 | `delta` | `{"text": "..."}` | Token(s) to append to the streaming message |
-| `product_card` | `{"product": {...}}` | Show a clickable product card in the conversation |
+| `cart_intent` | `{"action": "...", "index": Int?, "quantity": Int?}` | Conversational cart op. `action` ∈ `add` · `checkout` · `remove` · **`set_quantity`** (R10). `index` is a 1-based ordinal (`-1` = last) for remove/set_quantity; `quantity` is the target for set_quantity (e.g. "把数量改成2") |
+| `clarify` | `{"chips": ["...", ...]}` | **R10 #5** — request was too vague; the reply is a clarifying question and these are tappable quick-reply chips (no product cards this turn) |
+| `claim_summary` | `{"verified": Int, "inferred": Int}` | Per-message provenance tally for the `[目录✓]`/`[推断?]` markers |
 | `error` | `{"message": "...","code":"..."}` | Show an error toast; stream is over |
 | `done` | `{}` | Stream complete, OK to finalize the bubble |
 

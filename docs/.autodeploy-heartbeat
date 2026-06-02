@@ -1,0 +1,3 @@
+2026-05-30T19:08:08Z — autodeploy smoke test
+2026-05-30T21:44Z — CD re-verify after R10.perf (首屏极速 + ⭐⭐⭐ polish) deploy
+2026-06-01T16:30Z — CD re-verify after ready-check window fix (40s→150s)

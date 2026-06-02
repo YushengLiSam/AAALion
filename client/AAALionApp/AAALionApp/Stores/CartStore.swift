@@ -49,6 +49,18 @@ final class CartStore {
         }
     }
 
+    /// R10 #4.1⭐⭐ — set an exact quantity (conversational "把数量改成2").
+    /// Clamps to ≥1; a request for 0 or less removes the line instead.
+    func setQuantity(productId: String, quantity: Int) {
+        guard let idx = items.firstIndex(where: { $0.productId == productId }) else { return }
+        if quantity <= 0 {
+            items.remove(at: idx)
+        } else {
+            items[idx].quantity = quantity
+        }
+        persist()
+    }
+
     func clear() {
         items = []
         persist()

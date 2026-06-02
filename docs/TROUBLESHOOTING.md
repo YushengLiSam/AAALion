@@ -102,6 +102,63 @@ SUDO_ASKPASS=$HOME/.config/lionpick/askpass sudo -A /usr/libexec/ApplicationFire
 
 **Same Wi-Fi required**: iPhone and Mac must be on the same network. Phone's "Personal Hotspot" or guest networks can be isolated. Check both show the same network name in their Wi-Fi settings.
 
+### "无法连接服务器" even on same Wi-Fi → use a Cloudflare Tunnel (R8.D)
+
+If the above fix sequence doesn't unblock you (e.g. router has AP / client isolation, hotel / cafe network, iPhone fell back to cellular silently), skip LAN entirely and put the backend on a public URL via Cloudflare Tunnel. Works from any network, no LAN setup, free.
+
+**One-time setup**:
+```bash
+brew install cloudflared
+```
+
+**Each session** (run while uvicorn is up):
+```bash
+tools/start-tunnel.sh
+# → captures the URL like https://reader-missile-absolute-memphis.trycloudflare.com
+```
+
+**Bake into the iOS app**:
+1. Open `client/AAALionApp/AAALionApp/Config.swift`.
+2. Replace `defaultBackendURL` with the captured tunnel URL.
+3. `aaalion ios-device` to rebuild + reinstall (Xcode auto-renews the cert).
+4. Force-quit and reopen 狮选 on the iPhone. **No Settings tap needed** — the URL just works.
+
+**Dev mode override** (advanced): long-press the gear icon on the chat screen for 1.5 s. A toast appears, and the Backend-URL editor reappears in Settings. Use this only when swapping between tunnel / LAN / cloud during testing.
+
+**Caveats**:
+- The tunnel URL changes every `cloudflared` restart. Either re-bake the app, or set up a named Cloudflare Tunnel (`cloudflared tunnel login` once → `cloudflared tunnel create lionpick` → DNS-route it to a stable subdomain).
+- For defense day, we'll migrate to a real cloud VM (Hetzner CX22 €4.5/mo) so the Mac isn't required. See `docs/DEPLOY_GUIDE.md §Cloud VM (Phase 2)`.
+
+---
+
+## Voice + attachment UX (R8.E)
+
+### Mic stays "red" forever; draft picks up stale text from a previous turn
+
+**Why**: `SFSpeechRecognizer` does NOT auto-release on silence. Before R8.E, the recognizer stayed alive until the user manually tapped mic again. While alive, the last partial-result (which could be from a prior turn that never finalised) sat in `draft`.
+
+**Fix** (R8.E in `SpeechService.swift`): idle timer with a 1.8 s threshold, keyed on partial-result cadence:
+- Every fresh partial bumps the timer out.
+- 1.8 s of no new partial → automatic `stop()`. Mic releases, draft holds the final transcript, user reviews and taps Send.
+- Matches ChatGPT / Claude iOS app UX. The composer shows a "正在听… / Listening — auto-stops on silence" hint while recording.
+
+**To override** (e.g. for very slow speakers): tweak `idleTimeout` in `SpeechService.swift`. Don't drop below 1.0 s — that cuts off natural Chinese phrase pauses.
+
+### Can only attach one photo
+
+**Why**: pre-R8.E, `ChatViewModel.pendingImage: Data?` was a single Optional and every picker overwrote it. Backend was already multi-image capable via `content: list[ContentPart]`; only the iOS data model was the bottleneck.
+
+**Fix** (R8.E): `pendingImage` → `pendingAttachments: [Attachment]` with `Attachment.maxCount = 10`. Composer shows a horizontal scroll-row of 64×64 chips with `x` delete buttons + "N / 10" counter. Pickers are all bounded by `remainingAttachmentSlots`:
+- PhotosPicker is plural (`[PhotosPickerItem]`, `maxSelectionCount: remaining`).
+- FileImporter is `allowsMultipleSelection: true`.
+- Camera appends per-shot; tap repeatedly until cap.
+
+The message bubble renders attachments as a 2-row LazyVGrid (5 per row, 96×96) above the text — same pattern as ChatGPT.
+
+**On the wire**: each image becomes one `image_url` part with the right MIME (JPEG / PNG / HEIC / PDF) sniffed from magic bytes. Backend `_extract_image_bytes_list` returns the list; cache key uses `hash_image_bytes_list` (sorted SHA concat, capped at 10) so order doesn't matter and the key stays bounded.
+
+**CLIP retriever** only sees attachments[0] (single-image visual retriever); the LLM still sees all N images via the content array. Documented in `server/app/routes/chat.py::_extract_image_bytes_list` docstring.
+
 ---
 
 ## Xcode / signing

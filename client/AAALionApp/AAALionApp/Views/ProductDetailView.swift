@@ -4,11 +4,56 @@ struct ProductDetailView: View {
     let product: ProductCard
     @State private var cart = CartStore.shared
     @State private var addedToast = false
+    /// Drives the button's "just-tapped" morph — true for ~1.5s after
+    /// adding to cart, then resets so the user could add another one.
+    @State private var justAdded = false
     @Environment(\.openURL) private var openURL
+    // R9.A.4 — price-watch state. Modal collects the target price; the
+    // success/error toast is reused via `addedToast` to keep the UX
+    // consistent.
+    @State private var showPriceWatchSheet = false
+    @State private var priceWatchTargetText: String = ""
+    @State private var priceWatchSubmitting = false
+    @State private var priceWatchError: String?
+    private let priceWatchService = PriceWatchService()
+    // R9.B / #12 — closed-loop preference. nil = no feedback yet this view,
+    // +1 = liked, -1 = disliked. Drives the button highlight.
+    //
+    // R10.bugfix: persisted in UserDefaults per (userId, productId) so leaving
+    // and re-entering the product page keeps the button state (the server's
+    // dimension scores persist regardless; this is purely UX continuity).
+    @State private var prefSignal: Int? = nil
+    private let preferenceService = PreferenceService()
+
+    private func prefStorageKey(_ uid: String, _ pid: String) -> String {
+        "lionpick.pref.signal.\(uid).\(pid)"
+    }
+
+    private func loadStoredPrefSignal() {
+        let key = prefStorageKey(DeviceIdentity.userId, product.productId)
+        if UserDefaults.standard.object(forKey: key) == nil {
+            prefSignal = nil
+            return
+        }
+        let v = UserDefaults.standard.integer(forKey: key)   // 0 if unset → coerced to nil above
+        prefSignal = (v == 1 || v == -1) ? v : nil
+    }
+
+    private func persistPrefSignal(_ signal: Int?) {
+        let key = prefStorageKey(DeviceIdentity.userId, product.productId)
+        if let s = signal {
+            UserDefaults.standard.set(s, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+    // R9.B / #11 — group-buy modal.
+    @State private var showGroupBuy = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                Color.clear.frame(height: 0).onAppear { loadStoredPrefSignal() }
                 AsyncImage(url: product.imageURL) { phase in
                     switch phase {
                     case .success(let image):
@@ -39,17 +84,28 @@ struct ProductDetailView: View {
 
                 addToCartButton
 
+                // R9.B / #11 — start a group buy (拼单).
+                groupBuyButton
+
+                // R9.B / #12 — 👍 / 👎 feedback. Taps train the on-backend
+                // per-device preference prior that re-ranks future results.
+                preferenceButtons
+
                 if let url = product.provenance.externalURL {
                     storeLinkButton(url: url)
                 } else {
                     disabledStoreLink
                 }
 
-                if addedToast {
-                    Label("已加入购物车 / Added to cart", systemImage: "checkmark.circle.fill")
-                        .font(.appCaption)
-                        .foregroundStyle(Color.appAccent)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                // R9.A.4 — "Notify me on price drop" button.
+                priceWatchButton
+
+                // R9.A.2 — "Why this is recommended" debug card. Renders only
+                // when the backend attached retrieval_signals (skipped for
+                // cached responses or pre-R9 product cards). Defensive on
+                // every field — anything nil just doesn't render.
+                if let signals = product.retrievalSignals {
+                    whyRecommendedCard(signals: signals)
                 }
             }
             .padding()
@@ -57,6 +113,26 @@ struct ProductDetailView: View {
         .background(Color.appBackground.ignoresSafeArea())
         .navigationTitle(product.brand)
         .navigationBarTitleDisplayMode(.inline)
+        // R8.F.5 fix: float the "已加入购物车" toast at the top of the
+        // screen as an overlay (was inside ScrollView so it could land
+        // off-screen if the user was scrolled down). Same look as the
+        // ChatView dev-mode toast — feels native.
+        .overlay(alignment: .top) {
+            if addedToast {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.appAccent)
+                    Text("已加入购物车 / Added to cart")
+                        .font(.appCaption)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: addedToast)
     }
 
     private var priceBlock: some View {
@@ -132,24 +208,44 @@ struct ProductDetailView: View {
     private var addToCartButton: some View {
         Button {
             cart.add(product)
-            let gen = UINotificationFeedbackGenerator()
-            gen.notificationOccurred(.success)
-            withAnimation { addedToast = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-                withAnimation { addedToast = false }
+            // R8.F.5: double-up the haptic — medium impact PLUS success
+            // notification. iOS users feel the impact "thunk" reliably even
+            // through a case; the success notification adds a gentle
+            // texture afterward. Together it reads as a real "click +
+            // confirmation" rather than a single subtle pulse.
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+            let success = UINotificationFeedbackGenerator()
+            success.notificationOccurred(.success)
+            // Morph the button itself for ~1.5s — confirmation right where
+            // the user's finger is.
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                justAdded = true
+                addedToast = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    justAdded = false
+                    addedToast = false
+                }
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "cart.badge.plus")
-                Text("加入购物车 / Add to Cart")
+                Image(systemName: justAdded ? "checkmark.circle.fill" : "cart.badge.plus")
+                Text(justAdded ? "已加入购物车 / Added" : "加入购物车 / Add to Cart")
             }
             .font(.appBody.bold())
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(Color.appAccent)
+            // Slightly darker accent during the "just added" state so the
+            // morph reads as confirmation, not a regular state.
+            .background(justAdded ? Color.appAccent.opacity(0.85) : Color.appAccent)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .scaleEffect(justAdded ? 0.97 : 1.0)
         }
+        // Disable double-tap-add by greying out for the morph window.
+        .disabled(justAdded)
     }
 
     private func storeLinkButton(url: URL) -> some View {
@@ -182,5 +278,263 @@ struct ProductDetailView: View {
         .background(Color.appAccentMuted.opacity(0.3))
         .foregroundStyle(Color.appTextSecondary)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    // R9.A.2 — "Why this is recommended" expandable debug card.
+    // Defense-grade transparency: shows the retrieval signals that
+    // ranked this product, plus the source citation (proposal #5).
+    @ViewBuilder
+    private func whyRecommendedCard(signals: RetrievalSignals) -> some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 10) {
+                // Source citation (proposal #5).
+                if !product.provenance.isDemo {
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "book.closed")
+                            .foregroundStyle(Color.appTextSecondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("信源 / Source")
+                                .font(.system(size: 10, weight: .regular, design: .rounded))
+                                .foregroundStyle(Color.appTextSecondary)
+                            Text(product.provenance.sourcePlatform)
+                                .font(.appCaption)
+                            if let urlText = product.provenance.externalURL?.absoluteString,
+                               !urlText.isEmpty {
+                                Text(urlText)
+                                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                                    .foregroundStyle(Color.appAccent)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        Spacer()
+                    }
+                    Divider()
+                }
+                // Plain-language summary line.
+                if !signals.humanSummary.isEmpty {
+                    Text(signals.humanSummary)
+                        .font(.appCaption)
+                        .foregroundStyle(Color.appTextPrimary)
+                }
+                // Detailed rows. Each only renders if non-nil.
+                if let rerankRank = signals.rerankRank {
+                    signalRow(label: "最终排名", value: "#\(rerankRank + 1)")
+                }
+                if let rerankScore = signals.rerankScore {
+                    signalRow(label: "精排得分", value: String(format: "%.3f", rerankScore))
+                }
+                if let denseRank = signals.denseRank {
+                    signalRow(label: "语义检索排名", value: "#\(denseRank + 1)")
+                }
+                if let bm25Rank = signals.bm25Rank {
+                    signalRow(label: "关键词检索排名", value: "#\(bm25Rank + 1)")
+                }
+                if let rrfScore = signals.rrfScore {
+                    signalRow(label: "RRF 融合得分", value: String(format: "%.4f", rrfScore))
+                }
+                if let rerankModel = signals.rerankModel {
+                    signalRow(label: "精排模型", value: rerankModel)
+                }
+                Text("说明: 越靠前(数字小)越相关。语义检索抓「意思」, 关键词检索抓「字面」, 精排是 cross-encoder 做最终重排。")
+                    .font(.system(size: 10, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.appTextSecondary)
+                    .padding(.top, 4)
+            }
+            .padding(.top, 8)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(Color.appAccent)
+                Text("为何推荐这款 / Why this?")
+                    .font(.appCaption)
+                    .foregroundStyle(Color.appTextPrimary)
+            }
+        }
+        .padding(12)
+        .background(Color.appSurfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func signalRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.appCaption)
+                .foregroundStyle(Color.appTextSecondary)
+            Spacer()
+            Text(value)
+                .font(.appCaption.monospacedDigit())
+                .foregroundStyle(Color.appTextPrimary)
+        }
+    }
+
+    // R9.B / proposal #11 — group-buy entry button.
+    private var groupBuyButton: some View {
+        Button {
+            showGroupBuy = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "person.2.fill")
+                Text("发起拼单 · 立省 15% / Start a group buy")
+            }
+            .font(.appCaption)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.appAccent.opacity(0.12))
+            .foregroundStyle(Color.appAccent)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .sheet(isPresented: $showGroupBuy) {
+            GroupBuyView(product: product)
+        }
+    }
+
+    // R9.B / proposal #12 — closed-loop preference feedback.
+    private var preferenceButtons: some View {
+        HStack(spacing: 10) {
+            Button {
+                sendPreference(1)
+            } label: {
+                Label("喜欢", systemImage: prefSignal == 1 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                    .font(.appCaption)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(prefSignal == 1 ? Color.green.opacity(0.18) : Color.appAccentMuted.opacity(0.3))
+                    .foregroundStyle(prefSignal == 1 ? Color.green : Color.appTextSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            Button {
+                sendPreference(-1)
+            } label: {
+                Label("不喜欢", systemImage: prefSignal == -1 ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                    .font(.appCaption)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(prefSignal == -1 ? Color.orange.opacity(0.18) : Color.appAccentMuted.opacity(0.3))
+                    .foregroundStyle(prefSignal == -1 ? Color.orange : Color.appTextSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    private func sendPreference(_ signal: Int) {
+        // Toggle off if tapping the same signal again.
+        let newSignal: Int? = (prefSignal == signal) ? nil : signal
+        withAnimation { prefSignal = newSignal }
+        persistPrefSignal(newSignal)         // R10.bugfix — survive view recycle
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        // Only POST a concrete +1/-1 (not the toggle-off). Fire-and-forget;
+        // a network hiccup shouldn't block the UI.
+        guard let s = newSignal else { return }
+        let userId = DeviceIdentity.userId
+        let productId = product.productId
+        Task { try? await preferenceService.sendFeedback(userId: userId, productId: productId, signal: s) }
+    }
+
+    // R9.A.4 — proposal #7 price-tracking.
+    private var priceWatchButton: some View {
+        Button {
+            // Default the modal text to 90% of current price as a sensible
+            // starting point — most users want a small discount, not 50% off.
+            let suggested = max(1, Int((product.displayedPrice * 0.9).rounded()))
+            priceWatchTargetText = String(suggested)
+            priceWatchError = nil
+            showPriceWatchSheet = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "bell.badge")
+                Text("提醒我降价 / Notify me on price drop")
+            }
+            .font(.appCaption)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.appAccentMuted.opacity(0.5))
+            .foregroundStyle(Color.appTextPrimary)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .sheet(isPresented: $showPriceWatchSheet) {
+            priceWatchSheet
+                .presentationDetents([.medium])
+        }
+    }
+
+    private var priceWatchSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text("当前价格").foregroundStyle(Color.appTextSecondary)
+                        Spacer()
+                        Text("¥\(String(format: "%.2f", product.displayedPrice))")
+                            .font(.appBody.monospacedDigit())
+                    }
+                    HStack(spacing: 4) {
+                        Text("¥")
+                            .foregroundStyle(Color.appTextSecondary)
+                        TextField("目标价 (例如 \(Int(product.displayedPrice * 0.9))) ", text: $priceWatchTargetText)
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(.plain)
+                            .font(.appBody.monospacedDigit())
+                    }
+                    if let err = priceWatchError {
+                        Text(err).font(.appCaption).foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("设置目标价")
+                } footer: {
+                    Text("当该商品价格 ≤ 你设置的目标价,我们会在你下次打开 App 时提醒你。")
+                }
+            }
+            .navigationTitle("提醒我降价")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { showPriceWatchSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        submitPriceWatch()
+                    } label: {
+                        if priceWatchSubmitting {
+                            ProgressView()
+                        } else {
+                            Text("保存")
+                        }
+                    }
+                    .disabled(priceWatchSubmitting)
+                }
+            }
+        }
+    }
+
+    private func submitPriceWatch() {
+        guard let target = Double(priceWatchTargetText.trimmingCharacters(in: .whitespaces)),
+              target > 0 else {
+            priceWatchError = "请输入大于 0 的目标价"
+            return
+        }
+        priceWatchError = nil
+        priceWatchSubmitting = true
+        let userId = DeviceIdentity.userId
+        let productId = product.productId
+        Task { @MainActor in
+            defer { priceWatchSubmitting = false }
+            do {
+                _ = try await priceWatchService.startWatch(
+                    userId: userId,
+                    productId: productId,
+                    targetPriceCNY: target
+                )
+                showPriceWatchSheet = false
+                // Reuse the addedToast pattern.
+                withAnimation { addedToast = true }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.6))
+                    withAnimation { addedToast = false }
+                }
+            } catch {
+                priceWatchError = error.localizedDescription
+            }
+        }
     }
 }

@@ -21,6 +21,12 @@ class Filter:
     sub_categories: list[str] | None = None
     brand_include: list[str] | None = None
     brand_exclude: list[str] | None = None
+    # R8: country-keyword exclusions ("日系" / "美系" / "韩系" ...) extracted
+    # locally at turn time and carried across multi-turn conversations.
+    # Consumed by `apply_negation` via `brand_origin.excluded_countries()`.
+    # Stored here (not just as a per-turn `apply_negation` call) so that a
+    # turn like "再便宜点的呢" inherits "不要日系" from a prior turn.
+    exclude_keywords: list[str] | None = None
     price_max_cny: float | None = None
     price_min_cny: float | None = None
     # Kept for callers created before CNY semantics were made explicit.
@@ -48,6 +54,7 @@ class Filter:
                 self.sub_categories,
                 self.brand_include,
                 self.brand_exclude,
+                self.exclude_keywords,
                 self.has_price_constraint,
             )
         )

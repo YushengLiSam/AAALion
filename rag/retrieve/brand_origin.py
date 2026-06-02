@@ -230,6 +230,43 @@ BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"pampers", "帮宝适"}),
     frozenset({"gerber", "嘉宝"}),
     frozenset({"huggies", "好奇"}),
+    # R9.A.1 — cross-language canonicalization extension. Brands a judge
+    # is likely to type in EN or Pinyin while the catalog uses CN form
+    # (or vice versa). Each cluster should be unambiguous — avoid
+    # multi-meaning Chinese strings ("博士" = both Bose AND "doctor").
+    frozenset({"puma", "彪马"}),
+    frozenset({"new balance", "newbalance", "nb", "新百伦"}),
+    frozenset({"samsung", "三星"}),
+    frozenset({"huawei", "华为"}),
+    frozenset({"xiaomi", "mi", "小米"}),
+    frozenset({"oppo"}),  # OPPO is the same in both languages; placeholder keeps the slot.
+    frozenset({"vivo"}),
+    frozenset({"asus", "华硕"}),
+    frozenset({"dell", "戴尔"}),
+    frozenset({"lenovo", "联想"}),
+    frozenset({"hp", "惠普"}),
+    frozenset({"microsoft", "微软"}),
+    frozenset({"google", "谷歌"}),
+    frozenset({"dyson", "戴森"}),
+    frozenset({"philips", "飞利浦"}),
+    frozenset({"bosch", "博世"}),
+    frozenset({"casio", "卡西欧"}),
+    frozenset({"seiko", "精工"}),
+    frozenset({"citizen", "西铁城"}),
+    frozenset({"converse", "匡威"}),
+    frozenset({"vans", "范斯"}),
+    frozenset({"reebok", "锐步"}),
+    frozenset({"under armour", "安德玛"}),
+    frozenset({"asics", "亚瑟士"}),
+    frozenset({"li-ning", "lining", "李宁"}),
+    frozenset({"anta", "安踏"}),
+    frozenset({"xtep", "特步"}),
+    frozenset({"erke", "鸿星尔克"}),
+    frozenset({"meiji", "明治"}),
+    frozenset({"glico", "格力高"}),
+    frozenset({"haagen-dazs", "haagen dazs", "哈根达斯"}),
+    frozenset({"perrier", "巴黎水"}),
+    frozenset({"evian", "依云"}),
 )
 
 

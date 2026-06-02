@@ -34,5 +34,6 @@
       }
     ]
   },
-  "image_source": "ai-gen-placeholder"
+  "image_source": "ai-gen-placeholder",
+  "repurchase_cycle_days": 100
 }

@@ -51,6 +51,26 @@ screenshots/*
 *.chroma_db/
 chroma_db/
 data/.chroma/
+data/repurchase.db
+data/repurchase.db-journal
+data/repurchase.db-wal
+data/repurchase.db-shm
+data/price_watch.db
+data/price_watch.db-journal
+data/price_watch.db-wal
+data/price_watch.db-shm
+data/preferences.db
+data/preferences.db-journal
+data/preferences.db-wal
+data/preferences.db-shm
+data/group_buy.db
+data/group_buy.db-journal
+data/group_buy.db-wal
+data/group_buy.db-shm
+data/users.db
+data/users.db-journal
+data/users.db-wal
+data/users.db-shm
 qdrant_storage/
 
 # Logs / temp
@@ -78,3 +98,13 @@ docs/POLICY_LOCAL.md
 
 # Local-only defense-prep package (Cluely). Never committed.
 docs/cluely/
+
+# WeChat status drafts. From R8 (2026-05-25) onwards these stay LOCAL —
+# the persistent team-visible record is docs/DEV_LOG.md instead. See
+# docs/POLICY.md §"Team status updates". Patterns cover the historical
+# filename shape (WECHAT_UPDATE_*.md) and any future scratch dir.
+docs/WECHAT_*.md
+docs/wechat_*.md
+docs/wechat/
+client/AAALionApp/build/
+client/AAALionApp/build-device/

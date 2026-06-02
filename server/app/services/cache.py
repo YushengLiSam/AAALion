@@ -94,3 +94,14 @@ def hash_image_bytes(b: bytes | None) -> str:
     if not b:
         return ""
     return hashlib.sha256(b).hexdigest()[:16]
+
+
+def hash_image_bytes_list(items: list[bytes] | None, cap: int = 10) -> str:
+    """R8.E: hash the concatenation of per-image SHAs for multi-attachment
+    cache keys. Sorted so re-ordered attachments produce the same key.
+    Capped at `cap` (default 10, matching iOS `Attachment.maxCount`) to
+    bound the cache-key payload size."""
+    if not items:
+        return ""
+    digests = sorted(hash_image_bytes(b) for b in items[:cap] if b)
+    return "+".join(digests)

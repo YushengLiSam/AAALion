@@ -2,6 +2,35 @@
 
 End-to-end design of the RAG-based multimodal e-commerce agent.
 
+> **For a CS-sophomore-friendly version of this document**, see
+> [`docs/explainers/10-app-architecture.md`](explainers/10-app-architecture.md).
+> The explainer covers the same content in plain English with concrete
+> file paths, while this document is the engineer-facing depth reference.
+> Pick whichever is right for your audience.
+
+## Intro for non-CS readers
+
+If you've never built a web app before, the project breaks down into
+four layers:
+
+1. **An iPhone app** built with SwiftUI. The user types or speaks; the
+   app shows the answer.
+2. **A backend** (a small Python web server) that the iPhone talks to.
+   It receives chat messages, decides which products are relevant, and
+   asks a large language model (LLM) to write a reply.
+3. **A retrieval pipeline** (called RAG) that searches our product
+   catalog for the right items to recommend. This is the smart part —
+   it combines keyword search, semantic search, and a final ranking
+   pass.
+4. **An external LLM** (claude-haiku-4-5 via TokenRouter) that writes
+   the natural-language reply, given the products the retrieval
+   pipeline found.
+
+The rest of this document is the engineer-facing detail. If anything
+below uses a term you don't know, the explainers in
+[`docs/explainers/`](explainers/) define every concept in plain English
+first.
+
 ## High-level flow
 
 ```

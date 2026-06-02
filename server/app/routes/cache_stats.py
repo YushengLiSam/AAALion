@@ -16,26 +16,30 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.services.cache import cache
+from app.services.rag_client import retrieval_cache_stats
 
 router = APIRouter(prefix="/cache", tags=["cache"])
 
 
 @router.get("/stats")
 def stats() -> dict:
-    """Snapshot of the cache's counters since the last reset (or process start).
+    """Snapshot of the cache counters since the last reset (or process start).
 
-    Fields:
-      size            — current number of entries
-      max_size        — LRU capacity (oldest evicted when full)
-      ttl_sec         — entry TTL; older entries miss + get evicted on read
-      hits / misses   — counts of get() that returned vs returned None
-      expired_misses  — subset of misses caused by TTL expiry
-      evictions       — entries removed due to LRU pressure
-      total_requests  — hits + misses
-      hit_rate        — hits / total_requests (0.0 when no traffic yet)
-      uptime_sec      — seconds since counters started
+    Covers BOTH layers of the R10 caching stack:
+      * the response cache (cache.py) — short-circuits the whole LLM stream;
+      * the retrieval cache (rag_client) — memoizes the expensive hybrid +
+        cross-encoder rerank, the dominant first-token cost on the CPU VM.
+
+    Response-cache fields (flat, unchanged for back-compat with the iOS
+    CacheStatsService):
+      size / max_size / ttl_sec / hits / misses / expired_misses /
+      evictions / total_requests / hit_rate / uptime_sec
+    Retrieval-cache fields (prefixed, so no key collision):
+      retrieval_cache_size / _max / _ttl_sec / _hits / _misses / _hit_rate
     """
-    return cache.stats()
+    out = dict(cache.stats())
+    out.update(retrieval_cache_stats())
+    return out
 
 
 @router.post("/reset")

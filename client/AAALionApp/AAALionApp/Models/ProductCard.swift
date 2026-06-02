@@ -9,6 +9,11 @@ struct ProductCard: Codable, Hashable, Identifiable {
     let exchangeRate: ExchangeRateQuote?
     let imageURL: URL?
     let provenance: Provenance
+    /// R9.A.2 — retrieval signals surfaced for the "why this is recommended"
+    /// debug card. Nil for cached or legacy products that don't carry the
+    /// new field. Renders only inside ProductDetailView's expandable
+    /// section; never on the compact card.
+    let retrievalSignals: RetrievalSignals?
 
     var id: String { productId }
 
@@ -21,6 +26,7 @@ struct ProductCard: Codable, Hashable, Identifiable {
         case exchangeRate = "exchange_rate"
         case imageURL = "image_url"
         case provenance
+        case retrievalSignals = "retrieval_signals"
     }
 
     init(from decoder: Decoder) throws {
@@ -48,6 +54,7 @@ struct ProductCard: Codable, Hashable, Identifiable {
 
         // Provenance defaults to AI-gen marker so legacy products keep working.
         provenance = (try? c.decode(Provenance.self, forKey: .provenance)) ?? .demo
+        retrievalSignals = try? c.decodeIfPresent(RetrievalSignals.self, forKey: .retrievalSignals)
     }
 
     init(
@@ -58,7 +65,8 @@ struct ProductCard: Codable, Hashable, Identifiable {
         priceCNY: Double? = nil,
         exchangeRate: ExchangeRateQuote? = nil,
         imageURL: URL?,
-        provenance: Provenance = .demo
+        provenance: Provenance = .demo,
+        retrievalSignals: RetrievalSignals? = nil
     ) {
         self.productId = productId
         self.title = title
@@ -68,6 +76,7 @@ struct ProductCard: Codable, Hashable, Identifiable {
         self.exchangeRate = exchangeRate
         self.imageURL = imageURL
         self.provenance = provenance
+        self.retrievalSignals = retrievalSignals
     }
 
     var displayedPrice: Double { priceCNY ?? basePrice }
@@ -213,5 +222,57 @@ struct Provenance: Codable, Hashable {
     func brandLine(brand: String) -> String {
         if isDemo { return "演示 · \(brand)" }
         return "\(sourcePlatform) · \(brand)"
+    }
+}
+
+/// R9.A.2 — retrieval-pipeline signals attached to each product card so the
+/// iOS UI can render a "why this is recommended" debug expansion. Each
+/// field is optional because:
+///   - cached replies skip rerank entirely (no rerank_score)
+///   - the fast-path (specific-query) also skips rerank
+///   - a product matched by only one of dense / BM25 has one rank as nil
+/// All values are best-effort and informational — the recommendation
+/// itself is the same regardless of whether the user expands the panel.
+struct RetrievalSignals: Codable, Hashable {
+    /// Reciprocal Rank Fusion combined score (dense + BM25). Higher is better.
+    let rrfScore: Double?
+    /// Position in the dense (semantic) embedding ranking. 0 = top. Nil if
+    /// the product was found only by BM25.
+    let denseRank: Int?
+    /// Position in the BM25 (keyword) ranking. 0 = top. Nil if dense-only.
+    let bm25Rank: Int?
+    /// Cross-encoder rerank score (higher = better match for query+product).
+    let rerankScore: Double?
+    /// Position in the final rerank ranking. 0 = top recommendation.
+    let rerankRank: Int?
+    /// Which cross-encoder model produced the rerank score.
+    let rerankModel: String?
+
+    enum CodingKeys: String, CodingKey {
+        case rrfScore = "rrf_score"
+        case denseRank = "dense_rank"
+        case bm25Rank = "bm25_rank"
+        case rerankScore = "rerank_score"
+        case rerankRank = "rerank_rank"
+        case rerankModel = "rerank_model"
+    }
+
+    /// Plain-Chinese one-line summary, e.g. "排名 #1 · 关键词命中 · 语义相似度高".
+    /// Empty string if there are no signals to display.
+    var humanSummary: String {
+        var parts: [String] = []
+        if let rerankRank, rerankRank >= 0 {
+            parts.append("排名 #\(rerankRank + 1)")
+        }
+        if let denseRank, denseRank >= 0, denseRank < 5 {
+            parts.append("语义相似")
+        }
+        if let bm25Rank, bm25Rank >= 0, bm25Rank < 5 {
+            parts.append("关键词命中")
+        }
+        if let rerankScore {
+            parts.append("精排得分 \(String(format: "%.2f", rerankScore))")
+        }
+        return parts.joined(separator: " · ")
     }
 }

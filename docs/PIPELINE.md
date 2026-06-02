@@ -2,6 +2,11 @@
 
 Read this before touching any code. It tells you the order of operations, how to test what you're building, and how to land changes without breaking the other two developers.
 
+> **For non-engineer readers**: this document is for teammates who are
+> going to write code on the project. If you're trying to understand
+> what the project DOES rather than how to develop it, start at
+> [`docs/explainers/README.md`](explainers/README.md) instead.
+
 ## How to develop
 
 ### Parallel-work-friendly order

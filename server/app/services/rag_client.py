@@ -16,8 +16,11 @@ Toggle via env vars:
 
 from __future__ import annotations
 
+import hashlib
 import os
 import sys
+import threading
+import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -25,8 +28,131 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 
+# ---------------------------------------------------------------------------
+# Retrieval-result cache (R10 — "Option A").
+#
+# Problem it solves: the response cache in chat.py only short-circuits the
+# LLM generation, AND it runs *after* retrieval. So even a repeat query
+# pays the full hybrid + cross-encoder rerank cost every time — and the
+# English path's v2-m3 reranker (568M params on a CPU VM) is the dominant
+# latency. The chat response cache also keys on the whole conversation
+# (messages_json), so it basically never hits in real multi-turn use.
+#
+# This cache memoizes the EXPENSIVE, preference-INDEPENDENT part of top_k
+# (query expansion → hybrid → negation → rerank → anchor filter → hard
+# constraints → price intent). The cheap, user-specific preference reorder
+# (step 7) stays OUTSIDE the cache so 👍/👎 still re-orders live.
+#
+# Key = (resolved retrieval text, k, retrieval_filter repr, preference text).
+# Deliberately NO user_id — preference is applied after the cache.
+# TTL is short (default 300s) so FX-normalized prices in price-filtered
+# results can't go stale beyond the FX layer's own 1h cache.
+# ---------------------------------------------------------------------------
+
+_RETRIEVAL_CACHE_TTL = float(os.getenv("RAG_RETRIEVAL_CACHE_TTL", "300"))
+_RETRIEVAL_CACHE_MAX = int(os.getenv("RAG_RETRIEVAL_CACHE_MAX", "256"))
+_RETRIEVAL_CACHE_ON = os.getenv("RAG_RETRIEVAL_CACHE", "1") == "1"
+# product_id-keyed value list is cheap to copy; we store the raw dicts and
+# hand back shallow copies so downstream preference reorder / truncation
+# never mutates the cached entry.
+_retrieval_cache: "dict[str, tuple[float, list[dict]]]" = {}
+_retrieval_cache_lock = threading.Lock()
+_retrieval_cache_stats = {"hits": 0, "misses": 0}
+
+
+def _retrieval_cache_key(text: str, k: int, retrieval_filter, preference_text: str) -> str:
+    # repr(Filter) is stable for a frozen-ish dataclass; None → "None".
+    payload = f"{text}{k}{retrieval_filter!r}{preference_text}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _retrieval_cache_get(key: str) -> list[dict] | None:
+    if not _RETRIEVAL_CACHE_ON:
+        return None
+    now = time.time()
+    with _retrieval_cache_lock:
+        entry = _retrieval_cache.get(key)
+        if entry is None:
+            _retrieval_cache_stats["misses"] += 1
+            return None
+        ts, value = entry
+        if now - ts > _RETRIEVAL_CACHE_TTL:
+            _retrieval_cache.pop(key, None)
+            _retrieval_cache_stats["misses"] += 1
+            return None
+        _retrieval_cache_stats["hits"] += 1
+        # Hand back shallow copies of each product dict so downstream
+        # mutation (preference reorder truncates; nobody should mutate the
+        # dicts, but be defensive) can't corrupt the cached list.
+        return [dict(p) for p in value]
+
+
+def _retrieval_cache_put(key: str, value: list[dict]) -> None:
+    if not _RETRIEVAL_CACHE_ON:
+        return
+    with _retrieval_cache_lock:
+        # Simple bound: clear oldest-ish by dropping arbitrary entries when full.
+        if len(_retrieval_cache) >= _RETRIEVAL_CACHE_MAX:
+            # Drop the chronologically oldest entry.
+            oldest = min(_retrieval_cache.items(), key=lambda kv: kv[1][0], default=None)
+            if oldest is not None:
+                _retrieval_cache.pop(oldest[0], None)
+        _retrieval_cache[key] = (time.time(), [dict(p) for p in value])
+
+
+def retrieval_cache_stats() -> dict:
+    with _retrieval_cache_lock:
+        h = _retrieval_cache_stats["hits"]
+        m = _retrieval_cache_stats["misses"]
+        return {
+            "retrieval_cache_size": len(_retrieval_cache),
+            "retrieval_cache_max": _RETRIEVAL_CACHE_MAX,
+            "retrieval_cache_ttl_sec": _RETRIEVAL_CACHE_TTL,
+            "retrieval_cache_hits": h,
+            "retrieval_cache_misses": m,
+            "retrieval_cache_hit_rate": (h / (h + m)) if (h + m) else 0.0,
+        }
+
+
 def _negation_signals(text: str) -> bool:
     return any(s in text for s in ("不要", "不含", "不带", "除了", "排除", "no ", "without"))
+
+
+# R8.F.6: well-known Apple product-line tokens the user might type. When
+# any of these shows up in the query, the result list is filtered to only
+# products whose title contains the same token (case-insensitive). This
+# fixes the "iPhone13" → iPad Pro 13英寸 cross-confusion where the digit
+# "13" matched screen size everywhere.
+#
+# Conservative list — only product LINES with one-token names that
+# unambiguously identify the line. "Apple" / "苹果" alone are too broad
+# (the user could mean any Apple product). Galaxy / Pixel etc. can be
+# added when the catalog grows to include them.
+_PRODUCT_LINE_ANCHORS: tuple[str, ...] = (
+    "iphone", "ipad", "macbook", "airpods", "homepod",
+    "imac", "mac mini", "mac studio", "mac pro", "vision pro",
+    "apple watch",
+)
+
+
+def _filter_by_product_line(text: str, candidates: list[dict]) -> list[dict]:
+    """If the user typed a known product-line anchor (e.g. "iPhone"),
+    drop candidates whose title doesn't contain that token. Fail-soft:
+    if filtering leaves nothing, return the original list unchanged so
+    the user always gets something on screen.
+    """
+    if not text or not candidates:
+        return candidates
+    text_lower = text.lower()
+    matched = [a for a in _PRODUCT_LINE_ANCHORS if a in text_lower]
+    if not matched:
+        return candidates
+    filtered: list[dict] = []
+    for p in candidates:
+        title = (p.get("title") or "").lower()
+        if any(a in title for a in matched):
+            filtered.append(p)
+    return filtered if filtered else candidates
 
 
 def _is_specific_query(text: str) -> bool:
@@ -52,32 +178,27 @@ def _is_specific_query(text: str) -> bool:
     return False
 
 
-def top_k(
+def _heavy_retrieve(
     text: str,
-    k: int = 5,
-    filters: dict | None = None,
+    retrieval_filter,
+    preference_text: str,
+    k: int,
     *,
-    conversation_filter=None,
-    intent_text: str | None = None,
+    synonyms_on: bool,
+    rewrite_on: bool,
+    rerank_on: bool,
+    negation_on: bool,
+    price_on: bool,
 ) -> list[dict]:
-    """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products."""
-    synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
-    rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
-    rerank_on = os.getenv("RAG_RERANK", "1") == "1"
-    negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
-    price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
-    hard_filters_on = os.getenv("RAG_HARD_FILTERS", "1") == "1"
+    """The expensive, preference-INDEPENDENT retrieval pipeline (steps 1-6).
 
-    from rag.retrieve.constraints import build_retrieval_filter
+    Extracted from top_k (R10 Option A) so the result can be memoized in
+    the retrieval cache. Inputs fully determine the output, EXCEPT the
+    per-user 👍/👎 preference reorder which top_k applies afterward.
+    Hybrid retrieve + the cross-encoder rerank live here — they're what
+    the cache is built to skip on repeat queries.
+    """
     from rag.retrieve.query import Filter
-
-    if hard_filters_on and isinstance(conversation_filter, Filter):
-        # Conversation state is authoritative, including an empty Filter after
-        # the user explicitly cancels conditions inherited from earlier turns.
-        retrieval_filter = conversation_filter
-    else:
-        retrieval_filter = build_retrieval_filter(text if hard_filters_on else "", filters)
-    preference_text = intent_text if intent_text is not None else text
 
     # 1) Curated local expansion, then optional LLM rewrite to multi-query.
     queries: list[str] = [text]
@@ -103,7 +224,21 @@ def top_k(
         for q in queries:
             for h in hybrid_topk(q, k=20, f=retrieval_filter):
                 if h.product_id not in seen:
-                    seen[h.product_id] = h.product
+                    # R9.A.2 — attach retrieval signals (rrf_score,
+                    # dense_rank, bm25_rank) onto the product dict so
+                    # chat.py can surface them in the "why this is
+                    # recommended" debug card. Stored in a private
+                    # "_retrieval" key that chat.py strips before the
+                    # client payload (only the cleaned subset goes to
+                    # iOS). Copy the dict to avoid polluting the shared
+                    # catalog stored in Chroma's row cache.
+                    p = dict(h.product)
+                    sig = p.setdefault("_retrieval", {})
+                    sig["rrf_score"] = round(float(h.rrf_score), 4) if h.rrf_score else None
+                    sig["dense_rank"] = h.dense_rank
+                    sig["bm25_rank"] = h.bm25_rank
+                    sig["query"] = q
+                    seen[h.product_id] = p
         candidates = list(seen.values())
     except Exception:
         try:
@@ -115,10 +250,30 @@ def top_k(
             candidates = [h.product for h in _keyword_fallback(text, k=20, f=retrieval_filter)]
 
     # 3) Negation filter (drops violating candidates).
-    if negation_on:
+    # R8: if the current turn has 不要, run the LLM-or-local negation extractor.
+    # Otherwise, if conversation_filter carries `exclude_keywords` from prior
+    # turns (e.g. "不要日系" said in turn 1, current turn is "再便宜点的呢"),
+    # still apply those keyword exclusions so country bans persist.
+    inherited_keywords: list[str] = []
+    if isinstance(retrieval_filter, Filter) and retrieval_filter.exclude_keywords:
+        inherited_keywords = list(retrieval_filter.exclude_keywords)
+    if negation_on or inherited_keywords:
         try:
-            from rag.retrieve.negation import extract_negation, apply_negation
-            neg = extract_negation(text)
+            from rag.retrieve.negation import apply_negation, extract_negation
+            if negation_on:
+                neg = extract_negation(text)
+                # Union the inherited keywords so prior-turn negations still apply.
+                if inherited_keywords:
+                    existing = set(neg.get("exclude_keywords", []) or [])
+                    for kw in inherited_keywords:
+                        if kw not in existing:
+                            neg.setdefault("exclude_keywords", []).append(kw)
+            else:
+                neg = {
+                    "exclude_brands": [],
+                    "exclude_categories": [],
+                    "exclude_keywords": inherited_keywords,
+                }
             candidates = apply_negation(candidates, neg)
         except Exception:
             pass
@@ -134,6 +289,15 @@ def top_k(
     rerank_limit = max(k, 20) if has_price_filter else (max(k, 10) if price_on else k)
     fast_path_on = os.getenv("RAG_FAST_PATH", "1") == "1"
     skip_rerank = fast_path_on and _is_specific_query(text) and not negation_on
+    # R10.perf — cap how many candidates the cross-encoder scores. The
+    # cross-encoder cost is ~linear in candidate count, and the hybrid
+    # pool is already RRF-ordered, so the relevant items sit near the top.
+    # Capping the rerank INPUT (not the output) trades a little tail recall
+    # for a big CPU-latency cut on the VM. Env-tunable; 0 = no cap = the
+    # original "rerank all ~20" behaviour.
+    rerank_input_cap = int(os.getenv("RERANK_INPUT_CAP", "0"))
+    if rerank_input_cap > 0 and len(candidates) > rerank_input_cap:
+        candidates = candidates[:rerank_input_cap]
     if rerank_on and len(candidates) > k and not skip_rerank:
         try:
             from rag.retrieve.rerank import rerank
@@ -142,6 +306,20 @@ def top_k(
             candidates = candidates[:rerank_limit]
     else:
         candidates = candidates[:rerank_limit]
+
+    # 4.5) Product-line anchor filter (R8.F.6).
+    #
+    # User typed "iPhone13" / "iPhone 13" and got iPad Pro 13英寸. Root cause:
+    # the digit "13" tokenizes the same as "13英寸" (screen size), so iPad
+    # Pro / MacBook 13 inch products scored high on BM25 *and* the
+    # cross-encoder couldn't separate "iPhone 13 model" from "iPad 13 inch"
+    # semantically — both look like "Apple device, 13".
+    #
+    # Fix is product-line aware: if the user explicitly named a product line
+    # (iPhone / iPad / MacBook / AirPods / Watch), require that token to
+    # appear in the result title. Fail-soft: if the filter would empty the
+    # list, keep the original rerank result (we never strand the user).
+    candidates = _filter_by_product_line(text, candidates)
 
     # 5) Re-check hard constraints after retrieval. Foreign-source products
     # receive live CNY values only here, so RMB budgets become strict now.
@@ -166,6 +344,201 @@ def top_k(
                 preference_text,
                 enforce_ranges=not has_price_filter,
             )
+        except Exception:
+            pass
+
+    return candidates
+
+
+def top_k(
+    text: str,
+    k: int = 5,
+    filters: dict | None = None,
+    *,
+    conversation_filter=None,
+    intent_text: str | None = None,
+    user_id: str | None = None,
+) -> list[dict]:
+    """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products.
+
+    R9.B: when `user_id` is given, a gentle preference prior (from the
+    user's 👍/👎 history) re-orders the final list before truncation.
+    """
+    synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
+    rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
+    rerank_on = os.getenv("RAG_RERANK", "1") == "1"
+    negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
+    price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
+    hard_filters_on = os.getenv("RAG_HARD_FILTERS", "1") == "1"
+
+    from rag.retrieve.constraints import build_retrieval_filter
+    from rag.retrieve.query import Filter
+
+    # R8.F.7 — Topic-switch detection (generalized in R8.F.8).
+    #
+    # Original narrow version only caught Apple product-line anchors
+    # (iPhone / iPad / MacBook / AirPods / ...). User feedback (and the
+    # 'snacks after skincare' regression) showed that's whack-a-mole:
+    # switching to "我想买点零食" or "Nike 跑鞋" still let the inherited
+    # 美妆护肤 filter strand retrieval.
+    #
+    # Generalized to two complementary signals — either flips the switch:
+    #
+    #   Path A  Hard-coded product-LINE anchors (iPhone / iPad / etc.).
+    #           These tokens are SKU-line names that build_retrieval_filter
+    #           doesn't know how to map to a category. Keep the explicit
+    #           list as a safety net.
+    #
+    #   Path B  Re-extract a Filter from the RAW current user message
+    #           (intent_text, NOT the contextual-rewrite'd text). If it
+    #           carries a category / sub_category / brand_include signal
+    #           that differs from the inherited conversation_filter, the
+    #           user has clearly named a new topic — reset.
+    #
+    # Either path firing drops conversation_filter AND substitutes the
+    # raw message for the rewritten text. "再便宜点的"-style follow-ups
+    # (no category/brand signal of their own) still inherit normally.
+    raw_message_for_anchor = intent_text or text or ""
+    topic_switch = False
+
+    # Path A: explicit product-line anchor.
+    if raw_message_for_anchor and any(
+        a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS
+    ):
+        topic_switch = True
+
+    # Path B (R8.F.8.1, expanded): conflict-check against inherited filter
+    # on EITHER category OR brand. Earlier version only checked category,
+    # which let inherited brand_include = ["Apple"] (from a prior iPad
+    # turn) keep filtering retrieval even when the new query carried a
+    # clear category signal — that was the "护肤品 / 鞋子 / 纸尿片 returns
+    # 0 results after iPad turns" failure.
+    if not topic_switch and isinstance(conversation_filter, Filter) and raw_message_for_anchor:
+        try:
+            raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
+        except Exception:
+            raw_filter = None
+        raw_cat = raw_filter.category if raw_filter else None
+        if not raw_cat:
+            try:
+                from rag.retrieve.constraints import detect_topic_switch_category
+                raw_cat = detect_topic_switch_category(raw_message_for_anchor)
+            except Exception:
+                raw_cat = None
+        raw_brands = set((raw_filter.brand_include or [])) if raw_filter else set()
+
+        inh_cat = conversation_filter.category
+        inh_brands = set((conversation_filter.brand_include or []))
+
+        # Category conflict: raw has a new category signal that doesn't
+        # match inherited (including "inherited had no category but
+        # something else like brand was sticky").
+        cat_conflict = bool(raw_cat and raw_cat != inh_cat)
+
+        # Brand conflict: raw has brand_include and it doesn't intersect
+        # inherited's. Triggers e.g. "推荐 OPPO 手机" after iPad turns
+        # where conversation_filter inherited brand_include = ["Apple"].
+        brand_conflict = bool(raw_brands and inh_brands and not (raw_brands & inh_brands))
+
+        # Also: raw has a category but inherited has a brand_include of
+        # a different ecosystem (typical: iPad turns leave brand=Apple,
+        # then user says "护肤品" — different category, different brand).
+        category_vs_brand_conflict = bool(
+            raw_cat and inh_brands and not raw_brands and raw_cat != inh_cat
+        )
+
+        # R9.A.1 — Path C: sub_categories conflict.
+        # The leakiest dimension per Sam's CONTEXT_CONTAMINATION_DIAGNOSIS.md.
+        # Inherited sub_categories from an earlier turn (e.g. ['洁面']
+        # from "推荐适合敏感肌的洁面") survive through unrelated turns
+        # (iPad / 鞋子 / 纸尿片) because none of them produce a category
+        # signal AND none mention 洁面. By turn 5, the final query
+        # "护肤品" matches the inherited category (美妆护肤) so
+        # cat_conflict above doesn't fire — but sub_categories=['洁面']
+        # is still there, narrowing retrieval to a single product class.
+        #
+        # Detection: inherited has sub_categories AND
+        #   (a) current raw turn extracts its OWN sub_categories that
+        #       don't intersect the inherited ones, OR
+        #   (b) current turn produced no sub_categories AND its text
+        #       doesn't mention any inherited sub_category token AND
+        #       it carries a fresh topical signal (category or brand).
+        # Case (b) treats "iPad" / "护肤品" / etc. as topic switches
+        # without false-positive-ing on "再便宜点的" follow-ups (which
+        # have no category/brand signal of their own).
+        inh_sub_cats = list(conversation_filter.sub_categories or [])
+        if conversation_filter.sub_category and conversation_filter.sub_category not in inh_sub_cats:
+            inh_sub_cats.append(conversation_filter.sub_category)
+        raw_sub_cats: list[str] = []
+        if raw_filter is not None:
+            raw_sub_cats = list(raw_filter.sub_categories or [])
+            if raw_filter.sub_category and raw_filter.sub_category not in raw_sub_cats:
+                raw_sub_cats.append(raw_filter.sub_category)
+
+        sub_conflict = False
+        if inh_sub_cats:
+            text_mentions_inherited = any(
+                tok and tok in raw_message_for_anchor for tok in inh_sub_cats
+            )
+            if raw_sub_cats:
+                # Case (a): both have sub_cats — conflict if no overlap.
+                sub_conflict = not (set(raw_sub_cats) & set(inh_sub_cats))
+            elif not text_mentions_inherited and (raw_cat or raw_brands):
+                # Case (b): inherited has stale sub_cats, current turn
+                # has a fresh topical signal but doesn't reference any
+                # inherited sub_cat → topic switch.
+                sub_conflict = True
+
+        if cat_conflict or brand_conflict or category_vs_brand_conflict or sub_conflict:
+            topic_switch = True
+
+    if topic_switch:
+        conversation_filter = None
+        text = raw_message_for_anchor  # bypass the contextual-query rewriter
+
+    if hard_filters_on and isinstance(conversation_filter, Filter):
+        # Conversation state is authoritative, including an empty Filter after
+        # the user explicitly cancels conditions inherited from earlier turns.
+        retrieval_filter = conversation_filter
+    else:
+        retrieval_filter = build_retrieval_filter(text if hard_filters_on else "", filters)
+    preference_text = intent_text if intent_text is not None else text
+
+    # R10 Option A — retrieval-result cache. Steps 1-6 (query expansion →
+    # hybrid → negation → rerank → anchor filter → hard constraints → price
+    # intent) are expensive and preference-INDEPENDENT, so memoize them.
+    # On a hit we skip hybrid + the v2-m3 cross-encoder entirely — that's
+    # the dominant latency, especially on the English path. The cheap,
+    # user-specific preference reorder (step 7) stays below, OUTSIDE the
+    # cache, so 👍/👎 still re-orders live and proposal #12 is preserved.
+    _rc_key = _retrieval_cache_key(text, k, retrieval_filter, preference_text)
+    candidates = _retrieval_cache_get(_rc_key)
+    if candidates is None:
+        candidates = _heavy_retrieve(
+            text,
+            retrieval_filter,
+            preference_text,
+            k,
+            synonyms_on=synonyms_on,
+            rewrite_on=rewrite_on,
+            rerank_on=rerank_on,
+            negation_on=negation_on,
+            price_on=price_on,
+        )
+        _retrieval_cache_put(_rc_key, candidates)
+
+    # 7) R9.B — closed-loop preference prior (proposal #12). Gentle,
+    # bounded re-order by the user's 👍/👎 history. No-ops when the user
+    # has no recorded preferences. Applied LAST so relevance + hard
+    # constraints are already settled; preference only nudges near-ties.
+    pref_on = os.getenv("RAG_PREFERENCES", "1") == "1"
+    if pref_on and user_id:
+        try:
+            from app.services.preferences_db import get_weights
+            from rag.retrieve.preferences import apply_preference_prior
+
+            weights = get_weights(user_id)
+            candidates = apply_preference_prior(candidates, weights)
         except Exception:
             pass
 
