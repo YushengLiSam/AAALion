@@ -21,6 +21,7 @@ import logging
 import re
 import time
 from typing import AsyncIterator
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -148,7 +149,12 @@ def _image_url(p: dict) -> str | None:
     """
     image_path = p.get("image_path")
     if image_path:
-        return f"/static/{image_path}"
+        # R10 fix — the seed paths contain Chinese category folders
+        # (e.g. "1_美妆护肤/images/..."). Emit them percent-encoded so the
+        # iOS client's URL(string:) builds a valid URL every time;
+        # un-encoded non-ASCII made AsyncImage fail intermittently. quote()
+        # keeps the "/" separators; FastAPI StaticFiles decodes on serve.
+        return f"/static/{quote(image_path)}"
     ext = p.get("image_url_external")
     if ext and isinstance(ext, str) and ext.startswith(("http://", "https://")):
         return ext
