@@ -54,14 +54,14 @@ jobs:
       # The gating check: does the app compile for the iOS Simulator?
       # Built by target (no shared-scheme dependency) against the simulator
       # SDK; simulator builds need no code signing.
-      - name: Build (iOS Simulator SDK, no signing)
+      - name: Build (iOS Simulator, no signing)
         run: |
           set -o pipefail
           xcodebuild \
             -project AAALionApp.xcodeproj \
-            -target AAALionApp \
-            -sdk iphonesimulator \
+            -scheme AAALionApp \
             -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build
