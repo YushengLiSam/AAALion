@@ -1,33 +1,143 @@
-# 20-Day Roadmap
+# Proposal — Next Steps to Code-Freeze (2026-05-30 → 2026-06-10)
 
-Living document. Update Sunday nights after the weekly sync.
+> Forward plan for the final ~12 days, grounded in the competitive
+> research (`docs/COMPETITIVE_ANALYSIS_2026-05-30.md`) and the judging-
+> criteria findings. For team review. Companion to the R9–R10 documentary
+> (`docs/commits/20260530-017-...`).
 
-| Date window | 陈澍枫 (iOS) | 李雨晟 (backend) | 管图杰 (RAG) | Joint milestone |
-|---|---|---|---|---|
-| **05-22 → 05-24** | Xcode project; ChatView skeleton; mock SSE locally consumed | FastAPI skeleton; `/chat/stream` returning fixture tokens | Unzip data; Qdrant up via docker compose; ingest text chunks | Repo scaffolded; all three roles can hit `make dev` and see something running |
-| **05-25 → 05-28** | Real SSE wired; message bubbles; ProductCard view | Doubao integration; real streaming; error/timeout handling | Top-k retrieval working; golden eval seeded (20 queries) | First end-to-end demo (text-only) |
-| **05-29 → 06-01** | Image picker (PhotosPicker); multi-turn UI polish | Multi-turn context window in prompt; per-message intent classification | Negation / exclusion ("不要日系") handling; comparison prompt template | Multi-turn working end-to-end |
-| **06-02 → 06-05** | 拍照找货 client side; upload to `/chat/multimodal` | Image upload endpoint; CLIP-call helper | CLIP image index on A100; vision retrieval; reranker | Photo-search end-to-end |
-| **06-06 → 06-08** | UI polish, animations, demo script, skeleton screens | Caching layer for hot queries; rate-limit; Dockerfile hardened | Eval rerun; prompt tuning; document the prompt | Demo video recorded |
-| **06-09 → 06-10** | Buffer: bug fixes; defense prep slides | Buffer; private-deploy verification | Buffer; final eval numbers in README | **Submit** |
-| **06-11 → 06-19** | Defense rehearsals; respond to judge prompts | Same | Same | Defense |
+> **UPDATE 2026-05-30 (later):** Yusheng shipped R10.perf (`123ef1b`,
+> verified on cloud) — it **already executes most of P3 below**:
+> first-screen cards-before-text (cold 0.14–2.2 s, was 4–14 s), keep-alive
+> LLM conn, rerank cost knobs (3.8×, quality held), **auto-deploy CD**,
+> plus new wins that *strengthen our differentiators*: **4.1 conversational
+> cart edit** (agentic feel) and **4.4 client polish** (skeleton/favorite/
+> swipe). Net effect: **P3 is largely DONE; the runway should now go almost
+> entirely to P0 (demo video + deck).** Remaining P3: stable cloud domain +
+> wiring `retrieval_cache_stats()` into `/cache/stats` (both minor).
 
-## Demos planned
+---
 
-| Date | What | Who runs it |
+## The strategic thesis
+
+The research gives us three hard signals that should drive every choice
+in the final stretch:
+
+1. **Discovery is solved; execution reliability is where leaders fail.**
+   OpenAI retreated from Instant Checkout; Klarna re-hired humans. → **Do
+   not over-reach on real payment / real agentic checkout.** A scoped,
+   reliable, well-labelled demo *out-scores* a flaky ambitious one. This
+   is now evidence-backed, not caution.
+2. **The incumbents' documented weak spot is exactly our strength** —
+   negation/exclusion, multi-turn intent, and transparency. → **Harden
+   and foreground these; they are our points.**
+3. **Judges reward demo polish + eval rigor disproportionately**, and
+   weights are usually published. → **Read the actual ByteDance rubric,
+   then spend the runway on the demo, the metrics, and the narrative —
+   not new features.**
+
+**One-line plan: stop adding features; package what we have into an
+undeniable demo + a defensible technical story, and harden the 2–3 things
+that are genuinely better than 淘宝/豆包.**
+
+---
+
+## Priorities (ranked by judge-value ÷ effort)
+
+### P0 — Demo video + slide deck (UNSTARTED, highest ROI)
+- 3–5 min video, **Chinese queries only** (English path is slow).
+- Script around our differentiators in this order: negation/multi-turn →
+  transparency (hallucination receipts + why-card) → 拼单×AI → eval
+  numbers. End on the architecture seam story.
+- Deck: problem → architecture (use **火山方舟 vocabulary**: 知识库/RAG,
+  向量化, 函数调用, agent — reads fluent to ByteDance judges) → demo →
+  eval table → honest roadmap.
+- **Owner: Shufeng.** Effort: 2–3 days. *This is the single highest-value
+  thing we are not doing.*
+
+### P1 — Read the actual rubric, optimize to published weights
+- Pull the ByteDance 2026 AI 全栈挑战赛 scoring rubric; map each criterion
+  to evidence we already have (`docs/RUBRIC_MAPPING.md` exists — refresh
+  it). Re-allocate remaining effort to the heaviest-weighted axes.
+- **Owner: Shufeng.** Effort: 0.5 day.
+
+### P2 — Harden + foreground the differentiators
+- **Negation/compare**: add 5–10 adversarial golden cases (multi-turn
+  exclusion, conflicting constraints) and show we hold 1.000. This is the
+  "did you cherry-pick?" insurance and our headline metric.
+- **Transparency**: make the hallucination-receipt + why-card visually
+  prominent in the demo (a judge must *see* it).
+- **拼单×AI narrative**: it's simulated — keep it labelled, but script the
+  demo so the *concept* (AI picks → 拼单 cheaper) lands. Don't pretend
+  it's real; pitch it as the roadmap the seam already supports.
+- **Owner: Shufeng (+ Yusheng for eval cases).** Effort: 1–2 days.
+
+### P3 — Reliability + latency polish — ✅ LARGELY DONE (Yusheng, `123ef1b`)
+- ✅ First-screen speed: cards-before-text, keep-alive LLM conn, rerank
+  trimming → cold 0.14–2.2 s (was 4–14 s), cache-hit 0.3 s.
+- ✅ Rerank cost knobs (3.8×, recall held 0.964→0.941, negation 1.000).
+- ✅ Auto-deploy CD (merge-to-main → live in ~2 min, rollback on fail).
+- ◻️ **Remaining (minor):** wire `retrieval_cache_stats()` into
+  `/cache/stats` (~5 lines, for the demo's observability story); **stable
+  cloud domain** to replace the rotating quick-tunnel (the #1 demo-day
+  operational risk). **Owner: Yusheng.**
+- Keep TokenRouter haiku as primary; have the 方舟/Doubao path ready to
+  show the provider-swap is one env var (answers "why not Doubao?").
+
+### P4 — Decide accounts/real-multi-user scope (seam is ready)
+- The `UserStore` cloud seam + the 5-endpoint contract are built. **Only
+  wire it to a real cloud user store if P0–P3 are done and calendar
+  allows.** Otherwise keep accounts as the local/demo path and *cite the
+  seam* as the production design. Don't let this eat the demo runway.
+- **Owner: Yusheng (cloud user service) + Shufeng (client).** Effort: 2–3
+  days *if* greenlit — likely defer.
+
+### P5 — Multimodal quality (only if time)
+- Plain CLIP misses fine-grained attributes; the SOTA mitigation is a
+  vision-LLM caption/attribute pass on top of image retrieval. Nice for
+  the photo-search demo but **lowest priority** — photo-search is
+  table-stakes (拍立淘 is a decade old), so don't over-invest.
+- **Owner: Tujie/Yusheng (RAG).** Effort: 1–2 days. Likely defer.
+
+---
+
+## Explicitly NOT doing (scope discipline)
+
+- ❌ Real payment integration — even OpenAI pulled back. Out of scope.
+- ❌ Real WeChat OAuth login — needs 企业资质 we can't get in time.
+- ❌ Universal Links for 拼单 invites — needs the stable domain first (P3).
+- ❌ New feature categories — we have enough surface; depth > breadth now.
+
+---
+
+## Suggested timeline (12 days)
+
+| Days | Focus | Owner |
 |---|---|---|
-| 05-28 (Wed) | Text-only end-to-end smoke | All three |
-| 06-01 (Sun) | Multi-turn + negation | All three |
-| 06-05 (Thu) | Photo-search | All three |
-| 06-08 (Sun) | Full demo dress rehearsal | All three |
-| 06-10 (Tue) | Submission cut | All three |
+| 1–2 | Rubric read (P1) + eval hardening (P2) + cache-stats wiring (P3) | Shufeng + Yusheng |
+| 3–5 | Demo video + deck draft (P0) | Shufeng |
+| 4–6 | Stable cloud domain + latency report (P3) | Yusheng |
+| 6–8 | Demo polish, transparency UI prominence, 拼单 narrative (P2) | Shufeng |
+| 8–10 | Dry-run defense, re-record demo, fix what breaks | All |
+| 10–12 | Buffer + freeze. Tag the release. | All |
 
-## Risk register
+---
 
-| Risk | Owner | Mitigation |
-|---|---|---|
-| Doubao rate limit hits during demo | 李雨晟 | Cache last N responses; have a recorded backup video. |
-| SSE flaky on poor LAN | 陈澍枫 | Add reconnect logic; fall back to non-streaming POST if needed. |
-| CLIP index quality poor on Chinese products | 管图杰 | Use both vision and text retrieval; let LLM combine. |
-| Real product data not sourced by 06-01 | All | Hard fallback: manual curation of 50 entries (4 hours, 3-way split). |
-| Mac mini M4 doesn't arrive in time | Team | Stick to MacBook for backend; iOS demos directly on iPhone 13. |
+## Open decisions for the team
+
+1. **Accounts to cloud (P4): build it, or cite the seam and defer?** My
+   vote: **defer** unless P0–P3 finish early — the demo + metrics are
+   worth more points than real login.
+2. **Doubao vs TokenRouter for the actual demo:** stay on haiku for speed,
+   or switch to Doubao to match the host's model despite the latency? My
+   vote: **haiku for the live demo, show the Doubao swap in the deck.**
+3. **Who reads the rubric and owns RUBRIC_MAPPING refresh?** Proposing
+   Shufeng, this week.
+
+---
+
+## Sources behind this plan
+See `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` §Sources. Load-bearing for
+this proposal: OpenAI checkout retreat (CNBC 2026-03-24), Klarna reversal
+(CX Dive), hackathon judging rubrics (Devpost/DoraHacks/HackerEarth),
+火山方舟 primitives (volcengine docs 2026-05), negation-query-rewriting
+(COLING 2025).
