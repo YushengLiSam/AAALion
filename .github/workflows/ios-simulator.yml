@@ -25,7 +25,10 @@ on:
 jobs:
   build:
     name: Build for iOS Simulator
-    runs-on: macos-14
+    # macos-15 ships Xcode 16, whose project format (objectVersion 77) the
+    # latest XcodeGen emits. macos-14's Xcode 15.4 cannot read format 77
+    # ("future Xcode project file format" error).
+    runs-on: macos-15
     timeout-minutes: 30
     defaults:
       run:
@@ -44,7 +47,8 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: List targets / schemes (debug aid for first run)
+      - name: List targets / schemes (debug aid, non-gating)
+        continue-on-error: true
         run: xcodebuild -project AAALionApp.xcodeproj -list
 
       # The gating check: does the app compile for the iOS Simulator?
@@ -70,17 +74,20 @@ jobs:
         continue-on-error: true
         run: |
           set -x
-          # Boot any available iPhone simulator.
-          xcrun simctl boot "iPhone 15" || xcrun simctl boot "iPhone 15 Pro" || true
-          xcrun simctl bootstatus booted -b || true
+          # Pick the first available iOS simulator (device names vary by
+          # Xcode version — iPhone 16 on Xcode 16, iPhone 15 on Xcode 15).
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import sys,json;d=json.load(sys.stdin);ids=[x['udid'] for rt,devs in d['devices'].items() if 'iOS' in rt for x in devs if x.get('isAvailable')];print(ids[0] if ids else '')")
+          echo "Simulator udid: $DEVICE"
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b || true
           APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | head -1)
           echo "App bundle: $APP"
-          xcrun simctl install booted "$APP"
-          xcrun simctl launch booted com.aaalion.lionpick || true
+          xcrun simctl install "$DEVICE" "$APP"
+          xcrun simctl launch "$DEVICE" com.aaalion.lionpick || true
           # Let the chat render + the first-launch login prompt appear
           # (the app shows it ~0.9s after launch when signed out).
           sleep 8
-          xcrun simctl io booted screenshot "$GITHUB_WORKSPACE/lionpick-home.png" || true
+          xcrun simctl io "$DEVICE" screenshot "$GITHUB_WORKSPACE/lionpick-home.png" || true
 
       - name: Upload screenshot
         if: always()
