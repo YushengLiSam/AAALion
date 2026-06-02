@@ -38,6 +38,7 @@ committed, current set (historical artifacts live in `commits/` and
 |---|---|
 | [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) | Single-page implementation walkthrough |
 | [REPURCHASE_PLAN.md](REPURCHASE_PLAN.md) | Repurchase-reminder feature design |
+| [ACCOUNT_SYSTEM_PLAN.md](ACCOUNT_SYSTEM_PLAN.md) | Account/auth completion — shipped + what remains (JWT, rate-limit) |
 
 ## Presentation
 | Doc | What |
