@@ -1,0 +1,91 @@
+# R11 — build the iOS app on a GitHub-hosted macOS runner.
+#
+# WHY: we develop on Windows, where the iOS app cannot be compiled (Xcode /
+# the iOS SDK are macOS-only). This workflow runs on GitHub's cloud Mac so
+# we can (a) verify the SwiftUI source actually COMPILES, and (b) boot a
+# simulator, launch the app, and upload a screenshot so the new login /
+# profile / chat UI can be eyeballed.
+#
+# WHAT IT IS NOT: this does NOT install onto a physical iPhone. The
+# simulator is a virtual device on GitHub's Mac, not a phone on your desk.
+#
+# Trigger: manually (Actions tab → Run workflow) or on push to the build
+# branches when the iOS app or this workflow changes.
+
+name: iOS Simulator Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [Tujie, ci/ios-build]
+    paths:
+      - 'client/AAALionApp/**'
+      - '.github/workflows/ios-simulator.yml'
+
+jobs:
+  build:
+    name: Build for iOS Simulator
+    runs-on: macos-14
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: client/AAALionApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain info
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | grep -i ios || true
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: List targets / schemes (debug aid for first run)
+        run: xcodebuild -project AAALionApp.xcodeproj -list
+
+      # The gating check: does the app compile for the iOS Simulator?
+      # Built by target (no shared-scheme dependency) against the simulator
+      # SDK; simulator builds need no code signing.
+      - name: Build (iOS Simulator SDK, no signing)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project AAALionApp.xcodeproj \
+            -target AAALionApp \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      # ---- Best-effort: launch in a simulator + screenshot ----
+      # The compile step above is the pass/fail gate; everything below is
+      # informational (continue-on-error) so a simulator hiccup can't fail
+      # the build verdict.
+      - name: Boot simulator, launch app, screenshot
+        continue-on-error: true
+        run: |
+          set -x
+          # Boot any available iPhone simulator.
+          xcrun simctl boot "iPhone 15" || xcrun simctl boot "iPhone 15 Pro" || true
+          xcrun simctl bootstatus booted -b || true
+          APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | head -1)
+          echo "App bundle: $APP"
+          xcrun simctl install booted "$APP"
+          xcrun simctl launch booted com.aaalion.lionpick || true
+          # Let the chat render + the first-launch login prompt appear
+          # (the app shows it ~0.9s after launch when signed out).
+          sleep 8
+          xcrun simctl io booted screenshot "$GITHUB_WORKSPACE/lionpick-home.png" || true
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lionpick-screenshots
+          path: lionpick-*.png
+          if-no-files-found: ignore
