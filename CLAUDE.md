@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + backend deployed to the cloud**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟). Full timeline: [`docs/DEV_LOG.md`](docs/DEV_LOG.md).
+Last touched: **R11 (2026-06-02) — login/sign-up page + account profile; docs refactor**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟). Full timeline: [`docs/DEV_LOG.md`](docs/DEV_LOG.md) · Docs index: [`docs/README.md`](docs/README.md).
 
 ---
 
