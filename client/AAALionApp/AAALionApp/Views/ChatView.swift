@@ -31,6 +31,16 @@ struct ChatView: View {
     /// remove / decrement does not animate. R8.F.5.
     @State private var cartIconBounce = false
 
+    // R11 — accounts. The top-bar avatar routes to login (logged out) or
+    // the profile page (logged in). Login never gates browse / chat.
+    @State private var auth = AuthState.shared
+    @State private var showLogin = false
+    @State private var showProfile = false
+    // First-launch soft prompt: shown once, skippable, then never nags.
+    @AppStorage("lionpick.loginPromptShown") private var loginPromptShown = false
+    @State private var showLoginPrompt = false
+    @State private var pendingLoginAfterPrompt = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -95,6 +105,22 @@ struct ChatView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 14) {
+                        // R11 — account avatar. Logged out → login page;
+                        // logged in → the account initial → profile page.
+                        Button {
+                            if auth.isSignedIn { showProfile = true } else { showLogin = true }
+                        } label: {
+                            if auth.isSignedIn {
+                                Text(profileInitial)
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.appAccent, in: Circle())
+                            } else {
+                                Image(systemName: "person.crop.circle")
+                            }
+                        }
+                        .accessibilityLabel(auth.isSignedIn ? "我的账号" : "登录")
                         Button {
                             showCart = true
                         } label: {
@@ -151,6 +177,30 @@ struct ChatView: View {
             }
             .sheet(isPresented: $showCart) {
                 CartSheet(cart: cart)
+            }
+            // R11 — account flows. Login is a branded full-screen page;
+            // the profile page is a sheet.
+            .fullScreenCover(isPresented: $showLogin) {
+                LoginView()
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileView()
+            }
+            // First-launch soft prompt (once, skippable). Presenting the
+            // login cover is deferred to the prompt's onDismiss so the
+            // sheet→cover hand-off doesn't collide.
+            .sheet(isPresented: $showLoginPrompt, onDismiss: {
+                if pendingLoginAfterPrompt {
+                    pendingLoginAfterPrompt = false
+                    showLogin = true
+                }
+            }) {
+                LoginPromptCard(
+                    onLogin: { pendingLoginAfterPrompt = true; showLoginPrompt = false },
+                    onSkip: { showLoginPrompt = false }
+                )
+                .presentationDetents([.height(360)])
+                .presentationDragIndicator(.visible)
             }
             // R8.F.5: bounce the cart toolbar icon whenever totalQuantity
             // *increases* (item added from anywhere — chat, ProductDetail,
@@ -328,7 +378,23 @@ struct ChatView: View {
             .task {
                 viewModel.runScriptedQueryIfAny()
             }
+            .task {
+                // R11 — first-launch soft login prompt. The flag is set
+                // immediately so it shows at most once; only when not
+                // already signed in, after a short beat so it doesn't pop
+                // on a cold-launch frame.
+                guard !loginPromptShown, !auth.isSignedIn else { return }
+                loginPromptShown = true
+                try? await Task.sleep(for: .seconds(0.9))
+                if !auth.isSignedIn { showLoginPrompt = true }
+            }
         }
+    }
+
+    private var profileInitial: String {
+        let n = auth.displayName.trimmingCharacters(in: .whitespaces)
+        guard let first = n.first else { return "🦁" }
+        return String(first).uppercased()
     }
 
     private var messageList: some View {

@@ -49,6 +49,31 @@ struct GroupBuyService {
         return try await send(req)
     }
 
+    /// R11 — the groups this user opened, for the "我的拼单" list in the
+    /// account/profile page. Backend: `GET /groupbuy/active?user_id=`.
+    func fetchActive(userId: String) async throws -> [GroupBuy] {
+        var comp = URLComponents(url: baseURL.appendingPathComponent("groupbuy/active"),
+                                 resolvingAgainstBaseURL: false)
+        comp?.queryItems = [URLQueryItem(name: "user_id", value: userId)]
+        guard let url = comp?.url else { throw FetchError.http(-1) }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 30
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+            guard let http = response as? HTTPURLResponse else { throw FetchError.http(-1) }
+            guard http.statusCode == 200 else { throw FetchError.http(http.statusCode) }
+            do {
+                return try JSONDecoder().decode(ActiveGroupsResponse.self, from: data).groups
+            } catch {
+                throw FetchError.decode(error)
+            }
+        } catch let e as FetchError {
+            throw e
+        } catch {
+            throw FetchError.transport(error)
+        }
+    }
+
     private func send(_ req: URLRequest) async throws -> GroupBuy {
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
@@ -64,6 +89,10 @@ struct GroupBuyService {
         } catch {
             throw FetchError.transport(error)
         }
+    }
+
+    private struct ActiveGroupsResponse: Codable {
+        let groups: [GroupBuy]
     }
 }
 

@@ -17,12 +17,8 @@ struct SettingsView: View {
     @State private var cacheError: String?
     @State private var pollingTask: Task<Void, Never>?
 
-    // R9.B / #12 — my-preferences panel.
-    @State private var prefItems: [PreferenceItem] = []
-
-    // R10 — account section.
-    @State private var auth = AuthState.shared
-    @State private var showLogin = false
+    // R11 — account + my-preferences moved to ProfileView (reached from the
+    // chat top-bar avatar). Settings now keeps only dev / cache / speech.
 
     enum ProbeResult: Equatable {
         case ok(version: String)
@@ -32,34 +28,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // R10 — account section (sign in / out).
-                Section {
-                    if auth.isSignedIn {
-                        HStack {
-                            Image(systemName: "person.crop.circle.fill")
-                                .foregroundStyle(Color.appAccent)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(auth.displayName).font(.subheadline)
-                                Text(auth.user?.provider == "apple" ? "Apple 登录" : "手机号登录")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        Button(role: .destructive) { auth.signOut() } label: {
-                            Label("退出登录 / Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-                    } else {
-                        Button { showLogin = true } label: {
-                            Label("登录 / Sign in", systemImage: "person.crop.circle.badge.plus")
-                        }
-                    }
-                } header: {
-                    Text("我的账号 / Account")
-                } footer: {
-                    Text("登录后,你的偏好 / 降价提醒 / 复购记录会跟随账号(未来云端跨设备),并可与好友真实拼单。未登录时按本机匿名 ID 使用。\n" +
-                         "Signed in, your data follows the account (cross-device once the cloud store lands) and real group-buy with friends works.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-
                 if devMode {
                     Section {
                         TextField("https://your-tunnel.trycloudflare.com or http://192.168.0.1:8000", text: $backendURLText)
@@ -140,43 +108,6 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                // R9.B / #12 — my preferences (on-backend, anonymous device).
-                Section {
-                    if prefItems.isEmpty {
-                        Text("还没有偏好。在商品详情页点 👍 / 👎 即可训练。\nNo preferences yet — tap 👍 / 👎 on any product.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(prefItems) { item in
-                            HStack {
-                                Image(systemName: item.isLiked ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
-                                    .foregroundStyle(item.isLiked ? Color.green : Color.orange)
-                                    .font(.caption)
-                                Text("\(item.dimensionLabel) · \(item.value)")
-                                    .font(.footnote)
-                                Spacer()
-                                Text(String(format: "%+.0f", item.score))
-                                    .font(.footnote.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Button(role: .destructive) {
-                            Task {
-                                try? await PreferenceService().resetPreferences(userId: DeviceIdentity.userId)
-                                await refreshPreferences()
-                            }
-                        } label: {
-                            Label("重置偏好 / Reset (我变了)", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-                } header: {
-                    Text("我的偏好 / My preferences")
-                } footer: {
-                    Text("你的 👍 / 👎 只按匿名设备 ID 存储,不绑定账号、不跨设备同步,可一键清空。它会轻微调整后续推荐排序。\n" +
-                         "Your taps are stored per anonymous device only — no login, no cross-device sync, wipe anytime. They gently re-rank future results.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
             .navigationTitle("设置 / Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -191,13 +122,9 @@ struct SettingsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showLogin) {
-                LoginView()
-            }
             .onAppear {
                 backendURLText = Config.backendURL.absoluteString
                 Task { await refreshCacheStats() }
-                Task { await refreshPreferences() }
                 // Auto-poll every 10s while sheet is open.
                 pollingTask?.cancel()
                 pollingTask = Task {
@@ -212,15 +139,6 @@ struct SettingsView: View {
                 pollingTask?.cancel()
                 pollingTask = nil
             }
-        }
-    }
-
-    // MARK: - Preferences panel (R9.B / #12)
-
-    @MainActor
-    private func refreshPreferences() async {
-        if let items = try? await PreferenceService().fetchPreferences(userId: DeviceIdentity.userId) {
-            prefItems = items
         }
     }
 
