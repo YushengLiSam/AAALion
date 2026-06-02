@@ -82,6 +82,16 @@ _PROMPT = (
 )
 
 
+# R10 #5 — 主动反问 (proactive clarification) 的 system prompt。
+# 当后端判定用户需求「信息不足」时,用这个 prompt 代替 _PROMPT:
+# 让 LLM **反问澄清**而不是硬推商品,本轮也不检索、不出商品卡。
+_CLARIFY_PROMPT = (
+    "你是一名中文电商导购助手。用户当前的需求**信息不足**,直接推荐会答非所问。\n"
+    "请用**一到两句**自然、口语化的话**反问澄清**,引导用户补充这些关键信息:{dimensions}。\n"
+    "要求:不要用编号罗列;**不要推荐任何具体商品、品牌或价格**;结尾可给一个简短示例帮用户理解怎么回答。"
+)
+
+
 # 把检索回来的 top-K 商品拼成 LLM 能读懂的文本目录。
 # 每行一个商品:product_id | 标题 | 品牌 | 价格 | 营销描述前 120 字。
 # 这段文本会替换 _PROMPT 里的 {catalog} 占位符进入 system prompt。
@@ -527,6 +537,69 @@ async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: i
             delay *= 2
 
 
+# R10 #5 — 主动反问 (proactive clarification) 检测。
+# 只在「明显信息不足」的**首轮**模糊请求上触发(没有品类/品牌/价格/属性等任何
+# 具体信号),非常保守——绝不在正常请求上反复追问、惹人烦。命中时本轮不检索、
+# 不出商品卡,改用 _CLARIFY_PROMPT 让 LLM 反问。
+_VAGUE_INTENT = re.compile(
+    r"推荐(点|个|些|下|一下)?(什么|啥|东西|商品|礼物|好物|好东西)"
+    r"|随便看看|看看有(什么|啥)"
+    r"|有(什么|啥)(推荐|好(东西|物|货))"
+    r"|帮我(挑|选|看看|推荐|参考)"
+    r"|不知道(买|选|送)(什么|啥)|买点(什么|啥)|送(什么|啥)(礼物|好)"
+)
+_GIFT_HINT = re.compile(r"礼物|送(人|朋友|女友|男友|长辈|妈|爸|同事|领导|老师|闺蜜|对象)|送给")
+# 明确的品类词——出现任意一个就说明请求已经够具体,不反问。
+_CONCRETE_CATS = (
+    "面霜", "防晒", "洁面", "洗面", "口红", "眼霜", "面膜", "精华", "水乳", "粉底",
+    "耳机", "手机", "笔记本", "电脑", "平板", "相机", "手表", "键盘", "鼠标", "音箱",
+    "跑鞋", "运动鞋", "板鞋", "篮球鞋", "羽绒服", "卫衣", "外套", "裤", "背包", "行李箱",
+    "零食", "奶粉", "纸尿", "牙膏", "沐浴", "洗发", "咖啡", "茶", "锅", "杯",
+)
+
+
+def _has_concrete_signal(text: str) -> bool:
+    """请求里是否带了能检索的具体信号(品类 / 价格 / 品牌)。有就别反问。"""
+    if any(c in text for c in _CONCRETE_CATS):
+        return True
+    if re.search(r"\d+\s*(元|块|rmb|￥|¥)|预算|以内|左右|便宜|平价|高端|性价比|划算", text, re.I):
+        return True
+    try:
+        from rag.retrieve.brand_origin import BRAND_ORIGIN
+        tl = text.lower()
+        if any(len(b) >= 2 and b.lower() in tl for b in BRAND_ORIGIN):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _needs_clarification(text: str, messages) -> str | None:
+    """需求太模糊、无法检索时,返回「该追问哪些维度」的提示串;否则 None。
+    保守策略:有图(图本身就是意图)、多轮(上文已有约束)、或带具体信号 → 不反问。"""
+    if not text:
+        return None
+    if _has_image(messages):
+        return None
+    # 多轮里上文通常已经给了约束,别打断——只在首轮模糊请求上反问。
+    try:
+        user_turns = sum(1 for m in messages if getattr(m, "role", None) == "user")
+    except TypeError:
+        user_turns = 1
+    if user_turns > 1:
+        return None
+    is_gift = bool(_GIFT_HINT.search(text))
+    if not (_VAGUE_INTENT.search(text) or is_gift):
+        return None
+    # A concrete signal (品类 / 预算 / 品牌) means we can already retrieve —
+    # e.g. "送朋友耳机" or "送女友 300 元的口红" should recommend, not ask.
+    if _has_concrete_signal(text):
+        return None
+    if is_gift:
+        return "送礼对象(性别 / 年龄 / 和你的关系)、预算大概多少、什么场合用"
+    return "想找哪类商品(比如美妆护肤 / 数码 / 服饰 / 食品)、预算范围、有没有偏好的品牌或风格"
+
+
 # 主路由:POST /chat/stream → SSE 流式响应。**整个后端最重要的函数**。
 # 流程见文件顶部 docstring 的 7 步。本函数把这 7 步串起来:
 #   503 ready 检查 → 提取文本/图片 → 检索(CLIP or hybrid+rerank) →
@@ -553,29 +626,36 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # offloaded normalize_product_prices call below).
     products: list[dict] = []
     img_bytes_list: list[bytes] = []
-    if _has_image(req.messages):
-        img_bytes_list = _extract_image_bytes_list(req.messages)
-        # CLIP retriever is single-image; use the first attachment as the
-        # visual query. The LLM still sees all images via the content array.
-        if img_bytes_list:
-            products = await asyncio.to_thread(top_k_image, img_bytes_list[0], k=3)
-    if not products:
-        explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
-        conversation_filter = build_conversation_filter(req.messages, explicit_filters)
-        products = await asyncio.to_thread(
-            top_k,
-            retrieval_query,
-            k=5,
-            filters=explicit_filters,
-            conversation_filter=conversation_filter,
-            intent_text=user_text,
-            user_id=req.user_id,
-        )
-    products = await asyncio.to_thread(normalize_product_prices, products)
+    # R10 #5 — 主动反问: if the request is too vague to recommend, skip
+    # retrieval entirely (no product cards) and let the LLM ask a clarifying
+    # question via _CLARIFY_PROMPT below.
+    clarify_dims = _needs_clarification(user_text, req.messages)
+    if clarify_dims is None:
+        if _has_image(req.messages):
+            img_bytes_list = _extract_image_bytes_list(req.messages)
+            # CLIP retriever is single-image; use the first attachment as the
+            # visual query. The LLM still sees all images via the content array.
+            if img_bytes_list:
+                products = await asyncio.to_thread(top_k_image, img_bytes_list[0], k=3)
+        if not products:
+            explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
+            conversation_filter = build_conversation_filter(req.messages, explicit_filters)
+            products = await asyncio.to_thread(
+                top_k,
+                retrieval_query,
+                k=5,
+                filters=explicit_filters,
+                conversation_filter=conversation_filter,
+                intent_text=user_text,
+                user_id=req.user_id,
+            )
+        products = await asyncio.to_thread(normalize_product_prices, products)
     t_retrieval = time.perf_counter()
 
     # Cart-intent detection ----------------------------------------------------
-    cart_event = _detect_cart_intent(user_text)
+    # A clarification turn is never a cart op — skip detection so a vague
+    # "帮我挑个东西" can't be misread.
+    cart_event = None if clarify_dims else _detect_cart_intent(user_text)
 
     # Cache --------------------------------------------------------------------
     # R8.E: multi-attachment messages now hash the SORTED concat of all
@@ -629,7 +709,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             "3-4 件互补的商品凑成一套(尽量来自不同类目, 比如食品+数码+服饰)。每件用 "
             "[目录✓] 标注价格/品牌,简短说明该件在该场景中的用途。"
         )
-    system = _PROMPT.format(catalog=_build_catalog(products)) + addendum
+    # R10 #5 — on a clarification turn, swap in the 反问 prompt (no catalog,
+    # no comparison/scene addendum) so the LLM asks instead of recommending.
+    if clarify_dims:
+        system = _CLARIFY_PROMPT.format(dimensions=clarify_dims)
+    else:
+        system = _PROMPT.format(catalog=_build_catalog(products)) + addendum
     if _has_image(req.messages):
         last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
         user_content = last_user.model_dump()["content"] if last_user else user_text
