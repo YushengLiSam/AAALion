@@ -75,7 +75,7 @@ Self-assessed score: **~93–94 / 100**. See [`docs/RUBRIC_MAPPING.md`](docs/RUB
 | **Constraint-aware retrieval** (category / subcategory / brand / RMB budget) | ✅ NEW | **Tujie (R7.4)** | [`rag/retrieve/constraints.py`](rag/retrieve/constraints.py) + [`query.py`](rag/retrieve/query.py) |
 | **Docker readiness prewarm** (no first-user model download) | ✅ NEW | **Tujie (R7.6)** | [`Dockerfile.rag`](Dockerfile.rag) + [`retrieval_readiness.py`](server/app/services/retrieval_readiness.py) + [`/ready`](docs/API.md) |
 | Negation / exclusion (4.3 ⭐⭐) | ✅ **audited: accuracy 1.000** | Shufeng + Yusheng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
-| Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-24/03-comparison.png`](docs/demos/2026-05-24/03-comparison.png) |
+| Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-25/05-compare.png`](docs/demos/2026-05-25/05-compare.png) |
 | OpenCLIP image→image retrieval (4.2 ⭐⭐⭐) | ✅ **on cloud VM** | Shufeng + Yusheng | 145 image vectors; `rag/retrieve/query.py:query_image` |
 | Voice input + TTS (4.2 ⭐ + ⭐⭐) | ✅ | Shufeng (R3) | Speech / AVSpeechSynthesizer |
 | **4.1 Cart — full** (add · conversational **quantity** · **delete** · swipe · checkout) | ✅ **R10** | Shufeng + Yusheng | `_detect_cart_intent` + `CartStore` + `CheckoutView` |
@@ -107,7 +107,7 @@ Self-assessed score: **~93–94 / 100**. See [`docs/RUBRIC_MAPPING.md`](docs/RUB
 | 李雨晟 | Yusheng Li | 后端 / Backend | `server/` |
 | 管图杰 | Tujie Guan | 检索 / RAG | `rag/` |
 
-> Shufeng is the project lead and fallback owner — see [`docs/SOLO_DEV_PLAN.md`](docs/SOLO_DEV_PLAN.md).
+> Shufeng is the project lead and fallback owner.
 
 ## Tech stack / 技术栈
 
@@ -245,26 +245,18 @@ tools/     aaalion + screenshot + check-secrets
 
 | Document | Purpose |
 |---|---|
-| ⭐ [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) | Single-page index — start here if new to the repo |
+| ⭐ [docs/README.md](docs/README.md) | **Docs index — start here** |
+| [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) | Single-page implementation walkthrough |
 | 📓 [docs/DEV_LOG.md](docs/DEV_LOG.md) | Rolling dev log — newest shipping moments at the top |
-| 📋 [docs/PROPOSAL_2026-05-30.md](docs/PROPOSAL_2026-05-30.md) | Latest forward plan (to code-freeze) · [competitive analysis](docs/COMPETITIVE_ANALYSIS_2026-05-30.md) |
-| [docs/RUBRIC_MAPPING.md](docs/RUBRIC_MAPPING.md) | PDF §4 → code/artifact mapping for defense (refreshed R10) |
-| [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) | Step-by-step for a teammate's MacBook + iPhone ≥13 |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | All gotchas + fixes |
-| [docs/demos/](docs/demos/) | All recorded demo screenshots + verdicts |
-| [docs/research/](docs/research/) | Data-availability research |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | End-to-end design |
-| [docs/PIPELINE.md](docs/PIPELINE.md) | Dev SOP |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | 20-day plan |
-| [docs/HARDWARE.md](docs/HARDWARE.md) | Devices + A100 SSH rules |
-| [docs/POLICY.md](docs/POLICY.md) | Team rules + commit format |
-| [docs/IOS_SETUP.md](docs/IOS_SETUP.md) | Xcode, signing, weekly resign cadence |
-| [docs/API.md](docs/API.md) | Backend endpoints |
-| 📊 [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md) | RAG retrieval quality numbers + how to regenerate the HTML dashboard |
-| [docs/SOLO_DEV_PLAN.md](docs/SOLO_DEV_PLAN.md) | Fallback execution plan |
-| [docs/FUTURE_WORK.md](docs/FUTURE_WORK.md) | Stretch ideas |
-| [docs/EXECUTION_SUMMARY.md](docs/EXECUTION_SUMMARY.md) | Initial bootstrap summary |
-| [docs/commits/](docs/commits/) | Major-commit records |
+| 📋 [docs/ROADMAP.md](docs/ROADMAP.md) | Current forward plan (to code-freeze) |
+| [docs/COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) | 狮选 vs the market (web-researched) |
+| 📊 [docs/QUALITY_REVIEW.md](docs/QUALITY_REVIEW.md) · [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md) | Grader-style self-assessment · RAG metrics |
+| [docs/RUBRIC_MAPPING.md](docs/RUBRIC_MAPPING.md) | PDF §4 → code/artifact mapping for defense |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/API.md](docs/API.md) · [docs/PIPELINE.md](docs/PIPELINE.md) | Design · endpoints · dev SOP |
+| [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) · [docs/IOS_SETUP.md](docs/IOS_SETUP.md) | Teammate setup · Xcode/signing |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [docs/HARDWARE.md](docs/HARDWARE.md) · [docs/POLICY.md](docs/POLICY.md) | Gotchas · devices/SSH · team rules |
+| [docs/DEFENSE_DECK_PROMPT.md](docs/DEFENSE_DECK_PROMPT.md) · [docs/explainers/](docs/explainers/) | Defense deck prompt · plain-language explainers |
+| [docs/demos/](docs/demos/) · [docs/research/](docs/research/) · [docs/commits/](docs/commits/) | Demo screenshots · market research · change records |
 
 ## License
 

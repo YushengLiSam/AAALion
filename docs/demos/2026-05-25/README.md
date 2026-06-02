@@ -1,80 +1,69 @@
-# Demo Results — 2026-05-25 (Round 7 / R7.2 backend follow-up)
+# Demo Results — 2026-05-25 evening (Round 8)
 
-Re-recorded after Round 7 landed: Sam's eval dashboard merged + Tujie's
-synonym/contextual/price-intent work in production + my brand-origin
-negation fix (`安热沙` no longer leaks past "不要日系").
+Re-recorded after R8 integration: Sam's eval dashboard + cache endpoint, Tujie's currency normalization + catalog constraints + stateful filters, plus my R8 improvements (B1 cache panel in iOS Settings, B2 multi-turn negation persistence).
 
-Driven on the iPhone 17 Pro simulator via `xcrun simctl launch booted
-com.aaalion.lionpick -test-query "..."` after restarting the backend on
-the brand-origin-fix SHA (`dc13f32`). Screenshots taken at `simctl io
-booted screenshot`.
+Driven on iPhone 17 Pro simulator via `xcrun simctl launch booted -test-query`. Backend at `2f9b6c4 + 672c6fc (shufeng)`. Eval baseline (71 cases): recall@5 = 0.983, MRR = 0.844, negation_accuracy = 1.000, median latency 68ms.
 
-## Six scenarios (mirrors Sam's eval breakdown)
+## Scenarios
 
-| # | File | Scenario | Query | Verdict |
+| # | File | Scenario | What it proves | Verdict |
 |---|---|---|---|---|
-| 01 | [`01-basic.png`](01-basic.png) | basic | `推荐一款适合油皮的洗面奶` | ✅ |
-| 02 | [`02-filter.png`](02-filter.png) | filter | `200元以下的蓝牙耳机有哪些` | ✅ |
-| 03 | [`03-negation.png`](03-negation.png) | negation **(R7 fix)** | `推荐防晒霜，不要日系品牌，不要含酒精` | ✅✅ |
-| 04 | [`04-multiturn.md`](04-multiturn.md) | multi-turn | `推荐一款适合油皮的洗面奶` → `再便宜点的呢` | ✅ (SSE-proof only; UI capture deferred to demo video) |
-| 05 | [`05-compare.png`](05-compare.png) | compare | `雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜` | ✅ |
-| 06 | [`06-no-match.png`](06-no-match.png) | no-match | `推荐一台量子计算机` | ✅ |
+| 01 | [`01-basic.png`](01-basic.png) | basic recommendation | sanity | ✅ |
+| 02 | [`02-filter.png`](02-filter.png) | price filter `200元以下` | Tujie's `price_intent` + budget filter | ✅ |
+| 03 | [`03-negation.png`](03-negation.png) | negation `不要日系不要含酒精` | brand-origin filter (R7 fix) | ✅ |
+| 04 | [`04-multiturn.md`](04-multiturn.md) | multi-turn `再便宜点的呢` | Tujie's contextual + stateful | ✅ (SSE log) |
+| 05 | [`05-compare.png`](05-compare.png) | A-vs-B comparison | structured comparison | ✅ |
+| 06 | [`06-no-match.png`](06-no-match.png) | no-match `量子计算机` | anti-hallucination | ✅ |
+| 07 | [`07-currency.png`](07-currency.png) | currency norm `Sony WH-1000XM5 多少钱` | Tujie's R7.2 FX normalization | ✅ |
+| 08 | [`08-stateful-step1.png`](08-stateful-step1.png) + [`08-stateful.md`](08-stateful.md) | stateful constraint inheritance | Tujie's R7.5 constraint state | ✅ (SSE log) |
+| 09 | [`09-multiturn-negation.md`](09-multiturn-negation.md) | **multi-turn negation (R8 B2 fix)** — "再便宜点的呢" still excludes JP | **R8 B2 bug closed**: keyword exclusion now persists across turns | ✅✅ |
 
-## What's new vs Round 6 demos
+## What's new vs Round 7
 
-| Capability | R6 (2026-05-24) | R7 (now) | Owner |
+| Capability | R7 (5-25 PM) | **R8 (5-25 evening)** | Owner |
 |---|---|---|---|
-| 反选准确率 (negation) | "不要日系" leaked 安热沙 | brand-origin lookup drops 安热沙 + 资生堂 etc. — only 法系 / 国货 returned | Shufeng (this round) |
-| Multi-turn ("再便宜点的呢") | inherited topic via `contextual_query.py` (Tujie R6.5) | unchanged, still perfect | Tujie |
-| Synonym expansion ("无线耳机" → "蓝牙耳机/TWS/降噪耳机") | unchanged from R6.5 | unchanged | Tujie |
-| Per-scenario eval dashboard | not in repo | merged on `main` ([`docs/eval_report.html`](../eval_report.html)) | Sam |
-| Foreign-price display / totals | source-currency hint and per-currency totals | RMB primary display with dated reference-rate trace; original amount retained | Tujie (R7.2) |
+| Negation accuracy (single-turn) | 0.733 | **1.000** | Sam (data audit + local fallback) |
+| Negation persistence across turns | broken (turn 2 lost "不要日系") | **fixed via Filter.exclude_keywords** | Shufeng (R8 B2) |
+| Catalog constraint filters during retrieval | none | category / brand / RMB budget hard-filtered pre-rank | Tujie (R7.4) |
+| Foreign price CNY display | mixed `¥`+`$` per currency | **normalized to ¥ live FX (Frankfurter)** | Tujie (R7.2) |
+| Stateful multi-turn constraints | partial (anchor only) | full filter inherit + 不限/品牌不限/品类不限 cancels | Tujie (R7.5) |
+| Cache hit-rate observability | endpoint shipped, no UI | **iOS Settings panel with auto-poll** | Sam (endpoint) + Shufeng (R8 B1 iOS panel) |
+| Docker prewarm + `/ready` 503 guard | none | model warmup at lifespan startup | Tujie (R7.6) |
 
-## Headline numbers (merged R7.3, hybrid+rerank on audited 59-case set)
+## Headline numbers
 
-| Metric | Value | Note |
-|---|---|---|
-| recall@5 | **0.880** | golden audit + merged negation/origin fixes |
-| recall@10 | **0.965** | post-merge full run |
-| MRR | **0.828** | merged result; CNY-only branch moved 0.771 to 0.778 |
-| 反选准确率 | **1.000** | 10 cases carry `forbidden_product_ids` |
-| no-match correctness | **0.902** | 10 total empty-expected cases |
-| mean latency | 4,346 ms | Docker full evaluation run; includes the first-rate lookup path |
+```
+hybrid_rerank, 71-case golden:
+  recall@5            0.983
+  recall@10           0.995
+  MRR                 0.844
+  negation_accuracy   1.000
+  median latency      68 ms (cache-warm path; fast-path widely triggered)
 
-The audit changes answer labels, not the retrieval pipeline. These values are
-the new baseline and are not presented as a pure algorithm delta from the
-pre-audit Round 7 report.
-
-R7.2 adds latest-reference-rate CNY display and CNY-aware price-intent ordering:
-on that branch MRR rises from 0.771 to 0.778. After merging the teammate
-negation/origin audit, the combined run reaches recall@5 0.880 and MRR 0.828.
-The images above were captured before the FX UI addition, so conversion behavior
-is verified through the API/test run rather than claimed from those screenshots.
-
-See [`docs/EVAL_RESULTS.md`](../EVAL_RESULTS.md) (Sam) and
-[`docs/QUALITY_REPORT_2026-05-25.md`](../QUALITY_REPORT_2026-05-25.md)
-(Shufeng) for the full breakdown.
-
-## Reproduction
-
-```bash
-git fetch && git checkout main
-source .venv/bin/activate
-python -m rag.eval.report          # regenerates docs/eval_report.html
-cd server && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Simulator demos
-xcrun simctl boot "iPhone 17 Pro"
-xcrun simctl install booted /tmp/lionpick-derived/Build/Products/Debug-iphonesimulator/狮选.app
-xcrun simctl launch booted com.aaalion.lionpick -test-query "<query>"
-sleep 14
-xcrun simctl io booted screenshot docs/demos/2026-05-25/NN-name.png
+  multiturn tag         recall@5 1.000  neg-acc 1.000
+  negation tag          recall@5 0.949  neg-acc 1.000
+  brand-origin tag      recall@5 1.000  neg-acc 1.000
+  constraint-state tag  recall@5 1.000  neg-acc 1.000
 ```
 
 ## What still needs touch-driven testing
 
-- Multi-turn UI flow (#04). Captured as text-only via SSE for now;
-  visual flow recording is part of the Tier 2 defense demo video
-  (QuickTime screencast — see `docs/defense/`).
-- iPhone 13 Pro re-test. App from R6 install still works against the
-  R7 backend; user should open it and try the 3 hero queries to confirm.
+- Cache panel (R8 B1) on simulator's Settings sheet — captured via `/cache/stats` curl (12 reqs, 2 hits, 16.7% hit-rate). User verifies the panel renders correctly on iPhone in Sub-Plan D.
+- Multi-turn UI flow (#04, #08, #09) — `simctl -test-query` is single-shot. Captured via SSE log in sidecars; full UI flow goes into the deferred defense demo video.
+
+## Reproduction
+
+```bash
+git pull origin main
+git checkout shufeng                # at 672c6fc (R8 improvements)
+cd server && HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+  python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+# (wait for /ready 200, ~6s on dev Mac)
+
+xcrun simctl boot "iPhone 17 Pro"
+cd ../client/AAALionApp && xcodegen generate && xcodebuild build ...
+xcrun simctl install booted .../狮选.app
+xcrun simctl launch booted com.aaalion.lionpick -test-query "<query>"
+sleep 14
+xcrun simctl io booted screenshot docs/demos/2026-05-25-evening/NN-name.png
+```

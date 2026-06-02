@@ -4,7 +4,7 @@
 > claim links to the canonical doc — do not duplicate content, follow the
 > link. After this you may stop reading unless you need depth.
 
-Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + backend deployed to the cloud**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟). Full timeline: [`docs/DEV_LOG.md`](docs/DEV_LOG.md).
+Last touched: **R11 (2026-06-02) — login/sign-up page + account profile; docs refactor**. Authors: Shufeng Chen (陈澍枫) + Tujie Guan (管图杰) + Yusheng Li (李雨晟). Full timeline: [`docs/DEV_LOG.md`](docs/DEV_LOG.md) · Docs index: [`docs/README.md`](docs/README.md).
 
 ---
 
@@ -90,7 +90,7 @@ Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + bac
 | **Accounts / auth** | Shufeng | `server/app/routes/auth.py`, `services/user_store.py` | Apple / 手机号验证码 / 密码; `user_id` may be `phone:…`/`apple:…` (colon-ok, R10.bugfix) |
 | **Group-buy / preferences / price-watch** | Shufeng | `routes/group_buy.py` · `preferences.py` · `price_watch.py` (+ `*_db.py`) | R9.B/R10 closed-loop features; all SQLite |
 | **Scenario coverage (rubric)** | Sam + Shufeng | `routes/chat.py` intent detectors | comparison table / scene builder (#7) / conversational cart-delete (#8); see scenario audit in `docs/DEV_LOG.md` |
-| Market research / competitive | Shufeng | `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` | Built with web research (see Conventions §Web research); see also `docs/PROPOSAL_2026-05-30.md` + R9–R10 documentary `docs/commits/20260530-017-r9-r10-documentary.md` |
+| Market research / competitive | Shufeng | `docs/COMPETITIVE_ANALYSIS.md` | Built with web research (see Conventions §Web research); see also `docs/ROADMAP.md` + R9–R10 documentary `docs/commits/20260530-017-r9-r10-documentary.md` |
 
 ---
 
@@ -104,7 +104,7 @@ Last touched: **R10 (2026-05-30) — accounts (Apple / 手机号 / 密码) + bac
 | 加分项 | 20% | 85 | +1 (live FX, brand-origin perfect) |
 | **Total** | — | **~91-92 / 100** | up from R7 90.0 |
 
-Round 7 highlights (see [`docs/QUALITY_REPORT_2026-05-25.md`](docs/QUALITY_REPORT_2026-05-25.md)
+Round 7 highlights (see [`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md)
 + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)):
 - Sam's per-scenario eval dashboard merged (`601abb6`).
 - Tujie's synonym + contextual-multi-turn + price-intent landed in R6.5
@@ -156,8 +156,8 @@ Full archived plan from rounds 1-6: [`docs/PLAN_ARCHIVE.md`](docs/PLAN_ARCHIVE.m
 4. **Cert refresh** — Personal Team free-tier signing expires every 7 days
    (see [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) §Cert expiry).
    Run `aaalion resign` weekly.
-5. **Sam / Tujie work** — see [`docs/PROPOSAL_2026-05-24.md`](docs/PROPOSAL_2026-05-24.md);
-   default cadence is Shufeng plans solo until teammates respond.
+5. **Sam / Tujie work** — see [`docs/ROADMAP.md`](docs/ROADMAP.md) for the
+   current forward plan + ownership split.
 
 ---
 
@@ -271,8 +271,8 @@ Every other recurring hiccup: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.m
   agents can search). Use them for competitive analysis, technical
   state-of-the-art checks, and grounding forward proposals. Always cite
   sources with URLs + access dates, and label vendor-reported numbers as
-  claims. Worked example: `docs/COMPETITIVE_ANALYSIS_2026-05-30.md` and
-  `docs/PROPOSAL_2026-05-30.md` were both built this way (2026-05-30).
+  claims. Worked example: `docs/COMPETITIVE_ANALYSIS.md` and
+  `docs/ROADMAP.md` were both built this way (2026-05-30).
 
 ---
 
