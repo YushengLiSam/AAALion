@@ -74,3 +74,9 @@
 {"query": "I want noise cancelling headphones", "expected_product_ids": ["p_2_intl_01", "p_2_intl_02"], "tags": ["basic", "en-query"]}
 {"query": "best laptop for designers", "expected_product_ids": ["p_digital_020"], "tags": ["basic", "en-query"]}
 {"query": "luxury Japanese skincare", "expected_product_ids": ["p_1_intl_01", "p_1_intl_02"], "tags": ["filter", "en-query"]}
+{"query": "推荐跑鞋，但不要耐克的", "expected_product_ids": ["p_clothes_009", "p_clothes_010"], "tags": ["negation", "adversarial"], "forbidden_product_ids": ["p_clothes_007", "p_clothes_011", "p_3_intl_02"]}
+{"query": "推荐防晒霜，不要日系的", "expected_product_ids": ["p_beauty_023", "p_beauty_006"], "tags": ["negation", "adversarial"], "forbidden_product_ids": ["p_beauty_010"]}
+{"query": "再便宜点的呢", "messages": [{"role": "user", "content": "推荐防晒霜"}, {"role": "assistant", "content": "为你推荐这几款防晒。"}, {"role": "user", "content": "不要日系的"}, {"role": "assistant", "content": "好的，换成非日系的。"}, {"role": "user", "content": "再便宜点的呢"}], "expected_product_ids": ["p_beauty_006", "p_beauty_023"], "tags": ["negation", "multiturn", "adversarial"], "forbidden_product_ids": ["p_beauty_010"]}
+{"query": "除了苹果还有什么笔记本", "expected_product_ids": ["p_digital_004", "p_digital_023"], "tags": ["negation", "adversarial"], "forbidden_product_ids": ["p_digital_006", "p_digital_020", "p_digital_012"]}
+{"query": "推荐面霜，不要雅诗兰黛，也不要美系的", "expected_product_ids": ["p_beauty_012", "p_beauty_007"], "tags": ["negation", "adversarial"], "forbidden_product_ids": ["p_1_real_01", "p_beauty_008"]}
+{"query": "除了耐克还有什么", "messages": [{"role": "user", "content": "推荐运动鞋"}, {"role": "assistant", "content": "看看这几款运动鞋。"}, {"role": "user", "content": "除了耐克还有什么"}], "expected_product_ids": ["p_clothes_012", "p_3_intl_05"], "tags": ["negation", "multiturn", "adversarial"], "forbidden_product_ids": ["p_clothes_007", "p_clothes_011", "p_3_intl_02"]}
