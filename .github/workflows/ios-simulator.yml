@@ -83,16 +83,26 @@ jobs:
           APP=$(find build/Build/Products -maxdepth 2 -name "*.app" -type d | head -1)
           echo "App bundle: $APP"
           xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl launch "$DEVICE" com.aaalion.lionpick || true
-          # Let the chat render + the first-launch login prompt appear
-          # (the app shows it ~0.9s after launch when signed out).
-          sleep 8
-          xcrun simctl io "$DEVICE" screenshot "$GITHUB_WORKSPACE/lionpick-home.png" || true
+          BUNDLE=com.aaalion.lionpick
+          # Capture each screen by relaunching with the -lionpickShot hook
+          # (maps to UserDefaults → ScreenshotHost routes straight to it).
+          shoot () {
+            xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
+            xcrun simctl launch "$DEVICE" "$BUNDLE" -lionpickShot "$1" || true
+            sleep 5
+            xcrun simctl io "$DEVICE" screenshot "$GITHUB_WORKSPACE/shot-$1.png" || true
+          }
+          shoot home
+          shoot login
+          shoot reset
+          shoot profile
+          shoot changePassword
+          shoot admin
 
       - name: Upload screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lionpick-screenshots
-          path: lionpick-*.png
+          path: shot-*.png
           if-no-files-found: ignore

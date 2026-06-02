@@ -278,6 +278,11 @@ final class AuthState {
         FavoritesStore.shared.reloadForCurrentUser()
     }
 
+    /// Screenshot / preview only — set a demo signed-in user (no persistence,
+    /// no migration). Used by the CI ScreenshotHost; inert in normal use.
+    @MainActor
+    func _setDemoUser(_ u: AuthUser) { user = u }
+
     private func persist() {
         if let u = user, let raw = try? JSONEncoder().encode(u) {
             UserDefaults.standard.set(raw, forKey: key)
