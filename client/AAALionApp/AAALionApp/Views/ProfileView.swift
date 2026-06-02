@@ -103,14 +103,22 @@ struct ProfileView: View {
 
     @ViewBuilder
     private var favoritesSection: some View {
+        // Re-filter against the live store so un-favoriting a card in this
+        // view (tap its ❤️) removes it immediately, without a reload.
+        let shown = favoriteProducts.filter { favorites.isFavorite($0.productId) }
         Section {
-            // Re-filter against the live store so un-favoriting a card in
-            // this view removes it immediately, without a reload.
-            let shown = favoriteProducts.filter { favorites.isFavorite($0.productId) }
             if favoritesLoading && shown.isEmpty {
                 loadingRow
             } else if shown.isEmpty {
-                emptyRow("还没有收藏。在商品卡片点 ♡ 即可收藏。")
+                HStack(spacing: 10) {
+                    Image(systemName: "heart")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.appAccent.opacity(0.55))
+                    Text("还没有收藏。在任意商品卡片点 ❤️ 即可收藏,这里随时回看。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -119,12 +127,31 @@ struct ProfileView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 4)
+                    .padding(.top, 4)
+                    .padding(.bottom, 8)
                 }
                 .listRowInsets(EdgeInsets())
             }
         } header: {
-            Text("我的收藏 / Favorites")
+            HStack {
+                Label("我的收藏 / Favorites", systemImage: "heart.fill")
+                    .foregroundStyle(Color.appAccent)
+                Spacer()
+                if !shown.isEmpty {
+                    Text("\(shown.count) 件")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.appAccent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.appAccent.opacity(0.12), in: Capsule())
+                }
+            }
+        } footer: {
+            if !shown.isEmpty {
+                Text("点卡片上的 ❤️ 可取消收藏。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
