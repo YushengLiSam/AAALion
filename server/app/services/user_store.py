@@ -70,6 +70,10 @@ class UserStore(Protocol):
     def verify_password(self, identifier: str, password: str) -> dict[str, Any]: ...
     def get_user(self, user_id: str) -> dict[str, Any] | None: ...
     def migrate(self, from_user_id: str, to_user_id: str) -> dict[str, Any]: ...
+    # R11 (demo) — mock WeChat login. NOT real WeChat OAuth (that needs
+    # 企业资质 + 微信开放平台 SDK + review); returns a stable demo account so
+    # the production SDK can swap in behind this same method later.
+    def mock_wechat(self, display_name: str | None) -> dict[str, Any]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +208,12 @@ class LocalUserStore:
                 )
                 name = display_name
         return {"user_id": user_id, "provider": provider, "display_name": name}
+
+    def mock_wechat(self, display_name: str | None) -> dict[str, Any]:
+        # R11 DEMO ONLY — not real WeChat OAuth. Returns one stable demo
+        # WeChat account (`wechat:demo`) so favorites / preferences persist
+        # across taps and the demo stays consistent.
+        return self._upsert("wechat:demo", "wechat", display_name or "微信用户(演示)")
 
     def verify_apple(self, identity_token: str, display_name: str | None) -> dict[str, Any]:
         sub, _email = _decode_apple_sub(identity_token)
@@ -374,6 +384,9 @@ class CloudUserStore:
 
     def migrate(self, from_user_id: str, to_user_id: str) -> dict[str, Any]:
         return self._post("/users/migrate", {"from_user_id": from_user_id, "to_user_id": to_user_id})
+
+    def mock_wechat(self, display_name: str | None) -> dict[str, Any]:
+        return self._post("/users/wechat", {"display_name": display_name})
 
 
 # ---------------------------------------------------------------------------
