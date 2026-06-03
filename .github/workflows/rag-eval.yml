@@ -19,6 +19,7 @@ on:
     paths:
       - 'rag/**'
       - 'server/app/**'
+      - 'server/requirements.txt'
       - 'data/seed/**'
       - '.github/workflows/rag-eval.yml'
 
