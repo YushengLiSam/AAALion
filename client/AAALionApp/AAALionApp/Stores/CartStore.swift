@@ -71,6 +71,21 @@ final class CartStore {
         persist()
     }
 
+    /// R12 — record a placed order (DEMO: there is no real payment/order
+    /// backend). Logs each product as a purchase so the repurchase-reminder
+    /// loop works. Shared by CheckoutView and the one-tap InstantOrderSheet.
+    /// Does NOT clear the cart — the caller decides (whole-cart order clears,
+    /// single-product "立即购买" leaves the cart untouched).
+    func placeOrder(productIds: [String]) {
+        let userId = DeviceIdentity.userId
+        let service = RepurchaseService()
+        Task { @MainActor in
+            for pid in productIds {
+                _ = try? await service.recordPurchase(userId: userId, productId: pid)
+            }
+        }
+    }
+
     private func persist() {
         if let data = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(data, forKey: currentKey)

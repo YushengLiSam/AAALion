@@ -30,9 +30,11 @@ enum SettlementCurrency: String, CaseIterable, Identifiable {
 
 struct CheckoutView: View {
     @Bindable var cart: CartStore
-    @State private var addressLine: String = "北京市海淀区中关村大街 1 号"
-    @State private var recipient: String = "陈澍枫"
-    @State private var phone: String = "138-0000-0000"
+    // R12 — read the shared default shipping address (persisted per account,
+    // editable in the one-tap order sheet); same hardcoded fallback as before.
+    @State private var addressLine: String = OrderDefaults.address
+    @State private var recipient: String = OrderDefaults.recipient
+    @State private var phone: String = OrderDefaults.phone
     @State private var confirmed = false
     /// Persisted across sessions so the user's preference sticks.
     @AppStorage("lionpick.checkout.settleCurrency") private var settleCurrencyRaw: String = SettlementCurrency.cny.rawValue
@@ -295,21 +297,10 @@ struct CheckoutView: View {
     // UI on these — checkout is mock anyway), but log failures so a
     // network blip doesn't silently break the reminder loop later.
     private func placeOrder() {
-        let userId = DeviceIdentity.userId
-        let service = RepurchaseService()
-        let snapshot = cart.items
-        Task { @MainActor in
-            for line in snapshot {
-                do {
-                    _ = try await service.recordPurchase(
-                        userId: userId,
-                        productId: line.productId
-                    )
-                } catch {
-                    print("[repurchase] checkout record_purchase failed for \(line.productId): \(error.localizedDescription)")
-                }
-            }
-        }
+        // R12 — route through the shared order action (records each line as a
+        // purchase for the repurchase loop). Behavior unchanged; now reused
+        // by the one-tap InstantOrderSheet too.
+        cart.placeOrder(productIds: cart.items.map(\.productId))
         confirmed = true
     }
 }

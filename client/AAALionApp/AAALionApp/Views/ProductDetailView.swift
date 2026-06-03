@@ -49,6 +49,8 @@ struct ProductDetailView: View {
     }
     // R9.B / #11 — group-buy modal.
     @State private var showGroupBuy = false
+    // R12 — one-tap order (single product) confirm sheet.
+    @State private var showInstantOrder = false
 
     var body: some View {
         ScrollView {
@@ -83,6 +85,9 @@ struct ProductDetailView: View {
                 provenanceCard
 
                 addToCartButton
+
+                // R12 — one-tap "立即购买" (agentic order close, demo).
+                instantBuyButton
 
                 // R9.B / #11 — start a group buy (拼单).
                 groupBuyButton
@@ -365,6 +370,28 @@ struct ProductDetailView: View {
             Text(value)
                 .font(.appCaption.monospacedDigit())
                 .foregroundStyle(Color.appTextPrimary)
+        }
+    }
+
+    // R12 — one-tap "立即购买 / Buy now": opens the shared InstantOrderSheet
+    // for this single product (default address + default payment, demo order).
+    private var instantBuyButton: some View {
+        Button {
+            showInstantOrder = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "bolt.fill")
+                Text("立即购买 · 一键下单 / Buy now")
+            }
+            .font(.appBody.bold())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(Color.appAccent.opacity(0.14))
+            .foregroundStyle(Color.appAccent)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .sheet(isPresented: $showInstantOrder) {
+            InstantOrderSheet(items: [CartItem(from: product)], clearCartOnOrder: false)
         }
     }
 

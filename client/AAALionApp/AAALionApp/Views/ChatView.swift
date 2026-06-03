@@ -19,6 +19,9 @@ struct ChatView: View {
     @State private var showFileImporter = false
     @State private var showSettings = false
     @State private var showCart = false
+    // R12 — one-tap order (whole cart) confirm sheet, fired by the
+    // conversational "帮我下单/结算" intent.
+    @State private var showInstantOrder = false
     @FocusState private var inputFocused: Bool
 
     // R8.D: dev-mode toggle. Long-press the gear icon for 1.5 s to flip
@@ -178,6 +181,10 @@ struct ChatView: View {
             .sheet(isPresented: $showCart) {
                 CartSheet(cart: cart)
             }
+            // R12 — "帮我下单" → one-tap confirm for the whole cart.
+            .sheet(isPresented: $showInstantOrder) {
+                InstantOrderSheet(items: instantOrderItems, clearCartOnOrder: true)
+            }
             // R11 — account flows. Login is a branded full-screen page;
             // the profile page is a sheet.
             .fullScreenCover(isPresented: $showLogin) {
@@ -223,7 +230,10 @@ struct ChatView: View {
                         }
                     }
                 case "checkout":
-                    showCart = true
+                    // R12 — "帮我下单/结算" closes the loop: non-empty cart →
+                    // one-tap confirm sheet; empty cart → open the cart so the
+                    // user can add something first.
+                    if cart.isEmpty { showCart = true } else { showInstantOrder = true }
                 case "remove":
                     // R10 — conversational delete "删掉第二个". index is
                     // 1-based; -1 means "last". Convert to a 0-based cart
@@ -377,6 +387,13 @@ struct ChatView: View {
             }
             .task {
                 viewModel.runScriptedQueryIfAny()
+                // R12 — headless screenshot hook for the one-tap order sheet
+                // (no-op in prod; only fires under the launch arg, same as
+                // the -test-query harness). The sheet sources a demo line via
+                // `instantOrderItems` when the arg is present.
+                if ProcessInfo.processInfo.arguments.contains("-test-instant-order") {
+                    showInstantOrder = true
+                }
             }
             .task {
                 // R11 — first-launch soft login prompt. The flag is set
@@ -395,6 +412,16 @@ struct ChatView: View {
         let n = auth.displayName.trimmingCharacters(in: .whitespaces)
         guard let first = n.first else { return "🦁" }
         return String(first).uppercased()
+    }
+
+    /// R12 — items for the one-tap order sheet: the real cart, or a single
+    /// demo line under the headless screenshot launch arg (no-op in prod).
+    private var instantOrderItems: [CartItem] {
+        if ProcessInfo.processInfo.arguments.contains("-test-instant-order") {
+            return [CartItem(productId: "demo_facecream", title: "珀莱雅 双抗精华面霜 50g",
+                             brand: "珀莱雅", unitPrice: 269, imageURLString: nil)]
+        }
+        return cart.items
     }
 
     private var messageList: some View {
