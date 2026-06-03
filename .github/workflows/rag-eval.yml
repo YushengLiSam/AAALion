@@ -38,6 +38,10 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
+          # CPU-only torch first so sentence-transformers doesn't pull the
+          # multi-GB CUDA wheels (the runner has no GPU). rank-bm25 (BM25 for
+          # hybrid retrieval) now comes via server/requirements.txt.
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r server/requirements.txt
 
       - name: Ingest text → Chroma (rebuild the index from data/seed)
