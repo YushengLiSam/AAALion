@@ -1,0 +1,68 @@
+# RAG retrieval eval on a GitHub-hosted Linux runner.
+#
+# WHY: we develop on Windows without the RAG runtime (torch / chromadb /
+# sentence-transformers aren't installed, and data/.chroma is gitignored).
+# This workflow rebuilds the text index from the committed data/seed catalog
+# and runs the golden eval, so the report can be regenerated off-Mac.
+#
+# All models are local + key-free (text embed BAAI/bge-small-zh-v1.5, rerank
+# BAAI/bge-reranker-base + v2-m3) — downloaded fresh in CI, no secrets.
+#
+# Trigger: manually, or on push to Tujie touching the RAG code / golden set.
+
+name: RAG Eval
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [Tujie]
+    paths:
+      - 'rag/**'
+      - 'server/app/**'
+      - 'server/requirements.txt'
+      - 'data/seed/**'
+      - '.github/workflows/rag-eval.yml'
+
+jobs:
+  eval:
+    name: Golden retrieval eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          # CPU-only torch first so sentence-transformers doesn't pull the
+          # multi-GB CUDA wheels (the runner has no GPU). rank-bm25 (BM25 for
+          # hybrid retrieval) now comes via server/requirements.txt.
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r server/requirements.txt
+
+      - name: Ingest text → Chroma (rebuild the index from data/seed)
+        run: python -m rag.ingest.run
+
+      - name: Run golden eval (metrics to stdout)
+        run: |
+          set -o pipefail
+          python -m rag.eval.run | tee eval_stdout.txt
+
+      - name: Generate HTML + JSON report
+        run: python -m rag.eval.report --out docs/eval_report.html
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-eval-report
+          path: |
+            docs/eval_report.html
+            docs/eval_report.json
+            eval_stdout.txt
+          if-no-files-found: ignore
