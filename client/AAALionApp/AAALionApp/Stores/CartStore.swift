@@ -32,6 +32,24 @@ final class CartStore {
         persist()
     }
 
+    /// R12-fix — add a line at an explicit (discounted) CNY price, e.g. the
+    /// group-buy price, so checkout reflects the deal instead of the original
+    /// price. The discounted line replaces any existing line for the product.
+    func add(_ product: ProductCard, atUnitPriceCNY price: Double, quantity: Int = 1) {
+        let existingQty = items.first(where: { $0.productId == product.productId })?.quantity ?? 0
+        let line = CartItem(
+            productId: product.productId, title: product.title, brand: product.brand,
+            unitPrice: price, unitPriceCNY: price,
+            imageURLString: product.imageURL?.absoluteString,
+            provenance: product.provenance, quantity: existingQty + quantity)
+        if let idx = items.firstIndex(where: { $0.productId == product.productId }) {
+            items[idx] = line
+        } else {
+            items.append(line)
+        }
+        persist()
+    }
+
     func remove(productId: String) {
         items.removeAll { $0.productId == productId }
         persist()

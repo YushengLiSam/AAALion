@@ -126,11 +126,11 @@ struct GroupBuyView: View {
     private func actionButtons(_ g: GroupBuy) -> some View {
         VStack(spacing: 10) {
             if g.isComplete {
-                // R9.B-FIX B1: real checkout button (was a static label).
-                // Adds the product to the cart at the group price, then
-                // opens the existing CheckoutView.
+                // R9.B-FIX B1 + R12-fix: real checkout button. Adds the product
+                // at the GROUP price (−15%), not the original, so checkout
+                // reflects the deal. (Was adding at full price.)
                 Button {
-                    CartStore.shared.add(product)
+                    CartStore.shared.add(product, atUnitPriceCNY: g.groupPriceCNY ?? product.displayedPrice)
                     showCheckout = true
                 } label: {
                     Label("拼单成功 · 去支付（演示）", systemImage: "checkmark.seal.fill")
@@ -160,38 +160,38 @@ struct GroupBuyView: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                // R9.B-FIX B2: share clean, human-readable invite TEXT —
-                // NOT the backend JSON URL (which rendered as mojibake in
-                // WeChat). A real Universal Link awaits the Phase-2 cloud
-                // domain; until then text + a copyable code is the clean
-                // path. Copy button is the reliable fallback if a given
-                // share target is finicky.
-                HStack(spacing: 10) {
-                    ShareLink(item: inviteText(g)) {
-                        Label("邀请好友", systemImage: "square.and.arrow.up")
-                            .font(.appBody)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
-                            .background(Color.appAccentMuted.opacity(0.4))
-                            .foregroundStyle(Color.appTextPrimary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
+                // R12-fix: invite. WeChat's share extension rejects a raw
+                // text ShareLink ("unsupported type"), so COPY is the primary,
+                // reliable path (paste into WeChat). System share is a small
+                // secondary for AirDrop/Notes/etc. A real Universal Link is the
+                // proper fix once the Phase-2 cloud domain lands.
+                VStack(spacing: 8) {
                     Button {
                         UIPasteboard.general.string = inviteText(g)
                         withAnimation { copiedToast = true }
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                         Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(1.4))
+                            try? await Task.sleep(for: .seconds(1.8))
                             withAnimation { copiedToast = false }
                         }
                     } label: {
-                        Label(copiedToast ? "已复制" : "复制邀请", systemImage: copiedToast ? "checkmark" : "doc.on.doc")
-                            .font(.appBody)
+                        Label(copiedToast ? "已复制 · 粘贴到微信发给好友" : "邀请好友 · 复制拼单邀请",
+                              systemImage: copiedToast ? "checkmark.circle.fill" : "person.2.badge.plus.fill")
+                            .font(.appBody.weight(.semibold))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
+                            .padding(.vertical, 12)
+                            .background(copiedToast ? Color.green : Color.appAccent)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    ShareLink(item: inviteText(g)) {
+                        Label("更多分享方式 / Share", systemImage: "square.and.arrow.up")
+                            .font(.appCaption)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
                             .background(Color.appAccentMuted.opacity(0.4))
                             .foregroundStyle(Color.appTextPrimary)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
             }

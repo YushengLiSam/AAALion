@@ -79,6 +79,10 @@ _PROMPT = (
     "   - `[推断?]` 如果该信息是基于常识或类似商品推断的(如使用感受/适用场景/化学成分细节);\n"
     "   标签放在该句末尾、句号之前。不要给标题/品牌名加标签,只给\"事实陈述\"加。\n"
     "   示例: \"珊珂洗颜专科 ¥52[目录✓], 适合敏感肌[推断?]。\"\n"
+    "6. **绝不要说『目录是空的 / 没有商品数据』**:下面目录里只要列出了商品,就必须从中推荐。"
+    "若没有完全满足用户某项约束(如『¥150 以内』『送女友』)的,就推荐最接近的几款,并直说"
+    "『没有完全符合的,这几款最接近,可考虑放宽预算』——绝不要因此说目录为空。"
+    "只有当下面目录真的一个商品都没有时,才说『暂时没找到符合的,换个品类或放宽条件试试』。\n"
     "\n## 商品目录\n{catalog}\n"
 )
 
@@ -766,7 +770,20 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         # Cart intent comes first so iOS can update its UI immediately.
         if cart_event:
             yield _sse(cart_event)
-            events_to_cache.append(cart_event)
+            # R12-fix — a cart-action utterance ("帮我下单" / "加入购物车" /
+            # "删掉第二个" / "改成2个") is a COMMAND, not a product search.
+            # Short-circuit: skip retrieval cards + the LLM so we never emit a
+            # reply that contradicts the action (e.g. the order sheet opens
+            # while the text says "目录没货,无法下单"). Emit one canned line.
+            _cart_reply = {
+                "checkout": "好的,正在为你结算 ✅",
+                "add": "已加入购物车 ✅",
+                "remove": "已从购物车移除 ✅",
+                "set_quantity": "已更新购物车数量 ✅",
+            }.get(cart_event.get("action", ""), "好的 ✅")
+            yield _sse({"type": "delta", "text": _cart_reply})
+            yield _sse({"type": "done"})
+            return
 
         # R10 #5 — clarification chips, emitted early so iOS can render the
         # tappable quick-replies alongside the LLM's 反问 question.
