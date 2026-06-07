@@ -87,3 +87,6 @@
 {"query": "2000元以下的苹果笔记本电脑", "expected_product_ids": [], "forbidden_product_ids": ["p_digital_006", "p_digital_012", "p_digital_020"], "tags": ["no-match", "adversarial", "filter"]}
 {"query": "不要雀巢的", "messages": [{"role": "user", "content": "推荐咖啡"}, {"role": "assistant", "content": "看看这几款咖啡。"}, {"role": "user", "content": "要速溶的"}, {"role": "assistant", "content": "好的，都是速溶咖啡。"}, {"role": "user", "content": "不要雀巢的"}], "expected_product_ids": ["p_food_001", "p_food_022"], "forbidden_product_ids": ["p_food_002", "p_food_023"], "tags": ["negation", "multiturn", "adversarial"]}
 {"query": "要国产的", "messages": [{"role": "user", "content": "推荐篮球鞋"}, {"role": "assistant", "content": "看看这几款篮球鞋。"}, {"role": "user", "content": "要国产的"}], "expected_product_ids": ["p_clothes_012", "p_clothes_013"], "forbidden_product_ids": ["p_clothes_011"], "tags": ["negation", "multiturn", "brand-origin", "adversarial"]}
+{"query": "150元以下的零食", "expected_product_ids": ["p_food_009", "p_food_010", "p_food_019"], "tags": ["filter", "currency-filter"]}
+{"query": "100元以下的洗面奶", "expected_product_ids": ["p_beauty_011"], "tags": ["filter"]}
+{"query": "150元以下的笔记本电脑", "expected_product_ids": [], "forbidden_product_ids": ["p_digital_020", "p_digital_006", "p_digital_023"], "tags": ["no-match", "filter", "adversarial"]}
