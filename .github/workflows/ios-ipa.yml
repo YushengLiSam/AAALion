@@ -12,6 +12,13 @@ name: iOS Unsigned IPA
 
 on:
   workflow_dispatch:
+  # Bootstrap: also run when this workflow file itself changes on Tujie, so it
+  # can be triggered without first landing on the default branch. Does NOT run
+  # on ordinary code pushes (only when ios-ipa.yml is touched).
+  push:
+    branches: [Tujie]
+    paths:
+      - '.github/workflows/ios-ipa.yml'
 
 jobs:
   ipa:
