@@ -1,0 +1,63 @@
+# Build an UNSIGNED device .ipa of the iOS app on a GitHub-hosted macOS
+# runner, so it can be sideloaded onto a physical iPhone from Windows
+# (Sideloadly / AltStore re-sign it with the user's own free Apple ID).
+#
+# This does NOT install to the phone — GitHub's cloud Mac can't reach a phone
+# plugged into your PC. It produces the installable artifact; you do the
+# 2-minute sideload locally. Free-Apple-ID signing lasts 7 days, then re-run.
+#
+# Manual only (you ask for a build when you want to install).
+
+name: iOS Unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    name: Build unsigned device .ipa
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: client/AAALionApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build unsigned device app (arm64, no signing)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project AAALionApp.xcodeproj \
+            -scheme AAALionApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package into an unsigned .ipa
+        run: |
+          set -x
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          echo "app bundle: $APP"
+          rm -rf Payload
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry LionPick-unsigned.ipa Payload
+          ls -la LionPick-unsigned.ipa
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: lionpick-ipa
+          path: client/AAALionApp/LionPick-unsigned.ipa
+          if-no-files-found: error
