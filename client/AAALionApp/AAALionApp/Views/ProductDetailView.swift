@@ -51,6 +51,11 @@ struct ProductDetailView: View {
     @State private var showGroupBuy = false
     // R12 — one-tap order (single product) confirm sheet.
     @State private var showInstantOrder = false
+    // R12.fix (@Sam 收藏体验) — the detail page had NO favorite control, so
+    // favoriting "缺反馈". Add one with haptic + animated heart fill + toast.
+    @State private var favorites = FavoritesStore.shared
+    @State private var favScale: CGFloat = 1
+    @State private var favToast: String?
 
     var body: some View {
         ScrollView {
@@ -85,6 +90,9 @@ struct ProductDetailView: View {
                 provenanceCard
 
                 addToCartButton
+
+                // R12.fix — 收藏 (detail page had no favorite control before).
+                favoriteButton
 
                 // R12 — one-tap "立即购买" (agentic order close, demo).
                 instantBuyButton
@@ -138,6 +146,20 @@ struct ProductDetailView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: addedToast)
+        .overlay(alignment: .top) {
+            if let t = favToast {
+                HStack(spacing: 6) {
+                    Image(systemName: "heart.fill").foregroundStyle(Color.pink)
+                    Text(t).font(.appCaption)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: favToast)
     }
 
     private var priceBlock: some View {
@@ -251,6 +273,41 @@ struct ProductDetailView: View {
         }
         // Disable double-tap-add by greying out for the morph window.
         .disabled(justAdded)
+    }
+
+    // R12.fix (@Sam) — prominent favorite toggle: medium/light haptic +
+    // heart-fill scale pop + a top toast, so favoriting on the detail page
+    // has real feedback (previously there was no control here at all).
+    private var favoriteButton: some View {
+        let isFav = favorites.isFavorite(product.productId)
+        return Button {
+            let nowFav = favorites.toggle(product.productId)
+            UIImpactFeedbackGenerator(style: nowFav ? .medium : .light).impactOccurred()
+            withAnimation(.easeOut(duration: 0.12)) { favScale = 1.4 }
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.45).delay(0.12)) { favScale = 1.0 }
+            favToast = nowFav ? "已收藏 / Saved" : "已取消收藏 / Removed"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation { favToast = nil }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isFav ? "heart.fill" : "heart")
+                    .foregroundStyle(isFav ? Color.pink : Color.appAccent)
+                    .scaleEffect(favScale)
+                Text(isFav ? "已收藏 / Favorited" : "收藏 / Save")
+                    .foregroundStyle(Color.appTextPrimary)
+            }
+            .font(.appBody.weight(.medium))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(isFav ? Color.pink.opacity(0.10) : Color.appAccentMuted.opacity(0.35))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(isFav ? Color.pink.opacity(0.45) : Color.appBorder, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func storeLinkButton(url: URL) -> some View {

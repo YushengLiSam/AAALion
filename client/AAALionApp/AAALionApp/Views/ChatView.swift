@@ -44,6 +44,10 @@ struct ChatView: View {
     @State private var showLoginPrompt = false
     @State private var pendingLoginAfterPrompt = false
 
+    // R12.fix (@Sam) — surface 我的收藏 as a top-bar entry (was buried in profile).
+    @State private var favorites = FavoritesStore.shared
+    @State private var showFavorites = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -124,6 +128,26 @@ struct ChatView: View {
                             }
                         }
                         .accessibilityLabel(auth.isSignedIn ? "我的账号" : "登录")
+                        // R12.fix — 我的收藏 top-bar entry, with a live count badge.
+                        Button {
+                            showFavorites = true
+                        } label: {
+                            ZStack(alignment: .topTrailing) {
+                                Image(systemName: favorites.count > 0 ? "heart.fill" : "heart")
+                                    .foregroundStyle(favorites.count > 0 ? Color.pink : .primary)
+                                if favorites.count > 0 {
+                                    Text("\(favorites.count)")
+                                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background(Color.pink)
+                                        .clipShape(Capsule())
+                                        .offset(x: 10, y: -8)
+                                }
+                            }
+                        }
+                        .accessibilityLabel("我的收藏")
                         Button {
                             showCart = true
                         } label: {
@@ -192,6 +216,9 @@ struct ChatView: View {
             }
             .sheet(isPresented: $showProfile) {
                 ProfileView()
+            }
+            .sheet(isPresented: $showFavorites) {
+                FavoritesView()
             }
             // First-launch soft prompt (once, skippable). Presenting the
             // login cover is deferred to the prompt's onDismiss so the
