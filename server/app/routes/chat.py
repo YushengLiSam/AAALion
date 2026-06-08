@@ -622,6 +622,11 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
     retrieval_query = build_retrieval_query(req.messages)
+    # R11.fix — empty/whitespace input with no image: skip retrieval AND the
+    # LLM. An empty user message makes the provider 400 (and leaks the raw
+    # upstream error to the client) while retrieval returns random default
+    # cards. Answered with a canned clarify in the generator below.
+    empty_query = (not user_text.strip()) and not _has_image(req.messages)
 
     # Retrieval ----------------------------------------------------------------
     # R8.E.3: top_k* are sync (torch / sentence-transformers under the hood).
@@ -647,7 +652,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         else:
             clarify_chips = ["美妆护肤", "数码电子", "服饰运动", "食品零食",
                              "500 元以内", "1000 左右"]
-    if clarify_dims is None:
+    if clarify_dims is None and not empty_query:
         if _has_image(req.messages):
             img_bytes_list = _extract_image_bytes_list(req.messages)
             # CLIP retriever is single-image; use the first attachment as the
@@ -764,16 +769,29 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         t_first_delta: float | None = None
 
         # Cart intent comes first so iOS can update its UI immediately.
+        # R11.fix — emit LIVE only, do NOT append to events_to_cache: a cached
+        # cart_intent would replay ON TOP of this live one on a cache HIT, so
+        # the client saw it twice (double add / remove / checkout). It's cheap
+        # and deterministic from the query, so live-every-time is correct.
         if cart_event:
             yield _sse(cart_event)
-            events_to_cache.append(cart_event)
 
         # R10 #5 — clarification chips, emitted early so iOS can render the
-        # tappable quick-replies alongside the LLM's 反问 question.
+        # tappable quick-replies alongside the 反问 question. Same as
+        # cart_event: emit live only, never cache (else double-emit on hit).
         if clarify_chips:
-            clarify_ev = {"type": "clarify", "chips": clarify_chips}
-            yield _sse(clarify_ev)
-            events_to_cache.append(clarify_ev)
+            yield _sse({"type": "clarify", "chips": clarify_chips})
+
+        # R11.fix — empty/whitespace input: canned clarify, no LLM call (the
+        # provider 400s on empty content). Single clarify + a friendly nudge.
+        if empty_query:
+            yield _sse({"type": "clarify",
+                        "chips": ["推荐保湿面霜", "推荐运动鞋", "推荐降噪耳机", "推荐零食"]})
+            yield _sse({"type": "delta",
+                        "text": "你想找点什么呢?直接说品类、预算或场景就行,"
+                                "比如「五百元以内的降噪耳机」。"})
+            yield _sse({"type": "done"})
+            return
 
         # Cache hit: replay quickly.
         if cached_events:
