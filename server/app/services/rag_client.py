@@ -278,6 +278,17 @@ def _heavy_retrieve(
         except Exception:
             pass
 
+    # 3.5) R11.fix — POSITIVE origin constraint ("要国产 / 国货"). The negation
+    # extractor only handles 不要X / 除了X, so an implicit "国产" requirement
+    # never dropped foreign brands (golden case 84 leaked HOKA/adidas/迪卡侬).
+    # Standalone filter, applied before rerank so the CN-only set is reranked.
+    try:
+        from rag.retrieve.negation import requires_domestic, apply_domestic_filter
+        if requires_domestic(text):
+            candidates = apply_domestic_filter(candidates)
+    except Exception:
+        pass
+
     # 4) Rerank with cross-encoder. Keep a slightly larger pool when price
     # intent may reorder candidates into the final top-k.
     # Fast-path (env-toggleable via RAG_FAST_PATH, default ON): skip rerank
