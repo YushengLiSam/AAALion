@@ -33,7 +33,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.aaalion.lionpick
-        PRODUCT_NAME: 狮选
+        # ASCII product/executable name — a Chinese PRODUCT_NAME ("狮选") makes
+        # the bundle executable non-ASCII, which breaks Sideloadly (it can't
+        # find the executable). The home-screen name stays 狮选 via
+        # CFBundleDisplayName below, so users see no change.
+        PRODUCT_NAME: LionPick
         TARGETED_DEVICE_FAMILY: "1,2"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: 狮选
