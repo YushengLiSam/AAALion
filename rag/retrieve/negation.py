@@ -238,3 +238,31 @@ def apply_domestic_filter(products: list[dict]) -> list[dict]:
         return products
     out = [p for p in products if (product_origin(p) or "CN") == "CN"]
     return out if out else products
+
+
+# "X 以外 / X 之外" — exclude brand X (e.g. multi-turn "华为以外还有吗").
+_EXCEPT_RE = re.compile(r"([^，。、；;！!？?\s]{2,16})\s*(?:以外|之外)")
+
+
+def except_brands(text: str) -> list[str]:
+    """Brands the user wants EXCLUDED via the 'X以外 / X之外' pattern (e.g. the
+    multi-turn follow-up '华为以外还有吗'). The phrase before 以外/之外 is
+    intersected with the known-brand set, so a non-brand like '五百元以外'
+    excludes nothing. Standalone — does not touch the 不要X/除了X path."""
+    if not text:
+        return []
+    try:
+        from rag.retrieve.brand_origin import BRAND_ORIGIN
+    except Exception:
+        return []
+    known = sorted(BRAND_ORIGIN.keys(), key=len, reverse=True)
+    found: list[str] = []
+    seen: set[str] = set()
+    for m in _EXCEPT_RE.finditer(text):
+        phrase = m.group(1).lower()
+        for b in known:
+            bl = b.lower()
+            if bl and bl not in seen and bl in phrase:
+                found.append(b)
+                seen.add(bl)
+    return found
