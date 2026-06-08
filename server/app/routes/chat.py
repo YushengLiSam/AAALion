@@ -674,6 +674,49 @@ def _strip_price(text: str) -> str:
     return _PRICE_PHRASE_RE.sub("", text).strip(" ,，、的")
 
 
+# R11.demo-fix — English shopping term → Chinese category hint. The catalog is
+# Chinese; an English query ("recommend a sunscreen") routes to the heavy
+# multilingual reranker which mis-ranks (it buried 防晒 below phones, then the
+# LLM falsely said "没有防晒"). Appending the Chinese category word restores
+# Chinese dense+BM25 recall and anchors the reranker. AUGMENTS, never replaces.
+_EN_CATEGORY_HINTS: tuple[tuple[str, str], ...] = (
+    ("noise cancelling", "降噪耳机"), ("noise-cancelling", "降噪耳机"),
+    ("running shoes", "跑鞋"), ("face wash", "洗面奶"), ("lip gloss", "唇釉"),
+    ("sunscreen", "防晒霜"), ("sunblock", "防晒霜"), ("spf", "防晒霜"),
+    ("lipstick", "口红"), ("moisturizer", "面霜"), ("cleanser", "洁面"),
+    ("serum", "精华"), ("essence", "精华"), ("toner", "化妆水"),
+    ("foundation", "粉底"), ("smartphone", "手机"), ("iphone", "iPhone 手机"),
+    ("laptop", "笔记本电脑"), ("notebook", "笔记本电脑"), ("tablet", "平板"),
+    ("headphones", "耳机"), ("headphone", "耳机"), ("earphones", "耳机"),
+    ("earphone", "耳机"), ("earbuds", "耳机"), ("camera", "相机"),
+    ("keyboard", "键盘"), ("speaker", "音箱"), ("sneakers", "运动鞋"),
+    ("backpack", "双肩包"), ("snacks", "零食"), ("snack", "零食"),
+    ("coffee", "咖啡"), ("diaper", "纸尿裤"), ("toothpaste", "牙膏"),
+    ("phone", "手机"),
+)
+
+
+def _augment_english(query: str, user_text: str) -> str:
+    """Append Chinese category words for any English shopping term present.
+
+    Match with a LEADING word boundary so 'phone' doesn't fire inside
+    'headphones'/'earphones'/'iphone' (only the longer term does), while
+    'spf50' still triggers 'spf'. Skips when no ASCII letters are present
+    so pure-Chinese queries are untouched."""
+    if not any("a" <= c <= "z" for c in query.lower()):
+        return query
+    src = f"{query} {user_text}".lower()
+    seen: set[str] = set()
+    hits: list[str] = []
+    for en, zh in _EN_CATEGORY_HINTS:
+        if zh in query or zh in seen:
+            continue
+        if re.search(r"\b" + re.escape(en), src):
+            seen.add(zh)
+            hits.append(zh)
+    return f"{query} {' '.join(hits)}".strip() if hits else query
+
+
 # 主路由:POST /chat/stream → SSE 流式响应。**整个后端最重要的函数**。
 # 流程见文件顶部 docstring 的 7 步。本函数把这 7 步串起来:
 #   503 ready 检查 → 提取文本/图片 → 检索(CLIP or hybrid+rerank) →
@@ -689,7 +732,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
-    retrieval_query = build_retrieval_query(req.messages)
+    retrieval_query = _augment_english(build_retrieval_query(req.messages), user_text)
     # R11.fix — empty/whitespace input with no image: skip retrieval AND the
     # LLM. An empty user message makes the provider 400 (and leaks the raw
     # upstream error to the client) while retrieval returns random default
