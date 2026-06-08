@@ -211,4 +211,11 @@ def _brands(text: str) -> tuple[list[str], list[str]]:
 
 def _is_negated(text: str, position: int) -> bool:
     prefix = text[max(0, position - 18):position]
-    return bool(_NEGATED_PREFIX_RE.search(prefix))
+    if _NEGATED_PREFIX_RE.search(prefix):
+        return True
+    # R11.fix — "X以外 / X之外" (e.g. multi-turn "华为以外还有吗"): the brand is
+    # the thing being EXCLUDED, but the marker is a SUFFIX, so without this it
+    # was mis-read as a positive brand_include (→ retrieve only 华为). Look a
+    # short window past the brand for the 以外/之外 marker.
+    suffix = text[position:position + 10]
+    return "以外" in suffix or "之外" in suffix
