@@ -701,8 +701,11 @@ def _augment_english(query: str, user_text: str) -> str:
 
     Match with a LEADING word boundary so 'phone' doesn't fire inside
     'headphones'/'earphones'/'iphone' (only the longer term does), while
-    'spf50' still triggers 'spf'. Skips when no ASCII letters are present
-    so pure-Chinese queries are untouched."""
+    'spf50' still triggers 'spf'. Fires ONLY on queries with NO Chinese
+    characters — a mixed query like 'iPhone和小米' already retrieves fine in
+    Chinese, and augmenting it would skew the candidate pool."""
+    if any("一" <= c <= "鿿" for c in query):
+        return query
     if not any("a" <= c <= "z" for c in query.lower()):
         return query
     src = f"{query} {user_text}".lower()
