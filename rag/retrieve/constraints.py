@@ -39,7 +39,8 @@ _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 # Only infer a category where current catalog membership is unambiguous.
 _INFERRED_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("美妆护肤", ("洗面奶", "洁面", "防晒", "面霜", "精华", "化妆水", "爽肤水")),
+    ("美妆护肤", ("洗面奶", "洁面", "防晒", "面霜", "精华", "化妆水", "爽肤水",
+                  "口红", "唇釉", "唇膏", "唇彩", "粉底", "散粉", "蜜粉")),
     ("数码电子", ("耳机", "手机", "折叠屏", "笔记本", "平板", "相机")),
     ("图书音像", ("小说",)),
     ("食品饮料", ("速溶咖啡", "咖啡", "牛奶")),
@@ -77,6 +78,7 @@ def detect_topic_switch_category(text: str) -> str | None:
 
 # A user concept may span several source sub-categories.
 _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
+    (("口红", "唇釉", "唇膏", "唇彩"), ["唇釉"]),
     (("洗面奶", "洁面"), ["洁面"]),
     (("高倍防晒", "防晒"), ["防晒"]),
     (("面霜",), ["面霜", "面霜/敏感肌"]),
@@ -89,7 +91,7 @@ _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
     (("相机",), ["口袋摄像机"]),
     (("运动T恤", "运动t恤", "速干T恤", "速干t恤"), ["短袖T恤", "速干T恤"]),
     (("登山鞋", "徒步鞋"), ["徒步鞋", "登山徒步鞋"]),
-    (("跑步鞋", "跑鞋"), ["跑步鞋", "运动休闲鞋"]),
+    (("跑步鞋", "跑鞋"), ["跑步鞋"]),
     (("双肩包", "背包"), ["背包"]),
     (("智能手表", "运动手表"), ["运动手表"]),
     (("小说",), ["中文小说/科幻", "中文小说/经典"]),

@@ -201,7 +201,7 @@ BRAND_ORIGIN: dict[str, str] = {
 # (or vice-versa) and both appear in the catalog.
 BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"nike", "耐克"}),
-    frozenset({"apple", "苹果"}),
+    frozenset({"apple", "苹果", "iphone", "ipad", "macbook", "airpods"}),
     frozenset({"sony", "索尼"}),
     frozenset({"adidas", "阿迪达斯"}),
     frozenset({"shiseido", "资生堂"}),
