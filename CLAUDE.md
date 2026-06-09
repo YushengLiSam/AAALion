@@ -80,7 +80,7 @@ Last touched: **R11 (2026-06-02) — login/sign-up page + account profile; docs 
 | Currency display | Tujie | `server/app/services/currency.py` | foreign catalog prices converted to CNY with dated reference FX; source price retained |
 | RAG ingest | (Tujie, currently solo Shufeng) | `rag/ingest/chunk.py`, `embed_text.py`, `embed_image.py` | `rag/README.md` |
 | RAG retrieve | Shufeng | `rag/retrieve/query.py` (orchestrator) | hybrid `hybrid.py`, BM25 `bm25.py`, rewrite `rewrite.py`, negation `negation.py`, rerank `rerank.py` |
-| Eval | Sam + Tujie | `rag/eval/core.py` + `rag/eval/golden.jsonl` (59 cases, 49 positive, 10 no-match, 5 multi-turn) | Merged report: recall@5=0.880, MRR=0.828, negation=1.000 |
+| Eval | Sam + Tujie | `rag/eval/core.py` + `rag/eval/golden.jsonl` (92 cases, 80 positive, 12 no-match) | Production path (Hybrid+Rerank): recall@5 **0.939**, MRR **0.818**, 反选 **0.971**, no-match **0.952**. **Single source of truth: [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)** (R11 retest 2026-06-03 — predates the `7c6c455` + R13 negation fixes; regenerate before final defense claims) |
 | iOS theme | Shufeng | `client/.../Views/Theme.swift` + `design-tokens.json` | from Claude design consult |
 | Build automation | Shufeng | `Makefile` + `tools/aaalion` (global helper) | run `aaalion help` |
 | Presentation material | Shufeng | `docs/explainers/README.md` | 15 CS-sophomore-friendly explainers; start here for non-engineer audiences |

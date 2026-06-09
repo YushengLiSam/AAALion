@@ -30,7 +30,7 @@ LionPick is a native iOS shopping assistant. The FastAPI backend — **deployed 
 
 **The backend now runs in the cloud** (GCP VM, `systemd`-managed, public HTTPS via Cloudflare tunnel) with **continuous deploy**: a push to `main` auto-deploys in ~2 min with a `/ready` health-check and automatic rollback (`tools/cloud-autodeploy.sh`). The iOS app points at the cloud by default, so **a demo no longer depends on anyone's Mac being on**.
 
-**Retrieval headline: negation accuracy = 1.000 across 20 negation cases (doubled this round with 6 adversarial multi-turn/conflicting-constraint cases); recall@5 ≈ 0.93–0.96 on the current 82-case golden set** depending on the rerank-latency config. Run `python -m rag.eval.run` for the live number.
+**Retrieval headline (92-case golden, production Hybrid+Rerank path): recall@5 0.939, MRR 0.818, negation/反选 accuracy 0.971, no-match 0.952.** Numbers from [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) (R11 retest 2026-06-03) — they predate the `7c6c455` + R13 negation fixes, so regenerate before final defense claims. Run `python -m rag.eval.run` for the live number.
 
 **R10 — what landed (all live-verified on the cloud + iPhone 12 Pro Max / iPad Air):**
 - **4.1 cart depth (full)** — conversational add, **quantity change** ("把数量改成2" / "第二个改成3个"), **delete** ("删掉第二个"), swipe-to-delete, and checkout (address + summary + mock complete).
