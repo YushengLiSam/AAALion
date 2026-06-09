@@ -49,7 +49,7 @@ def message_text(message: ChatMessage) -> str:
 # so retrieval drops the whole category and returns nothing ("不要苹果的耳机" → 0
 # cards). Reordering to "Y 不要X" puts the positive object first (the phrasing
 # that already works, e.g. "耳机不要苹果"), leaving only X to be excluded.
-_NEG_OBJ_RE = re.compile(r"^(不要|别要|不想要|不需要|不买|不选)([^的，。,；;\s]{1,12})的([^，。,；;]{1,16})$")
+_NEG_OBJ_RE = re.compile(r"^(不要|别要|别给我|不想要|不需要|不考虑|不买|不选)([^的，。,；;\s]{1,12})的([^，。,；;]{1,16})$")
 
 
 def _reorder_negation_object(text: str) -> str:
