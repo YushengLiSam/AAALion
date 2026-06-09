@@ -151,8 +151,8 @@ struct GroupMember: Codable, Hashable, Identifiable {
 
     var label: String {
         switch kind {
-        case "opener": return "你"
-        case "real": return "好友"
+        case "opener": return L("你")
+        case "real": return L("好友")
         default: return userId   // "邻居N"
         }
     }

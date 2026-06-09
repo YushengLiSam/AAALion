@@ -189,15 +189,15 @@ struct ProductDetailView: View {
                     .foregroundStyle(Color.appTextSecondary)
             }
             .padding(.bottom, 2)
-            row("origin",  "产地",        product.provenance.originCountry)
-            row("storefront",  "平台",     product.provenance.sourcePlatform)
-            row("creditcard.fill", "原始币种", "\(product.provenance.currency) (\(product.provenance.currencySymbol))")
+            row("origin",  L("产地"),        product.provenance.originCountry)
+            row("storefront",  L("平台"),     product.provenance.sourcePlatform)
+            row("creditcard.fill", L("原始币种"), "\(product.provenance.currency) (\(product.provenance.currencySymbol))")
             if let quote = product.exchangeRate, let text = product.exchangeRateText {
-                row("arrow.triangle.2.circlepath", "参考汇率", text)
-                row("calendar", "汇率来源", quote.provider)
+                row("arrow.triangle.2.circlepath", L("参考汇率"), text)
+                row("calendar", L("汇率来源"), quote.provider)
             }
             if let ship = product.provenance.shippingNote {
-                row("shippingbox.fill", "配送", ship)
+                row("shippingbox.fill", L("配送"), ship)
             }
             if product.provenance.isDemo {
                 Text(L("⚠️ 此商品为演示数据。外部链接为商品标题搜索。"))
@@ -259,7 +259,7 @@ struct ProductDetailView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: justAdded ? "checkmark.circle.fill" : "cart.badge.plus")
-                Text(justAdded ? "已加入购物车 / Added" : "加入购物车 / Add to Cart")
+                Text(justAdded ? L("已加入购物车 / Added") : L("加入购物车 / Add to Cart"))
             }
             .font(.appBody.bold())
             .frame(maxWidth: .infinity)
@@ -285,7 +285,7 @@ struct ProductDetailView: View {
             UIImpactFeedbackGenerator(style: nowFav ? .medium : .light).impactOccurred()
             withAnimation(.easeOut(duration: 0.12)) { favScale = 1.4 }
             withAnimation(.spring(response: 0.34, dampingFraction: 0.45).delay(0.12)) { favScale = 1.0 }
-            favToast = nowFav ? "已收藏 / Saved" : "已取消收藏 / Removed"
+            favToast = nowFav ? L("已收藏 / Saved") : L("已取消收藏 / Removed")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
                 withAnimation { favToast = nil }
             }
@@ -294,7 +294,7 @@ struct ProductDetailView: View {
                 Image(systemName: isFav ? "heart.fill" : "heart")
                     .foregroundStyle(isFav ? Color.pink : Color.appAccent)
                     .scaleEffect(favScale)
-                Text(isFav ? "已收藏 / Favorited" : "收藏 / Save")
+                Text(isFav ? L("已收藏 / Favorited") : L("收藏 / Save"))
                     .foregroundStyle(Color.appTextPrimary)
             }
             .font(.appBody.weight(.medium))
@@ -381,22 +381,22 @@ struct ProductDetailView: View {
                 }
                 // Detailed rows. Each only renders if non-nil.
                 if let rerankRank = signals.rerankRank {
-                    signalRow(label: "最终排名", value: "#\(rerankRank + 1)")
+                    signalRow(label: L("最终排名"), value: "#\(rerankRank + 1)")
                 }
                 if let rerankScore = signals.rerankScore {
-                    signalRow(label: "精排得分", value: String(format: "%.3f", rerankScore))
+                    signalRow(label: L("精排得分"), value: String(format: "%.3f", rerankScore))
                 }
                 if let denseRank = signals.denseRank {
-                    signalRow(label: "语义检索排名", value: "#\(denseRank + 1)")
+                    signalRow(label: L("语义检索排名"), value: "#\(denseRank + 1)")
                 }
                 if let bm25Rank = signals.bm25Rank {
-                    signalRow(label: "关键词检索排名", value: "#\(bm25Rank + 1)")
+                    signalRow(label: L("关键词检索排名"), value: "#\(bm25Rank + 1)")
                 }
                 if let rrfScore = signals.rrfScore {
-                    signalRow(label: "RRF 融合得分", value: String(format: "%.4f", rrfScore))
+                    signalRow(label: L("RRF 融合得分"), value: String(format: "%.4f", rrfScore))
                 }
                 if let rerankModel = signals.rerankModel {
-                    signalRow(label: "精排模型", value: rerankModel)
+                    signalRow(label: L("精排模型"), value: rerankModel)
                 }
                 Text(L("说明: 越靠前(数字小)越相关。语义检索抓「意思」, 关键词检索抓「字面」, 精排是 cross-encoder 做最终重排。"))
                     .font(.system(size: 10, weight: .regular, design: .rounded))
@@ -594,7 +594,7 @@ struct ProductDetailView: View {
     private func submitPriceWatch() {
         guard let target = Double(priceWatchTargetText.trimmingCharacters(in: .whitespaces)),
               target > 0 else {
-            priceWatchError = "请输入大于 0 的目标价"
+            priceWatchError = L("请输入大于 0 的目标价")
             return
         }
         priceWatchError = nil

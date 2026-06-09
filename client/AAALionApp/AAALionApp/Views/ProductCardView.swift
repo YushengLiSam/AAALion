@@ -117,7 +117,7 @@ struct ProductCardView: View {
         .buttonStyle(.plain)
         // Stop tap from bubbling up to the parent navigation Button.
         .simultaneousGesture(TapGesture().onEnded { })
-        .accessibilityLabel("加入购物车")
+        .accessibilityLabel(L("加入购物车"))
     }
 
     // R10 #4.4⭐⭐⭐ — favorite heart with a spring "pop" on toggle. The
@@ -142,7 +142,7 @@ struct ProductCardView: View {
         }
         .buttonStyle(.plain)
         .simultaneousGesture(TapGesture().onEnded { })
-        .accessibilityLabel(isFav ? "取消收藏" : "收藏")
+        .accessibilityLabel(isFav ? L("取消收藏") : L("收藏"))
     }
 
     // MARK: - Brand line + price.

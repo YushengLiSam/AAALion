@@ -30,10 +30,10 @@ struct LoginView: View {
         case password, phone, apple, wechat
         var label: String {
             switch self {
-            case .password: return "密码"
-            case .phone: return "短信"
+            case .password: return L("密码")
+            case .phone: return L("短信")
             case .apple: return "Apple"
-            case .wechat: return "微信"
+            case .wechat: return L("微信")
             }
         }
     }
@@ -103,7 +103,7 @@ struct LoginView: View {
             }
             .padding(.top, 14)
             .padding(.trailing, 16)
-            .accessibilityLabel("关闭")
+            .accessibilityLabel(L("关闭"))
         }
         .sheet(isPresented: $showReset) {
             PasswordResetView()
@@ -166,7 +166,7 @@ struct LoginView: View {
 
     @ViewBuilder
     private var passwordFields: some View {
-        Text(pwIsRegister ? "注册新账号" : "邮箱 / 手机号 + 密码")
+        Text(pwIsRegister ? L("注册新账号") : L("邮箱 / 手机号 + 密码"))
             .font(.appBody.weight(.semibold))
             .foregroundStyle(Color.appTextPrimary)
 
@@ -179,7 +179,7 @@ struct LoginView: View {
                 .submitLabel(.next)
         }
         if pwIsRegister, !pwIdentifier.isEmpty, !identifierLooksValid {
-            fieldHint("请输入有效的邮箱(含 @)或手机号(≥6 位数字)")
+            fieldHint(L("请输入有效的邮箱(含 @)或手机号(≥6 位数字)"))
         }
 
         roundedField {
@@ -188,7 +188,7 @@ struct LoginView: View {
                 .submitLabel(pwIsRegister ? .next : .go)
         }
         if pwIsRegister, !pwPassword.isEmpty, pwPassword.count < 6 {
-            fieldHint("密码至少 6 位")
+            fieldHint(L("密码至少 6 位"))
         }
 
         if pwIsRegister {
@@ -199,7 +199,7 @@ struct LoginView: View {
             }
         }
 
-        primaryButton(pwIsRegister ? "注册并登录" : "登录", enabled: passwordCTAEnabled) {
+        primaryButton(pwIsRegister ? L("注册并登录") : L("登录"), enabled: passwordCTAEnabled) {
             focused = nil
             pwIsRegister ? doRegister() : doLogin()
         }
@@ -207,7 +207,7 @@ struct LoginView: View {
         Button {
             withAnimation { pwIsRegister.toggle(); errorText = nil }
         } label: {
-            Text(pwIsRegister ? "已有账号? 直接登录" : "没账号? 立即注册")
+            Text(pwIsRegister ? L("已有账号? 直接登录") : L("没账号? 立即注册"))
                 .font(.appCaption)
                 .foregroundStyle(Color.appAccent)
         }
@@ -256,7 +256,7 @@ struct LoginView: View {
             }
         }
 
-        primaryButton(codeSent ? "验证并登录" : "获取验证码", enabled: !busy && phone.count >= 6) {
+        primaryButton(codeSent ? L("验证并登录") : L("获取验证码"), enabled: !busy && phone.count >= 6) {
             focused = nil
             codeSent ? verifyPhone() : startPhone()
         }
@@ -468,7 +468,7 @@ struct LoginView: View {
                 let tokenData = cred.identityToken,
                 let token = String(data: tokenData, encoding: .utf8)
             else {
-                errorText = "无法读取 Apple 身份令牌"
+                errorText = L("无法读取 Apple 身份令牌")
                 return
             }
             let name = [cred.fullName?.familyName, cred.fullName?.givenName]

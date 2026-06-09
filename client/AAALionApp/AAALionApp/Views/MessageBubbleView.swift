@@ -191,7 +191,7 @@ struct MessageBubbleView: View {
                 Image(systemName: "doc.fill")
                     .font(.system(size: 26))
                     .foregroundStyle(Color.appAccent)
-                Text(attachment.filename ?? "文件")
+                Text(attachment.filename ?? L("文件"))
                     .font(.caption2)
                     .lineLimit(1)
                     .truncationMode(.middle)

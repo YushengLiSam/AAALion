@@ -47,7 +47,7 @@ private struct ScreenshotHost: View {
                 AuthState.shared._setDemoUser(
                     AuthUser(userId: "pw:demo@example.com",
                              provider: "password",
-                             displayName: "演示用户",
+                             displayName: L("演示用户"),
                              token: "pw:demo@example.com")
                 )
             }

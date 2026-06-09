@@ -243,7 +243,7 @@ final class AuthState {
     private(set) var user: AuthUser?
 
     var isSignedIn: Bool { user != nil }
-    var displayName: String { user?.displayName ?? (user?.provider == "phone" ? "手机用户" : "已登录用户") }
+    var displayName: String { user?.displayName ?? (user?.provider == "phone" ? L("手机用户") : L("已登录用户")) }
 
     private init() {
         if let raw = UserDefaults.standard.data(forKey: key),

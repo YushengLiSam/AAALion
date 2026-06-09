@@ -64,7 +64,7 @@ struct CartSheet: View {
                                 editMode = editMode == .active ? .inactive : .active
                             }
                         } label: {
-                            Text(editMode == .active ? "完成 / Done" : "管理 / Edit")
+                            Text(editMode == .active ? L("完成 / Done") : L("管理 / Edit"))
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
@@ -247,7 +247,7 @@ struct CartSheet: View {
                 }
                 ForEach(unresolvedTotalsByCurrency, id: \.symbol) { entry in
                     HStack {
-                        Text(entry.hint ?? "外币")
+                        Text(entry.hint ?? L("外币"))
                             .font(.appCaption)
                             .foregroundStyle(Color.appTextSecondary)
                         Spacer()

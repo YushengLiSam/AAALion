@@ -19,7 +19,7 @@
 
 **by**: 管图杰 (JackGuan99) · CI-verified (iOS Simulator Build + RAG Eval green) · backend auto-deployed to `main`
 
-App version **0.1.0 → 0.2.0** (build **1 → 3**) — `MARKETING_VERSION` /
+App version **0.1.0 → 0.2.0** (build **1 → 4**) — `MARKETING_VERSION` /
 `CURRENT_PROJECT_VERSION` in `client/AAALionApp/project.yml`. First bump since
 the project was named; backend changes are backward-compatible so installed
 0.1.0 builds keep working unchanged.
@@ -30,7 +30,10 @@ the project was named; backend changes are backward-compatible so installed
   never re-localized it (and for the dev language it shows the bilingual key
   verbatim). Fix: `L(_:)` now reads the chosen language's `.lproj` bundle
   directly and ~170 UI string literals were wrapped in `L(...)`; the root
-  `.id(lang)` rebuild re-runs them on switch. Instant, no relaunch.
+  `.id(lang)` rebuild re-runs them on switch. Instant, no relaunch. **build 4** then swept
+  the remaining ~110 dynamic strings (ternary branches, computed properties,
+  helper labels, toasts) + the bilingual footers, so English mode is fully
+  English apart from backend-provided product data.
 
 - **In-app language toggle (中文 / English)** — a Settings → Language picker
   switches the whole UI *and the assistant's reply language* at runtime, no

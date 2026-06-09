@@ -68,9 +68,7 @@ struct SettingsView: View {
                     } header: {
                         Text(L("后端地址 / Backend URL  (dev)"))
                     } footer: {
-                        Text(L("默认走公网 Cloudflare 隧道,不需要配置 LAN IP。") +
-                             "切换为本地后端或换隧道时改这里。\n" +
-                             "Default routes through the public Cloudflare Tunnel — no LAN IP setup needed. Change here only to point at a different backend.")
+                        Text(L("默认走公网 Cloudflare 隧道,不需要配置 LAN IP。切换为本地后端或换隧道时改这里。"))
                     }
 
                     Section {
@@ -105,8 +103,7 @@ struct SettingsView: View {
                 } header: {
                     Text(L("语音 / Speech"))
                 } footer: {
-                    Text(L("开启后,助手回复的第一段会自动朗读。仍可手动点喇叭重读其他段落。\n") +
-                         "When on, the first paragraph of every assistant reply is read aloud automatically.")
+                    Text(L("开启后,助手回复的第一段会自动朗读。仍可手动点喇叭重读其他段落。"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -133,9 +130,7 @@ struct SettingsView: View {
                 } header: {
                     Text(L("缓存命中率 / Cache hit-rate"))
                 } footer: {
-                    Text(L("命中率 (hit rate) 越高,意味着更多查询命中缓存、首字延迟越低。\n") +
-                         "Higher hit-rate = more queries served from in-memory LRU = lower first-delta latency. " +
-                         "Source: `GET /cache/stats`.")
+                    Text(L("命中率 (hit rate) 越高,意味着更多查询命中缓存、首字延迟越低。"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -252,7 +247,7 @@ struct SettingsView: View {
 
     private func probe() async {
         guard let base = URL(string: backendURLText) else {
-            probeResult = .failed(message: "URL 无效 / invalid URL")
+            probeResult = .failed(message: L("URL 无效 / invalid URL"))
             return
         }
         let url = base.appendingPathComponent("health")

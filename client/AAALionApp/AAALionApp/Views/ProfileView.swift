@@ -50,7 +50,7 @@ struct ProfileView: View {
             .sheet(isPresented: $showChangePassword) {
                 ChangePasswordView(userId: auth.user?.userId ?? "")
             }
-            .alert("注销账号?", isPresented: $showDeleteConfirm) {
+            .alert(L("注销账号?"), isPresented: $showDeleteConfirm) {
                 if auth.user?.provider == "password" {
                     SecureField(L("输入密码确认"), text: $deletePassword)
                 }
@@ -102,10 +102,10 @@ struct ProfileView: View {
 
     private var providerLabel: String {
         switch auth.user?.provider {
-        case "apple": return "Apple 登录"
-        case "phone": return "手机号登录"
-        case "password": return "邮箱 / 手机号 登录"
-        default: return "已登录"
+        case "apple": return L("Apple 登录")
+        case "phone": return L("手机号登录")
+        case "password": return L("邮箱 / 手机号 登录")
+        default: return L("已登录")
         }
     }
 
@@ -157,7 +157,7 @@ struct ProfileView: View {
                     .foregroundStyle(Color.appAccent)
                 Spacer()
                 if !shown.isEmpty {
-                    Text("\(shown.count) 件")
+                    Text(Lf("%@ 件", "\(shown.count)"))
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(Color.appAccent)
                         .padding(.horizontal, 8)
@@ -180,7 +180,7 @@ struct ProfileView: View {
     private var preferencesSection: some View {
         Section {
             if prefItems.isEmpty {
-                emptyRow("还没有偏好。在商品详情页点 👍 / 👎 即可训练。")
+                emptyRow(L("还没有偏好。在商品详情页点 👍 / 👎 即可训练。"))
             } else {
                 ForEach(prefItems) { item in
                     HStack {
@@ -221,7 +221,7 @@ struct ProfileView: View {
             if groupsLoading && activeGroups.isEmpty {
                 loadingRow
             } else if activeGroups.isEmpty {
-                emptyRow("还没有拼单。在商品详情页发起「拼单」即可。")
+                emptyRow(L("还没有拼单。在商品详情页发起「拼单」即可。"))
             } else {
                 ForEach(activeGroups, id: \.groupId) { group in
                     groupRow(group)
@@ -266,9 +266,9 @@ struct ProfileView: View {
     private func statusBadge(_ status: String) -> some View {
         let (text, color): (String, Color) = {
             switch status {
-            case "complete": return ("已拼成", .green)
-            case "expired": return ("已过期", .gray)
-            default: return ("进行中", Color.appAccent)
+            case "complete": return (L("已拼成"), .green)
+            case "expired": return (L("已过期"), .gray)
+            default: return (L("进行中"), Color.appAccent)
             }
         }()
         return Text(text)

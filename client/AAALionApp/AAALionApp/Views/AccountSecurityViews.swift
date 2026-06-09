@@ -58,7 +58,7 @@ struct ChangePasswordView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(L("取消")) { dismiss() } }
             }
-            .alert("密码已修改", isPresented: $done) {
+            .alert(L("密码已修改"), isPresented: $done) {
                 Button(L("好")) { dismiss() }
             } message: {
                 Text(L("下次请用新密码登录。"))
@@ -126,7 +126,7 @@ struct PasswordResetView: View {
                     } label: {
                         HStack {
                             if busy { ProgressView().controlSize(.small) }
-                            Text(codeSent ? "重置并登录 / Reset" : "获取重置码 / Get code")
+                            Text(codeSent ? L("重置并登录 / Reset") : L("获取重置码 / Get code"))
                         }
                     }
                     .disabled(busy || (codeSent ? (code.count < 4 || newPassword.count < 6) : identifier.count < 3))

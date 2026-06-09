@@ -10,8 +10,8 @@ enum SettlementCurrency: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .cny: return "¥ 人民币"
-        case .usd: return "$ 美元"
+        case .cny: return L("¥ 人民币")
+        case .usd: return L("$ 美元")
         }
     }
     var symbol: String {
@@ -98,7 +98,7 @@ struct CheckoutView: View {
 
     private var checkoutForm: some View {
         Form {
-            Section("收货地址 / Shipping") {
+            Section(L("收货地址 / Shipping")) {
                 TextField(L("收件人 / Recipient"), text: $recipient)
                 TextField(L("电话 / Phone"), text: $phone).keyboardType(.phonePad)
                 TextField(L("地址 / Address"), text: $addressLine, axis: .vertical)
@@ -124,7 +124,7 @@ struct CheckoutView: View {
                         .foregroundStyle(Color.appTextSecondary)
                 }
             }
-            Section("订单明细 / Items") {
+            Section(L("订单明细 / Items")) {
                 ForEach(cart.items) { item in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -147,7 +147,7 @@ struct CheckoutView: View {
                     }
                 }
             }
-            Section("合计 / Total") {
+            Section(L("合计 / Total")) {
                 totalSection
             }
             Section {

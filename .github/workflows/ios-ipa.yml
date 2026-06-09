@@ -7,7 +7,7 @@
 # 2-minute sideload locally. Free-Apple-ID signing lasts 7 days, then re-run.
 #
 # Manual only (you ask for a build when you want to install).
-# (rebuild bump — v0.2.0 (build 3): fix runtime language switch, UI re-localizes)
+# (rebuild bump — v0.2.0 (build 4): full English sweep — dynamic/computed/footers)
 
 name: iOS Unsigned IPA
 

@@ -8,7 +8,7 @@ enum OrderDefaults {
         "lionpick.order.\(field).\(DeviceIdentity.userId)"
     }
     static var recipient: String {
-        get { UserDefaults.standard.string(forKey: key("recipient")) ?? "陈澍枫" }
+        get { UserDefaults.standard.string(forKey: key("recipient")) ?? L("陈澍枫") }
         set { UserDefaults.standard.set(newValue, forKey: key("recipient")) }
     }
     static var phone: String {
@@ -16,7 +16,7 @@ enum OrderDefaults {
         set { UserDefaults.standard.set(newValue, forKey: key("phone")) }
     }
     static var address: String {
-        get { UserDefaults.standard.string(forKey: key("address")) ?? "北京市海淀区中关村大街 1 号" }
+        get { UserDefaults.standard.string(forKey: key("address")) ?? L("北京市海淀区中关村大街 1 号") }
         set { UserDefaults.standard.set(newValue, forKey: key("address")) }
     }
 }
@@ -50,11 +50,11 @@ struct InstantOrderSheet: View {
             Group {
                 if placed { successView } else { confirmView }
             }
-            .navigationTitle(placed ? "下单成功 / Done" : "确认下单 / Checkout")
+            .navigationTitle(placed ? L("下单成功 / Done") : L("确认下单 / Checkout"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(placed ? "完成" : "取消") { dismiss() }
+                    Button(placed ? L("完成") : L("取消")) { dismiss() }
                 }
             }
         }
@@ -81,7 +81,7 @@ struct InstantOrderSheet: View {
                 Label(L("收货地址 / Ship to"), systemImage: "location.fill")
                     .font(.appCaption).foregroundStyle(Color.appTextSecondary)
                 Spacer()
-                Button(editingAddress ? "完成" : "修改") {
+                Button(editingAddress ? L("完成") : L("修改")) {
                     if editingAddress {            // persist edits
                         OrderDefaults.recipient = recipient
                         OrderDefaults.phone = phone
@@ -92,9 +92,9 @@ struct InstantOrderSheet: View {
                 .font(.appCaption).foregroundStyle(Color.appAccent)
             }
             if editingAddress {
-                field($recipient, "收件人")
-                field($phone, "手机号")
-                field($address, "地址")
+                field($recipient, L("收件人"))
+                field($phone, L("手机号"))
+                field($address, L("地址"))
             } else {
                 Text("\(recipient)  ·  \(phone)").font(.appBody.weight(.semibold))
                     .foregroundStyle(Color.appTextPrimary)

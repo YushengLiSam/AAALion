@@ -68,10 +68,10 @@ final class ChatViewModel {
     // _ADD_TO_CART / _CHECKOUT regex in chat.py — kept in sync so a typed
     // and a spoken "加购" behave identically. Compiled once.
     static let addCartIntentRegex: NSRegularExpression = {
-        try! NSRegularExpression(pattern: "加入?购物?车|加购|加入车|放购物?车", options: [])
+        try! NSRegularExpression(pattern: L("加入?购物?车|加购|加入车|放购物?车"), options: [])
     }()
     static let checkoutIntentRegex: NSRegularExpression = {
-        try! NSRegularExpression(pattern: "下单|结(账|算)|去结算|帮我下个?单|买单", options: [])
+        try! NSRegularExpression(pattern: L("下单|结(账|算)|去结算|帮我下个?单|买单"), options: [])
     }()
 
     init(service: ChatService = ChatService()) {
@@ -269,7 +269,7 @@ final class ChatViewModel {
         Task { @MainActor in
             let ok = await SpeechService.shared.requestAuthorization()
             guard ok else {
-                self.errorMessage = "麦克风 / 语音权限未授权"
+                self.errorMessage = L("麦克风 / 语音权限未授权")
                 return
             }
             // R8.D-FIX: clear the draft before recording. Without this,

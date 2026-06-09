@@ -96,9 +96,9 @@ struct PreferenceItem: Codable, Identifiable, Hashable {
     /// "品牌" / "类目" / "子类" — Chinese label for the dimension.
     var dimensionLabel: String {
         switch dimension {
-        case "brand": return "品牌"
-        case "category": return "类目"
-        case "sub_category": return "子类"
+        case "brand": return L("品牌")
+        case "category": return L("类目")
+        case "sub_category": return L("子类")
         default: return dimension
         }
     }

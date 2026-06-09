@@ -175,7 +175,7 @@ struct GroupBuyView: View {
                             withAnimation { copiedToast = false }
                         }
                     } label: {
-                        Label(copiedToast ? "已复制 · 粘贴到微信发给好友" : "邀请好友 · 复制拼单邀请",
+                        Label(copiedToast ? L("已复制 · 粘贴到微信发给好友") : L("邀请好友 · 复制拼单邀请"),
                               systemImage: copiedToast ? "checkmark.circle.fill" : "person.2.badge.plus.fill")
                             .font(.appBody.weight(.semibold))
                             .frame(maxWidth: .infinity)

@@ -82,7 +82,7 @@ struct RepurchaseBannerView: View {
                         .padding(4)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("忽略")
+                .accessibilityLabel(L("忽略"))
             }
             Text(reminder.reminderText)
                 .font(.system(size: 13, design: .rounded))

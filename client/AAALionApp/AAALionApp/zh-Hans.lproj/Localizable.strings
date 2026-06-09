@@ -4,7 +4,6 @@
 "\\(s.misses) (含 \\(s.expiredMisses) 过期 / expired)" = "\\(s.misses) (含 \\(s.expiredMisses) 过期";
 "\\(users.count) 个账号 / accounts" = "\\(users.count) 个账号";
 "下单成功 / Done" = "下单成功";
-"中文 / English" = "中文";
 "为何推荐这款 / Why this?" = "为何推荐这款";
 "保存 / Save" = "保存";
 "信源 / Source" = "信源";
@@ -40,7 +39,6 @@
 "已取消收藏 / Removed" = "已取消收藏";
 "已收藏 / Favorited" = "已收藏";
 "已收藏 / Saved" = "已收藏";
-"已达上限 / Max reached" = "已达上限";
 "已达上限 \\(Attachment.maxCount) / Max \\(Attachment.maxCount) attachments reached" = "已达上限 \\(Attachment.maxCount)";
 "已达上限 \\(Attachment.maxCount) / Max reached" = "已达上限 \\(Attachment.maxCount)";
 "已连接 / Connected (v\\(version))" = "已连接";
@@ -93,7 +91,6 @@
 "确认下单 · 演示  /  Place order" = "确认下单 · 演示 ";
 "确认修改 / Change" = "确认修改";
 "确认新密码 / Confirm" = "确认新密码";
-"立即购买 / Buy now" = "立即购买";
 "立即购买 · 一键下单 / Buy now" = "立即购买 · 一键下单";
 "管理 / Edit" = "管理";
 "管理员 / Admin" = "管理员";

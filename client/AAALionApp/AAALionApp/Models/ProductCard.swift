@@ -97,7 +97,7 @@ struct ProductCard: Codable, Hashable, Identifiable {
 
     var exchangeRateText: String? {
         guard let quote = exchangeRate else { return nil }
-        let suffix = quote.stale ? " · 缓存汇率" : ""
+        let suffix = quote.stale ? L(" · 缓存汇率") : ""
         return "1 \(quote.sourceCurrency) = ¥\(String(format: "%.4f", quote.rate)) · \(quote.rateDate)\(suffix)"
     }
 }
@@ -205,10 +205,10 @@ struct Provenance: Codable, Hashable {
     var currencyHint: String? {
         switch currency.uppercased() {
         case "CNY": return nil
-        case "USD": return "美元"
-        case "JPY": return "日元"
-        case "EUR": return "欧元"
-        case "GBP": return "英镑"
+        case "USD": return L("美元")
+        case "JPY": return L("日元")
+        case "EUR": return L("欧元")
+        case "GBP": return L("英镑")
         default: return currency
         }
     }
@@ -220,7 +220,7 @@ struct Provenance: Codable, Hashable {
     /// Brand-line prefix shown above the price in card / detail views.
     /// e.g. "Tmall · 雅诗兰黛", "Amazon US · Apple", "演示数据".
     func brandLine(brand: String) -> String {
-        if isDemo { return "演示 · \(brand)" }
+        if isDemo { return "\(L("演示")) · \(brand)" }
         return "\(sourcePlatform) · \(brand)"
     }
 }
@@ -265,10 +265,10 @@ struct RetrievalSignals: Codable, Hashable {
             parts.append("排名 #\(rerankRank + 1)")
         }
         if let denseRank, denseRank >= 0, denseRank < 5 {
-            parts.append("语义相似")
+            parts.append(L("语义相似"))
         }
         if let bm25Rank, bm25Rank >= 0, bm25Rank < 5 {
-            parts.append("关键词命中")
+            parts.append(L("关键词命中"))
         }
         if let rerankScore {
             parts.append("精排得分 \(String(format: "%.2f", rerankScore))")

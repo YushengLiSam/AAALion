@@ -108,7 +108,7 @@ final class SpeechService {
         }
 
         guard let recognizer, recognizer.isAvailable else {
-            onError?("zh-CN 语音识别不可用")
+            onError?(L("zh-CN 语音识别不可用"))
             return
         }
 

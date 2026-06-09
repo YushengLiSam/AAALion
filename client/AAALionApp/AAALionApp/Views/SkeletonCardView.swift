@@ -28,7 +28,7 @@ struct SkeletonCardView: View {
                 phase = 2
             }
         }
-        .accessibilityLabel("加载中")
+        .accessibilityLabel(L("加载中"))
     }
 
     private func block(width: CGFloat, height: CGFloat, corner: CGFloat) -> some View {

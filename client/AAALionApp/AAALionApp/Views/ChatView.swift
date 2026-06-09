@@ -127,7 +127,7 @@ struct ChatView: View {
                                 Image(systemName: "person.crop.circle")
                             }
                         }
-                        .accessibilityLabel(auth.isSignedIn ? "我的账号" : "登录")
+                        .accessibilityLabel(auth.isSignedIn ? L("我的账号") : L("登录"))
                         // R12.fix — 我的收藏 top-bar entry, with a live count badge.
                         Button {
                             showFavorites = true
@@ -147,7 +147,7 @@ struct ChatView: View {
                                 }
                             }
                         }
-                        .accessibilityLabel("我的收藏")
+                        .accessibilityLabel(L("我的收藏"))
                         Button {
                             showCart = true
                         } label: {
@@ -190,7 +190,7 @@ struct ChatView: View {
                                 .onEnded { _ in
                                     devMode.toggle()
                                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    devModeToast = devMode ? "开发者模式已开启 / Dev mode ON" : "开发者模式已关闭 / Dev mode OFF"
+                                    devModeToast = devMode ? L("开发者模式已开启 / Dev mode ON") : L("开发者模式已关闭 / Dev mode OFF")
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
                                         withAnimation { devModeToast = nil }
                                     }
@@ -266,10 +266,10 @@ struct ChatView: View {
                     // line and toast, so the cart-management demo works by voice.
                     if !cart.items.isEmpty {
                         cart.clear()
-                        viewModel.repurchaseToast = "已清空购物车"
+                        viewModel.repurchaseToast = L("已清空购物车")
                         Task { @MainActor in
                             try? await Task.sleep(for: .seconds(1.6))
-                            if viewModel.repurchaseToast == "已清空购物车" {
+                            if viewModel.repurchaseToast == L("已清空购物车") {
                                 viewModel.repurchaseToast = nil
                             }
                         }
@@ -374,7 +374,7 @@ struct ChatView: View {
                         viewModel.errorMessage = "文件选择失败 / File pick failed: \(error.localizedDescription)"
                     case .success(let urls):
                         guard !urls.isEmpty else {
-                            viewModel.errorMessage = "未选中任何文件 / No file selected"
+                            viewModel.errorMessage = L("未选中任何文件 / No file selected")
                             return
                         }
                         // R8.E: iterate all picked files, respecting the
@@ -458,8 +458,8 @@ struct ChatView: View {
     /// demo line under the headless screenshot launch arg (no-op in prod).
     private var instantOrderItems: [CartItem] {
         if ProcessInfo.processInfo.arguments.contains("-test-instant-order") {
-            return [CartItem(productId: "demo_facecream", title: "珀莱雅 双抗精华面霜 50g",
-                             brand: "珀莱雅", unitPrice: 269, imageURLString: nil)]
+            return [CartItem(productId: "demo_facecream", title: L("珀莱雅 双抗精华面霜 50g"),
+                             brand: L("珀莱雅"), unitPrice: 269, imageURLString: nil)]
         }
         return cart.items
     }
@@ -634,7 +634,7 @@ struct ChatView: View {
                         Image(systemName: "doc.fill")
                             .font(.system(size: 22))
                             .foregroundStyle(Color.appAccent)
-                        Text(attachment.filename ?? "文件")
+                        Text(attachment.filename ?? L("文件"))
                             .font(.system(size: 9))
                             .lineLimit(1)
                             .truncationMode(.middle)
