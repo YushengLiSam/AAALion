@@ -30,7 +30,7 @@ struct LoadingSentence: View {
     var body: some View {
         HStack(spacing: 6) {
             TypingDots()
-            Text(Self.phrases[index])
+            Text(L(Self.phrases[index]))
                 .font(.appCaption)
                 .foregroundStyle(Color.appTextSecondary)
                 .opacity(visible ? 1 : 0)

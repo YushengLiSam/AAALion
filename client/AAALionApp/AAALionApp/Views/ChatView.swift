@@ -79,7 +79,7 @@ struct ChatView: View {
             .task {
                 viewModel.fetchRepurchaseRemindersIfNeeded()
             }
-            .navigationTitle("狮选")
+            .navigationTitle(L("狮选"))
             .navigationBarTitleDisplayMode(.inline)
             .overlay(alignment: .top) {
                 if let toast = devModeToast {
@@ -509,9 +509,9 @@ struct ChatView: View {
         VStack(spacing: 12) {
             Text("👋")
                 .font(.system(size: 60))
-            Text("狮选 LionPick")
+            Text(L("狮选 LionPick"))
                 .font(.title2.weight(.semibold))
-            Text("试试问：\n推荐一款适合油皮的洗面奶\n或者上传 / 拍一张商品照片")
+            Text(L("试试问：\n推荐一款适合油皮的洗面奶\n或者上传 / 拍一张商品照片"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -555,11 +555,11 @@ struct ChatView: View {
                     Circle()
                         .fill(Color.red)
                         .frame(width: 8, height: 8)
-                    Text("正在听… / Listening")
+                    Text(L("正在听… / Listening"))
                         .font(.caption)
                         .foregroundStyle(Color.red)
                     Spacer()
-                    Text("停顿 ~2 秒自动结束 / auto-stops on silence")
+                    Text(L("停顿 ~2 秒自动结束 / auto-stops on silence"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -569,7 +569,7 @@ struct ChatView: View {
             attachmentPreviewRow
             HStack(spacing: 10) {
                 attachmentMenu
-                TextField("输入你的问题…", text: $viewModel.draft, axis: .vertical)
+                TextField(L("输入你的问题…"), text: $viewModel.draft, axis: .vertical)
                     .lineLimit(1...4)
                     .textFieldStyle(.roundedBorder)
                     .focused($inputFocused)
@@ -683,21 +683,21 @@ struct ChatView: View {
             Button {
                 showPhotosPicker = true
             } label: {
-                Label("照片库 / Photo library", systemImage: "photo.on.rectangle")
+                Label(L("照片库 / Photo library"), systemImage: "photo.on.rectangle")
             }
             .disabled(viewModel.remainingAttachmentSlots == 0)
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
                 Button {
                     showCamera = true
                 } label: {
-                    Label("相机 / Camera", systemImage: "camera")
+                    Label(L("相机 / Camera"), systemImage: "camera")
                 }
                 .disabled(viewModel.remainingAttachmentSlots == 0)
             }
             Button {
                 showFileImporter = true
             } label: {
-                Label("文件 / Files", systemImage: "folder")
+                Label(L("文件 / Files"), systemImage: "folder")
             }
             .disabled(viewModel.remainingAttachmentSlots == 0)
         } label: {

@@ -59,7 +59,7 @@ struct CheckoutView: View {
             }
         }
         .background(Color.appBackground.ignoresSafeArea())
-        .navigationTitle("确认下单 / Confirm Order")
+        .navigationTitle(L("确认下单 / Confirm Order"))
         .navigationBarTitleDisplayMode(.inline)
         // Recompute converted amounts whenever picker flips or cart mutates.
         .task(id: recomputeKey) {
@@ -99,9 +99,9 @@ struct CheckoutView: View {
     private var checkoutForm: some View {
         Form {
             Section("收货地址 / Shipping") {
-                TextField("收件人 / Recipient", text: $recipient)
-                TextField("电话 / Phone", text: $phone).keyboardType(.phonePad)
-                TextField("地址 / Address", text: $addressLine, axis: .vertical)
+                TextField(L("收件人 / Recipient"), text: $recipient)
+                TextField(L("电话 / Phone"), text: $phone).keyboardType(.phonePad)
+                TextField(L("地址 / Address"), text: $addressLine, axis: .vertical)
             }
             // R8.F.4 fix: always show the picker as long as the cart has
             // anything in it. The first cut only surfaced it when the cart
@@ -110,16 +110,16 @@ struct CheckoutView: View {
             // (e.g. mental conversion for an international invoice).
             if !cart.items.isEmpty {
                 Section {
-                    Picker("结算货币 / Settle in", selection: $settleCurrencyRaw) {
+                    Picker(L("结算货币 / Settle in"), selection: $settleCurrencyRaw) {
                         ForEach(SettlementCurrency.allCases) { c in
                             Text(c.label).tag(c.rawValue)
                         }
                     }
                     .pickerStyle(.menu)
                 } header: {
-                    Text("结算货币 / Settle in")
+                    Text(L("结算货币 / Settle in"))
                 } footer: {
-                    Text("商品按 Frankfurter 参考汇率统一换算到此币种结算。")
+                    Text(L("商品按 Frankfurter 参考汇率统一换算到此币种结算。"))
                         .font(.system(size: 11))
                         .foregroundStyle(Color.appTextSecondary)
                 }
@@ -136,7 +136,7 @@ struct CheckoutView: View {
                                     .font(.appCaption)
                                     .foregroundStyle(Color.appTextSecondary)
                                 if fxErrorLines.contains(item.id) {
-                                    Text("· 汇率暂不可用")
+                                    Text(L("· 汇率暂不可用"))
                                         .font(.system(size: 10))
                                         .foregroundStyle(Color.red.opacity(0.7))
                                 }
@@ -154,7 +154,7 @@ struct CheckoutView: View {
                 Button {
                     placeOrder()
                 } label: {
-                    Text("确认下单 / Place Order (mock)")
+                    Text(L("确认下单 / Place Order (mock)"))
                         .font(.appBody.bold())
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -163,7 +163,7 @@ struct CheckoutView: View {
                 .foregroundStyle(.white)
                 .disabled(resolving && totalInSettleCurrency == 0)
             } footer: {
-                Text("演示用模拟下单。No real payment. No real shipping.")
+                Text(L("演示用模拟下单。No real payment. No real shipping."))
                     .font(.appCaption)
                     .foregroundStyle(Color.appTextSecondary)
             }
@@ -267,9 +267,9 @@ struct CheckoutView: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(Color.appAccent)
-            Text("已下单 / Order placed")
+            Text(L("已下单 / Order placed"))
                 .font(.appTitle)
-            Text("感谢使用 狮选 LionPick ✨\n商品将由 AAALion 物流团队配送（演示）")
+            Text(L("感谢使用 狮选 LionPick ✨\n商品将由 AAALion 物流团队配送（演示）"))
                 .font(.appBody)
                 .foregroundStyle(Color.appTextSecondary)
                 .multilineTextAlignment(.center)
@@ -278,7 +278,7 @@ struct CheckoutView: View {
                 cart.clear()
                 dismiss()
             } label: {
-                Text("继续购物 / Continue shopping")
+                Text(L("继续购物 / Continue shopping"))
                     .font(.appBody.bold())
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)

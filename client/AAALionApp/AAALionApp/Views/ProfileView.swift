@@ -38,11 +38,11 @@ struct ProfileView: View {
                 accountSecuritySection
                 signOutSection
             }
-            .navigationTitle("我的 / Account")
+            .navigationTitle(L("我的 / Account"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
+                    Button(L("完成")) { dismiss() }
                 }
             }
             .refreshable { await loadAll() }
@@ -52,12 +52,12 @@ struct ProfileView: View {
             }
             .alert("注销账号?", isPresented: $showDeleteConfirm) {
                 if auth.user?.provider == "password" {
-                    SecureField("输入密码确认", text: $deletePassword)
+                    SecureField(L("输入密码确认"), text: $deletePassword)
                 }
-                Button("注销", role: .destructive) { performDelete() }
-                Button("取消", role: .cancel) { deletePassword = "" }
+                Button(L("注销"), role: .destructive) { performDelete() }
+                Button(L("取消"), role: .cancel) { deletePassword = "" }
             } message: {
-                Text("将删除你的账号及其偏好 / 收藏 / 拼单数据,不可恢复。")
+                Text(L("将删除你的账号及其偏好 / 收藏 / 拼单数据,不可恢复。"))
             }
         }
     }
@@ -133,7 +133,7 @@ struct ProfileView: View {
                     Image(systemName: "heart")
                         .font(.system(size: 18))
                         .foregroundStyle(Color.appAccent.opacity(0.55))
-                    Text("还没有收藏。在任意商品卡片点 ❤️ 即可收藏,这里随时回看。")
+                    Text(L("还没有收藏。在任意商品卡片点 ❤️ 即可收藏,这里随时回看。"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -153,7 +153,7 @@ struct ProfileView: View {
             }
         } header: {
             HStack {
-                Label("我的收藏 / Favorites", systemImage: "heart.fill")
+                Label(L("我的收藏 / Favorites"), systemImage: "heart.fill")
                     .foregroundStyle(Color.appAccent)
                 Spacer()
                 if !shown.isEmpty {
@@ -167,7 +167,7 @@ struct ProfileView: View {
             }
         } footer: {
             if !shown.isEmpty {
-                Text("点卡片上的 ❤️ 可取消收藏。")
+                Text(L("点卡片上的 ❤️ 可取消收藏。"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -201,13 +201,13 @@ struct ProfileView: View {
                         await loadPreferences()
                     }
                 } label: {
-                    Label("重置偏好 / Reset (我变了)", systemImage: "arrow.counterclockwise")
+                    Label(L("重置偏好 / Reset (我变了)"), systemImage: "arrow.counterclockwise")
                 }
             }
         } header: {
-            Text("我的偏好 / My preferences")
+            Text(L("我的偏好 / My preferences"))
         } footer: {
-            Text("你的 👍 / 👎 会轻微调整后续推荐排序。登录后跟随账号(未来云端跨设备),可一键清空。")
+            Text(L("你的 👍 / 👎 会轻微调整后续推荐排序。登录后跟随账号(未来云端跨设备),可一键清空。"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -228,9 +228,9 @@ struct ProfileView: View {
                 }
             }
         } header: {
-            Text("我的拼单 / Group buys")
+            Text(L("我的拼单 / Group buys"))
         } footer: {
-            Text("你发起的拼单。名额由模拟「邻居」随时间加入(演示),拼满即可去结算。")
+            Text(L("你发起的拼单。名额由模拟「邻居」随时间加入(演示),拼满即可去结算。"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -287,7 +287,7 @@ struct ProfileView: View {
                 Button {
                     showChangePassword = true
                 } label: {
-                    Label("修改密码 / Change password", systemImage: "key.fill")
+                    Label(L("修改密码 / Change password"), systemImage: "key.fill")
                 }
             }
             Button(role: .destructive) {
@@ -295,15 +295,15 @@ struct ProfileView: View {
                 deleteError = nil
                 showDeleteConfirm = true
             } label: {
-                Label("注销账号 / Delete account", systemImage: "trash")
+                Label(L("注销账号 / Delete account"), systemImage: "trash")
             }
         } header: {
-            Text("账号安全 / Security")
+            Text(L("账号安全 / Security"))
         } footer: {
             if let err = deleteError {
                 Text("注销失败:\(err)").font(.caption).foregroundStyle(.red)
             } else if auth.user?.provider != "password" {
-                Text("当前登录方式无密码,注销无需密码确认。")
+                Text(L("当前登录方式无密码,注销无需密码确认。"))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -333,7 +333,7 @@ struct ProfileView: View {
                 auth.signOut()
                 dismiss()
             } label: {
-                Label("退出登录 / Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                Label(L("退出登录 / Sign out"), systemImage: "rectangle.portrait.and.arrow.right")
             }
         }
     }
@@ -343,7 +343,7 @@ struct ProfileView: View {
     private var loadingRow: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text("加载中 / Loading…").font(.footnote).foregroundStyle(.secondary)
+            Text(L("加载中 / Loading…")).font(.footnote).foregroundStyle(.secondary)
         }
     }
 

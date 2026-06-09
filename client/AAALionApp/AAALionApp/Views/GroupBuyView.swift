@@ -32,19 +32,19 @@ struct GroupBuyView: View {
                         actionButtons(g)
                         disclaimer
                     } else if let err = errorText {
-                        ContentUnavailableView("无法发起拼单", systemImage: "person.2.slash", description: Text(err))
+                        ContentUnavailableView(L("无法发起拼单"), systemImage: "person.2.slash", description: Text(err))
                     } else {
-                        ProgressView("正在发起拼单…").padding(.top, 60)
+                        ProgressView(L("正在发起拼单…")).padding(.top, 60)
                     }
                 }
                 .padding()
             }
-            .navigationTitle("拼单 / Group buy")
+            .navigationTitle(L("拼单 / Group buy"))
             .navigationBarTitleDisplayMode(.inline)
             .background(Color.appBackground.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") { dismiss() }
+                    Button(L("关闭")) { dismiss() }
                 }
             }
             .task { await startGroup() }
@@ -108,7 +108,7 @@ struct GroupBuyView: View {
                     Image(systemName: "plus.circle.dashed")
                         .font(.system(size: 34))
                         .foregroundStyle(Color.appTextSecondary.opacity(0.5))
-                    Text("待加入").font(.system(size: 10)).foregroundStyle(Color.appTextSecondary)
+                    Text(L("待加入")).font(.system(size: 10)).foregroundStyle(Color.appTextSecondary)
                 }
             }
         }
@@ -133,7 +133,7 @@ struct GroupBuyView: View {
                     CartStore.shared.add(product, atUnitPriceCNY: g.groupPriceCNY ?? product.displayedPrice)
                     showCheckout = true
                 } label: {
-                    Label("拼单成功 · 去支付（演示）", systemImage: "checkmark.seal.fill")
+                    Label(L("拼单成功 · 去支付（演示）"), systemImage: "checkmark.seal.fill")
                         .font(.appBody.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -151,7 +151,7 @@ struct GroupBuyView: View {
                 } label: {
                     HStack {
                         if joining { ProgressView().tint(.white) }
-                        Text("我也来拼 / Join")
+                        Text(L("我也来拼 / Join"))
                     }
                     .font(.appBody.weight(.semibold))
                     .frame(maxWidth: .infinity)
@@ -185,7 +185,7 @@ struct GroupBuyView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     ShareLink(item: inviteText(g)) {
-                        Label("更多分享方式 / Share", systemImage: "square.and.arrow.up")
+                        Label(L("更多分享方式 / Share"), systemImage: "square.and.arrow.up")
                             .font(.appCaption)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 9)
@@ -199,7 +199,7 @@ struct GroupBuyView: View {
     }
 
     private var disclaimer: some View {
-        Text("演示：为展示拼单玩法，名额会随时间由模拟「邻居」自动加入；本 App 无真实社交后端,不会真实下单。")
+        Text(L("演示：为展示拼单玩法，名额会随时间由模拟「邻居」自动加入；本 App 无真实社交后端,不会真实下单。"))
             .font(.system(size: 10))
             .foregroundStyle(Color.appTextSecondary)
             .multilineTextAlignment(.center)

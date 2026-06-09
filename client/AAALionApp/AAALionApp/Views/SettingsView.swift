@@ -34,16 +34,16 @@ struct SettingsView: View {
                         get: { LanguageManager.shared.lang },
                         set: { LanguageManager.shared.lang = $0 }
                     )) {
-                        Text("中文").tag(LanguageManager.Lang.zh)
+                        Text(L("中文")).tag(LanguageManager.Lang.zh)
                         Text("English").tag(LanguageManager.Lang.en)
                     } label: {
-                        Text("语言 / Language")
+                        Text(L("语言 / Language"))
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text("语言 / Language")
+                    Text(L("语言 / Language"))
                 } footer: {
-                    Text("切换后整个 App 立即生效,包括导购助手的回复语言。")
+                    Text(L("切换后整个 App 立即生效,包括导购助手的回复语言。"))
                 }
 
                 if devMode {
@@ -52,7 +52,7 @@ struct SettingsView: View {
                             .keyboardType(.URL)
                             .textInputAutocapitalization(.never)
                             .disableAutocorrection(true)
-                        Button("测试连接 / Test connection") { Task { await probe() } }
+                        Button(L("测试连接 / Test connection")) { Task { await probe() } }
                         if let result = probeResult {
                             switch result {
                             case .ok(let version):
@@ -66,15 +66,15 @@ struct SettingsView: View {
                             }
                         }
                     } header: {
-                        Text("后端地址 / Backend URL  (dev)")
+                        Text(L("后端地址 / Backend URL  (dev)"))
                     } footer: {
-                        Text("默认走公网 Cloudflare 隧道,不需要配置 LAN IP。" +
+                        Text(L("默认走公网 Cloudflare 隧道,不需要配置 LAN IP。") +
                              "切换为本地后端或换隧道时改这里。\n" +
                              "Default routes through the public Cloudflare Tunnel — no LAN IP setup needed. Change here only to point at a different backend.")
                     }
 
                     Section {
-                        Button("恢复默认 / Reset to default") {
+                        Button(L("恢复默认 / Reset to default")) {
                             backendURLText = Config.defaultBackendURL
                             probeResult = nil
                         }
@@ -89,23 +89,23 @@ struct SettingsView: View {
                         Button {
                             showAdmin = true
                         } label: {
-                            Label("用户管理 / Admin users", systemImage: "person.2.fill")
+                            Label(L("用户管理 / Admin users"), systemImage: "person.2.fill")
                         }
                     } header: {
-                        Text("管理员 / Admin  (dev)")
+                        Text(L("管理员 / Admin  (dev)"))
                     } footer: {
-                        Text("列出 / 删除所有账号。需后端配置 LIONPICK_ADMIN_TOKEN 环境变量。")
+                        Text(L("列出 / 删除所有账号。需后端配置 LIONPICK_ADMIN_TOKEN 环境变量。"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
 
                 Section {
-                    Toggle("自动朗读首段 / Auto-read first paragraph", isOn: $autoTTS)
+                    Toggle(L("自动朗读首段 / Auto-read first paragraph"), isOn: $autoTTS)
                 } header: {
-                    Text("语音 / Speech")
+                    Text(L("语音 / Speech"))
                 } footer: {
-                    Text("开启后,助手回复的第一段会自动朗读。仍可手动点喇叭重读其他段落。\n" +
+                    Text(L("开启后,助手回复的第一段会自动朗读。仍可手动点喇叭重读其他段落。\n") +
                          "When on, the first paragraph of every assistant reply is read aloud automatically.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -121,19 +121,19 @@ struct SettingsView: View {
                     } else {
                         HStack {
                             ProgressView().controlSize(.small)
-                            Text("加载中 / Loading…").font(.footnote)
+                            Text(L("加载中 / Loading…")).font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
                     }
                     Button {
                         Task { await refreshCacheStats() }
                     } label: {
-                        Label("刷新 / Refresh", systemImage: "arrow.clockwise")
+                        Label(L("刷新 / Refresh"), systemImage: "arrow.clockwise")
                     }
                 } header: {
-                    Text("缓存命中率 / Cache hit-rate")
+                    Text(L("缓存命中率 / Cache hit-rate"))
                 } footer: {
-                    Text("命中率 (hit rate) 越高,意味着更多查询命中缓存、首字延迟越低。\n" +
+                    Text(L("命中率 (hit rate) 越高,意味着更多查询命中缓存、首字延迟越低。\n") +
                          "Higher hit-rate = more queries served from in-memory LRU = lower first-delta latency. " +
                          "Source: `GET /cache/stats`.")
                         .font(.caption)
@@ -141,17 +141,17 @@ struct SettingsView: View {
                 }
 
             }
-            .navigationTitle("设置 / Settings")
+            .navigationTitle(L("设置 / Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showAdmin) {
                 AdminUsersView()
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消 / Cancel") { dismiss() }
+                    Button(L("取消 / Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存 / Save") {
+                    Button(L("保存 / Save")) {
                         Config.setBackendURL(backendURLText)
                         dismiss()
                     }
@@ -183,31 +183,31 @@ struct SettingsView: View {
     private func cacheStatsView(_ s: CacheStats) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("命中率 / Hit rate").font(.subheadline)
+                Text(L("命中率 / Hit rate")).font(.subheadline)
                 Spacer()
                 Text(String(format: "%.1f%%", s.hitRate * 100))
                     .font(.system(.subheadline, design: .rounded).bold())
                     .foregroundStyle(s.hitRate >= 0.3 ? .green : .orange)
             }
             HStack {
-                Text("命中 / Hits").font(.caption).foregroundStyle(.secondary)
+                Text(L("命中 / Hits")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(s.hits)").font(.caption.monospacedDigit())
             }
             HStack {
-                Text("未命中 / Misses").font(.caption).foregroundStyle(.secondary)
+                Text(L("未命中 / Misses")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(s.misses) (含 \(s.expiredMisses) 过期 / expired)")
                     .font(.caption.monospacedDigit())
             }
             HStack {
-                Text("容量 / Capacity").font(.caption).foregroundStyle(.secondary)
+                Text(L("容量 / Capacity")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(s.size) / \(s.maxSize)   TTL \(s.ttlSec)s")
                     .font(.caption.monospacedDigit())
             }
             HStack {
-                Text("淘汰 / Evictions").font(.caption).foregroundStyle(.secondary)
+                Text(L("淘汰 / Evictions")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(s.evictions)").font(.caption.monospacedDigit())
             }
@@ -222,7 +222,7 @@ struct SettingsView: View {
             if let rHit = s.retrievalCacheHitRate {
                 Divider().padding(.vertical, 2)
                 HStack {
-                    Text("检索缓存命中率 / Retrieval hit rate").font(.caption.bold())
+                    Text(L("检索缓存命中率 / Retrieval hit rate")).font(.caption.bold())
                     Spacer()
                     Text(String(format: "%.1f%%", rHit * 100))
                         .font(.system(.caption, design: .rounded).bold())
@@ -230,7 +230,7 @@ struct SettingsView: View {
                 }
                 if let rh = s.retrievalCacheHits, let rm = s.retrievalCacheMisses {
                     HStack {
-                        Text("命中/未命中 / Hits·Misses").font(.caption2).foregroundStyle(.secondary)
+                        Text(L("命中/未命中 / Hits·Misses")).font(.caption2).foregroundStyle(.secondary)
                         Spacer()
                         Text("\(rh) · \(rm)").font(.caption2.monospacedDigit())
                     }

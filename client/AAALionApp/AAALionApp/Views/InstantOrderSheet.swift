@@ -78,7 +78,7 @@ struct InstantOrderSheet: View {
     private var addressCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("收货地址 / Ship to", systemImage: "location.fill")
+                Label(L("收货地址 / Ship to"), systemImage: "location.fill")
                     .font(.appCaption).foregroundStyle(Color.appTextSecondary)
                 Spacer()
                 Button(editingAddress ? "完成" : "修改") {
@@ -100,7 +100,7 @@ struct InstantOrderSheet: View {
                     .foregroundStyle(Color.appTextPrimary)
                 Text(address).font(.appCaption).foregroundStyle(Color.appTextSecondary)
             }
-            Text("默认支付:零钱(演示) · Default payment: demo wallet")
+            Text(L("默认支付:零钱(演示) · Default payment: demo wallet"))
                 .font(.caption2).foregroundStyle(Color.appTextSecondary)
         }
         .padding(16)
@@ -144,13 +144,13 @@ struct InstantOrderSheet: View {
     }
 
     private var disclaimer: some View {
-        Label("演示下单:不接入真实支付,仅记录购买用于复购提醒。", systemImage: "info.circle")
+        Label(L("演示下单:不接入真实支付,仅记录购买用于复购提醒。"), systemImage: "info.circle")
             .font(.caption2).foregroundStyle(Color.appTextSecondary)
     }
 
     private var placeButton: some View {
         Button(action: place) {
-            Text("确认下单 · 演示  /  Place order")
+            Text(L("确认下单 · 演示  /  Place order"))
                 .font(.appBody.bold()).frame(maxWidth: .infinity).padding(.vertical, 15)
                 .background(Color.appAccent).foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -168,12 +168,12 @@ struct InstantOrderSheet: View {
             Spacer()
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 56)).foregroundStyle(Color.green)
-            Text("下单成功(演示)").font(.title3.bold()).foregroundStyle(Color.appTextPrimary)
+            Text(L("下单成功(演示)")).font(.title3.bold()).foregroundStyle(Color.appTextPrimary)
             Text("已下单 \(totalQty) 件 · \(symbol)\(String(format: "%.2f", total))\n寄往:\(address)")
                 .font(.appCaption).foregroundStyle(Color.appTextSecondary)
                 .multilineTextAlignment(.center)
             Spacer()
-            Button("完成 / Done") { dismiss() }
+            Button(L("完成 / Done")) { dismiss() }
                 .font(.appBody.bold()).frame(maxWidth: .infinity).padding(.vertical, 14)
                 .background(Color.appAccent).foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 14))

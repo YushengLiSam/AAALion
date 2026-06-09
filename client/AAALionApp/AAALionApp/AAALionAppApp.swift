@@ -4,7 +4,7 @@ import SwiftUI
 struct AAALionAppApp: App {
     // In-app language toggle. Reading `.lang` in `.id(...)` below makes the
     // whole view tree rebuild when the user switches language, so every
-    // `Text("中文")` re-resolves against the newly-selected strings table.
+    // `Text(L("中文"))` re-resolves against the newly-selected strings table.
     @State private var languageManager = LanguageManager.shared
 
     var body: some Scene {

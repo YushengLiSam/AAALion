@@ -19,10 +19,18 @@
 
 **by**: 管图杰 (JackGuan99) · CI-verified (iOS Simulator Build + RAG Eval green) · backend auto-deployed to `main`
 
-App version **0.1.0 → 0.2.0** (build **1 → 2**) — `MARKETING_VERSION` /
+App version **0.1.0 → 0.2.0** (build **1 → 3**) — `MARKETING_VERSION` /
 `CURRENT_PROJECT_VERSION` in `client/AAALionApp/project.yml`. First bump since
 the project was named; backend changes are backward-compatible so installed
 0.1.0 builds keep working unchanged.
+
+- **build 3 fix — runtime UI re-localization.** build 2 switched the assistant's
+  reply language but the *UI* stayed bilingual: SwiftUI's `Text("中文")`
+  auto-localization resolves against the launch-time bundle, so an in-app switch
+  never re-localized it (and for the dev language it shows the bilingual key
+  verbatim). Fix: `L(_:)` now reads the chosen language's `.lproj` bundle
+  directly and ~170 UI string literals were wrapped in `L(...)`; the root
+  `.id(lang)` rebuild re-runs them on switch. Instant, no relaunch.
 
 - **In-app language toggle (中文 / English)** — a Settings → Language picker
   switches the whole UI *and the assistant's reply language* at runtime, no

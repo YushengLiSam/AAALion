@@ -126,10 +126,10 @@ struct LoginView: View {
                     .shadow(color: Color.appAccent.opacity(0.35), radius: 12, x: 0, y: 6)
                 Text("🦁").font(.system(size: 44))
             }
-            Text("狮选 LionPick")
+            Text(L("狮选 LionPick"))
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.appTextPrimary)
-            Text("登录后,你的偏好 / 收藏 / 拼单 跟着账号走")
+            Text(L("登录后,你的偏好 / 收藏 / 拼单 跟着账号走"))
                 .font(.appCaption)
                 .foregroundStyle(Color.appTextSecondary)
                 .multilineTextAlignment(.center)
@@ -138,7 +138,7 @@ struct LoginView: View {
     }
 
     private var methodPicker: some View {
-        Picker("登录方式 / Method", selection: $mode) {
+        Picker(L("登录方式 / Method"), selection: $mode) {
             ForEach(AuthMode.allCases, id: \.self) { Text($0.label).tag($0) }
         }
         .pickerStyle(.segmented)
@@ -171,7 +171,7 @@ struct LoginView: View {
             .foregroundStyle(Color.appTextPrimary)
 
         roundedField {
-            TextField("邮箱 或 手机号 / Email or phone", text: $pwIdentifier)
+            TextField(L("邮箱 或 手机号 / Email or phone"), text: $pwIdentifier)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
                 .keyboardType(.emailAddress)
@@ -183,7 +183,7 @@ struct LoginView: View {
         }
 
         roundedField {
-            SecureField("密码 / Password (≥ 6 位)", text: $pwPassword)
+            SecureField(L("密码 / Password (≥ 6 位)"), text: $pwPassword)
                 .focused($focused, equals: .password)
                 .submitLabel(pwIsRegister ? .next : .go)
         }
@@ -193,7 +193,7 @@ struct LoginView: View {
 
         if pwIsRegister {
             roundedField {
-                TextField("昵称(可选) / Display name", text: $pwDisplayName)
+                TextField(L("昵称(可选) / Display name"), text: $pwDisplayName)
                     .autocorrectionDisabled(true)
                     .focused($focused, equals: .displayName)
             }
@@ -215,14 +215,14 @@ struct LoginView: View {
 
         if !pwIsRegister {
             Button { showReset = true } label: {
-                Text("忘记密码? / Forgot password")
+                Text(L("忘记密码? / Forgot password"))
                     .font(.appCaption)
                     .foregroundStyle(Color.appTextSecondary)
             }
             .frame(maxWidth: .infinity)
         }
 
-        Text("无需短信验证,直接注册 + 密码登录。密码本地以 PBKDF2-SHA256 哈希存储。")
+        Text(L("无需短信验证,直接注册 + 密码登录。密码本地以 PBKDF2-SHA256 哈希存储。"))
             .font(.system(size: 11))
             .foregroundStyle(Color.appTextSecondary)
     }
@@ -231,12 +231,12 @@ struct LoginView: View {
 
     @ViewBuilder
     private var phoneFields: some View {
-        Text("手机号 + 验证码")
+        Text(L("手机号 + 验证码"))
             .font(.appBody.weight(.semibold))
             .foregroundStyle(Color.appTextPrimary)
 
         roundedField {
-            TextField("手机号 / Phone", text: $phone)
+            TextField(L("手机号 / Phone"), text: $phone)
                 .keyboardType(.numberPad)
                 .focused($focused, equals: .phone)
         }
@@ -244,7 +244,7 @@ struct LoginView: View {
         if codeSent {
             roundedField {
                 HStack {
-                    TextField("验证码 / Code", text: $code)
+                    TextField(L("验证码 / Code"), text: $code)
                         .keyboardType(.numberPad)
                         .focused($focused, equals: .code)
                     if let dc = devCode {
@@ -261,7 +261,7 @@ struct LoginView: View {
             codeSent ? verifyPhone() : startPhone()
         }
 
-        Text("演示后端不发送真实短信:验证码直接显示在上方,输入即可登录。生产环境由云端短信服务下发。")
+        Text(L("演示后端不发送真实短信:验证码直接显示在上方,输入即可登录。生产环境由云端短信服务下发。"))
             .font(.system(size: 11))
             .foregroundStyle(Color.appTextSecondary)
     }
@@ -283,7 +283,7 @@ struct LoginView: View {
         .frame(height: 48)
         .clipShape(RoundedRectangle(cornerRadius: 12))
 
-        Text("Sign in with Apple 需付费开发者账号方可启用,免费开发者账号会失败。演示请使用「密码」登录。")
+        Text(L("Sign in with Apple 需付费开发者账号方可启用,免费开发者账号会失败。演示请使用「密码」登录。"))
             .font(.system(size: 11))
             .foregroundStyle(Color.appTextSecondary)
     }
@@ -297,7 +297,7 @@ struct LoginView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "message.fill")
-                Text("微信登录").font(.appBody.weight(.semibold))
+                Text(L("微信登录")).font(.appBody.weight(.semibold))
                 if busy {
                     ProgressView().tint(.white).padding(.leading, 4)
                 }
@@ -313,12 +313,12 @@ struct LoginView: View {
 
         // Honest label — this is a mock, not real OAuth.
         HStack(alignment: .top, spacing: 6) {
-            Text("演示")
+            Text(L("演示"))
                 .font(.system(size: 10, weight: .bold))
                 .padding(.horizontal, 6).padding(.vertical, 2)
                 .background(Color.orange.opacity(0.15), in: Capsule())
                 .foregroundStyle(.orange)
-            Text("演示版:真实微信授权需企业资质 + 官方 SDK + 审核;生产环境接入同一接口即可。")
+            Text(L("演示版:真实微信授权需企业资质 + 官方 SDK + 审核;生产环境接入同一接口即可。"))
                 .font(.system(size: 11))
                 .foregroundStyle(Color.appTextSecondary)
         }
@@ -341,7 +341,7 @@ struct LoginView: View {
 
     private var skipButton: some View {
         Button { dismiss() } label: {
-            Text("先逛逛 / Skip")
+            Text(L("先逛逛 / Skip"))
                 .font(.appBody)
                 .foregroundStyle(Color.appTextSecondary)
         }
@@ -506,19 +506,19 @@ struct LoginPromptCard: View {
             }
             .padding(.top, 8)
 
-            Text("登录解锁拼单 + 跨设备偏好")
+            Text(L("登录解锁拼单 + 跨设备偏好"))
                 .font(.appBody.weight(.semibold))
                 .foregroundStyle(Color.appTextPrimary)
                 .multilineTextAlignment(.center)
 
-            Text("登录后,拼单、收藏、偏好都跟着账号走。浏览和聊天始终免登录。")
+            Text(L("登录后,拼单、收藏、偏好都跟着账号走。浏览和聊天始终免登录。"))
                 .font(.appCaption)
                 .foregroundStyle(Color.appTextSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 8)
 
             Button(action: onLogin) {
-                Text("登录 / 注册")
+                Text(L("登录 / 注册"))
                     .font(.appBody.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
@@ -528,7 +528,7 @@ struct LoginPromptCard: View {
             }
 
             Button(action: onSkip) {
-                Text("先逛逛 / Skip")
+                Text(L("先逛逛 / Skip"))
                     .font(.appCaption)
                     .foregroundStyle(Color.appTextSecondary)
             }

@@ -42,21 +42,21 @@ struct MessageBubbleView: View {
                                 Button {
                                     onEdit()
                                 } label: {
-                                    Label("编辑 / Edit", systemImage: "pencil")
+                                    Label(L("编辑 / Edit"), systemImage: "pencil")
                                 }
                             }
                             if let onCopy {
                                 Button {
                                     onCopy()
                                 } label: {
-                                    Label("复制 / Copy", systemImage: "doc.on.doc")
+                                    Label(L("复制 / Copy"), systemImage: "doc.on.doc")
                                 }
                             }
                             if message.role == .assistant, let onSpeak {
                                 Button {
                                     onSpeak()
                                 } label: {
-                                    Label("朗读 / Speak", systemImage: "speaker.wave.2")
+                                    Label(L("朗读 / Speak"), systemImage: "speaker.wave.2")
                                 }
                             }
                         }

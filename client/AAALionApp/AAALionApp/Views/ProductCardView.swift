@@ -65,7 +65,7 @@ struct ProductCardView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             if justAdded {
-                Label("已加入", systemImage: "checkmark.circle.fill")
+                Label(L("已加入"), systemImage: "checkmark.circle.fill")
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -154,7 +154,7 @@ struct ProductCardView: View {
                 .foregroundStyle(Color.appTextSecondary)
                 .lineLimit(1)
             if product.provenance.isDemo {
-                Text("演示")
+                Text(L("演示"))
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)

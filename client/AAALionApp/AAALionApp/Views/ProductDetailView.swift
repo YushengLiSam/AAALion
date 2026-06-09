@@ -135,7 +135,7 @@ struct ProductDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Color.appAccent)
-                    Text("已加入购物车 / Added to cart")
+                    Text(L("已加入购物车 / Added to cart"))
                         .font(.appCaption)
                 }
                 .padding(.horizontal, 14)
@@ -184,7 +184,7 @@ struct ProductDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text(product.provenance.flag)
-                Text("来源 / Source")
+                Text(L("来源 / Source"))
                     .font(.appCaption)
                     .foregroundStyle(Color.appTextSecondary)
             }
@@ -200,7 +200,7 @@ struct ProductDetailView: View {
                 row("shippingbox.fill", "配送", ship)
             }
             if product.provenance.isDemo {
-                Text("⚠️ 此商品为演示数据。外部链接为商品标题搜索。")
+                Text(L("⚠️ 此商品为演示数据。外部链接为商品标题搜索。"))
                     .font(.appCaption)
                     .foregroundStyle(.orange)
                     .padding(.top, 4)
@@ -332,7 +332,7 @@ struct ProductDetailView: View {
     private var disabledStoreLink: some View {
         HStack(spacing: 8) {
             Image(systemName: "link.badge.plus")
-            Text("演示商品 · 无原页链接")
+            Text(L("演示商品 · 无原页链接"))
         }
         .font(.appCaption)
         .frame(maxWidth: .infinity)
@@ -355,7 +355,7 @@ struct ProductDetailView: View {
                         Image(systemName: "book.closed")
                             .foregroundStyle(Color.appTextSecondary)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("信源 / Source")
+                            Text(L("信源 / Source"))
                                 .font(.system(size: 10, weight: .regular, design: .rounded))
                                 .foregroundStyle(Color.appTextSecondary)
                             Text(product.provenance.sourcePlatform)
@@ -398,7 +398,7 @@ struct ProductDetailView: View {
                 if let rerankModel = signals.rerankModel {
                     signalRow(label: "精排模型", value: rerankModel)
                 }
-                Text("说明: 越靠前(数字小)越相关。语义检索抓「意思」, 关键词检索抓「字面」, 精排是 cross-encoder 做最终重排。")
+                Text(L("说明: 越靠前(数字小)越相关。语义检索抓「意思」, 关键词检索抓「字面」, 精排是 cross-encoder 做最终重排。"))
                     .font(.system(size: 10, weight: .regular, design: .rounded))
                     .foregroundStyle(Color.appTextSecondary)
                     .padding(.top, 4)
@@ -408,7 +408,7 @@ struct ProductDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                     .foregroundStyle(Color.appAccent)
-                Text("为何推荐这款 / Why this?")
+                Text(L("为何推荐这款 / Why this?"))
                     .font(.appCaption)
                     .foregroundStyle(Color.appTextPrimary)
             }
@@ -438,7 +438,7 @@ struct ProductDetailView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "bolt.fill")
-                Text("立即购买 · 一键下单 / Buy now")
+                Text(L("立即购买 · 一键下单 / Buy now"))
             }
             .font(.appBody.bold())
             .frame(maxWidth: .infinity)
@@ -459,7 +459,7 @@ struct ProductDetailView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "person.2.fill")
-                Text("发起拼单 · 立省 15% / Start a group buy")
+                Text(L("发起拼单 · 立省 15% / Start a group buy"))
             }
             .font(.appCaption)
             .frame(maxWidth: .infinity)
@@ -479,7 +479,7 @@ struct ProductDetailView: View {
             Button {
                 sendPreference(1)
             } label: {
-                Label("喜欢", systemImage: prefSignal == 1 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                Label(L("喜欢"), systemImage: prefSignal == 1 ? "hand.thumbsup.fill" : "hand.thumbsup")
                     .font(.appCaption)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 9)
@@ -490,7 +490,7 @@ struct ProductDetailView: View {
             Button {
                 sendPreference(-1)
             } label: {
-                Label("不喜欢", systemImage: prefSignal == -1 ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                Label(L("不喜欢"), systemImage: prefSignal == -1 ? "hand.thumbsdown.fill" : "hand.thumbsdown")
                     .font(.appCaption)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 9)
@@ -527,7 +527,7 @@ struct ProductDetailView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "bell.badge")
-                Text("提醒我降价 / Notify me on price drop")
+                Text(L("提醒我降价 / Notify me on price drop"))
             }
             .font(.appCaption)
             .frame(maxWidth: .infinity)
@@ -547,7 +547,7 @@ struct ProductDetailView: View {
             Form {
                 Section {
                     HStack {
-                        Text("当前价格").foregroundStyle(Color.appTextSecondary)
+                        Text(L("当前价格")).foregroundStyle(Color.appTextSecondary)
                         Spacer()
                         Text("¥\(String(format: "%.2f", product.displayedPrice))")
                             .font(.appBody.monospacedDigit())
@@ -564,16 +564,16 @@ struct ProductDetailView: View {
                         Text(err).font(.appCaption).foregroundStyle(.red)
                     }
                 } header: {
-                    Text("设置目标价")
+                    Text(L("设置目标价"))
                 } footer: {
-                    Text("当该商品价格 ≤ 你设置的目标价,我们会在你下次打开 App 时提醒你。")
+                    Text(L("当该商品价格 ≤ 你设置的目标价,我们会在你下次打开 App 时提醒你。"))
                 }
             }
-            .navigationTitle("提醒我降价")
+            .navigationTitle(L("提醒我降价"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { showPriceWatchSheet = false }
+                    Button(L("取消")) { showPriceWatchSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -582,7 +582,7 @@ struct ProductDetailView: View {
                         if priceWatchSubmitting {
                             ProgressView()
                         } else {
-                            Text("保存")
+                            Text(L("保存"))
                         }
                     }
                     .disabled(priceWatchSubmitting)

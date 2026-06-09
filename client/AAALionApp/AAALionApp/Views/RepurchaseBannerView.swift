@@ -47,7 +47,7 @@ struct RepurchaseBannerView: View {
             Image(systemName: "bell.badge.fill")
                 .foregroundStyle(Color.appAccent)
                 .imageScale(.small)
-            Text("该补货啦")
+            Text(L("该补货啦"))
                 .font(.appCaption)
                 .foregroundStyle(Color.appTextSecondary)
             Spacer()
@@ -147,7 +147,7 @@ struct RepurchaseBannerView: View {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.clockwise")
                     .imageScale(.small)
-                Text("再来一单")
+                Text(L("再来一单"))
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
             }
             .frame(maxWidth: .infinity)

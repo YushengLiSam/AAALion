@@ -26,7 +26,7 @@ struct CartSheet: View {
                                         }
                                         UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                     } label: {
-                                        Label("删除", systemImage: "trash.fill")
+                                        Label(L("删除"), systemImage: "trash.fill")
                                     }
                                 }
                                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -34,7 +34,7 @@ struct CartSheet: View {
                                         FavoritesStore.shared.toggle(item.productId)
                                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                                     } label: {
-                                        Label("收藏", systemImage: "heart.fill")
+                                        Label(L("收藏"), systemImage: "heart.fill")
                                     }
                                     .tint(.pink)
                                 }
@@ -51,11 +51,11 @@ struct CartSheet: View {
                 }
             }
             .background(Color.appBackground)
-            .navigationTitle("购物车 / Cart")
+            .navigationTitle(L("购物车 / Cart"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭 / Close") { dismiss() }
+                    Button(L("关闭 / Close")) { dismiss() }
                 }
                 if !cart.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -72,7 +72,7 @@ struct CartSheet: View {
                             cart.clear()
                             editMode = .inactive
                         } label: {
-                            Text("清空 / Clear")
+                            Text(L("清空 / Clear"))
                         }
                         .foregroundStyle(.red)
                     }
@@ -89,10 +89,10 @@ struct CartSheet: View {
             Image(systemName: "cart")
                 .font(.system(size: 60))
                 .foregroundStyle(Color.appTextSecondary)
-            Text("购物车是空的")
+            Text(L("购物车是空的"))
                 .font(.appTitle)
                 .foregroundStyle(Color.appTextPrimary)
-            Text("先去聊天里挑几款商品吧 ✨")
+            Text(L("先去聊天里挑几款商品吧 ✨"))
                 .font(.appBody)
                 .foregroundStyle(Color.appTextSecondary)
         }
@@ -172,7 +172,7 @@ struct CartSheet: View {
             Button(role: .destructive) {
                 cart.remove(productId: item.productId)
             } label: {
-                Label("删除 / Remove", systemImage: "trash")
+                Label(L("删除 / Remove"), systemImage: "trash")
             }
         }
     }
@@ -229,14 +229,14 @@ struct CartSheet: View {
         VStack(spacing: 10) {
             VStack(spacing: 4) {
                 HStack {
-                    Text("合计 / Total")
+                    Text(L("合计 / Total"))
                         .font(.appBody)
                         .foregroundStyle(Color.appTextSecondary)
                     Spacer()
                 }
                 if hasCNYTotal {
                     HStack {
-                        Text("人民币")
+                        Text(L("人民币"))
                             .font(.appCaption)
                             .foregroundStyle(Color.appTextSecondary)
                         Spacer()
@@ -257,7 +257,7 @@ struct CartSheet: View {
                     }
                 }
                 if !unresolvedTotalsByCurrency.isEmpty {
-                    Text("部分外币汇率暂不可用，未计入人民币合计")
+                    Text(L("部分外币汇率暂不可用，未计入人民币合计"))
                         .font(.system(size: 10))
                         .foregroundStyle(Color.appTextSecondary)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -266,7 +266,7 @@ struct CartSheet: View {
             Button {
                 showCheckout = true
             } label: {
-                Text("去结算 / Checkout")
+                Text(L("去结算 / Checkout"))
                     .font(.appBody.bold())
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)

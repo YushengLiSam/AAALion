@@ -21,12 +21,12 @@ struct FavoritesView: View {
                 // the card immediately, without a reload.
                 let shown = products.filter { favorites.isFavorite($0.productId) }
                 if loading && shown.isEmpty {
-                    ProgressView("加载中…").tint(Color.appAccent)
+                    ProgressView(L("加载中…")).tint(Color.appAccent)
                 } else if shown.isEmpty {
                     ContentUnavailableView {
-                        Label("还没有收藏", systemImage: "heart")
+                        Label(L("还没有收藏"), systemImage: "heart")
                     } description: {
-                        Text("在商品卡片或详情页点 ❤️ 收藏,这里随时回看。")
+                        Text(L("在商品卡片或详情页点 ❤️ 收藏,这里随时回看。"))
                     }
                 } else {
                     ScrollView {
@@ -39,10 +39,10 @@ struct FavoritesView: View {
                     }
                 }
             }
-            .navigationTitle("我的收藏 / Favorites")
+            .navigationTitle(L("我的收藏 / Favorites"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button(L("完成")) { dismiss() } }
             }
             .task { await load() }
             .refreshable { await load() }

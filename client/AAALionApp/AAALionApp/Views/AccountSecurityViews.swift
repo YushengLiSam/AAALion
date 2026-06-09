@@ -30,11 +30,11 @@ struct ChangePasswordView: View {
         NavigationStack {
             Form {
                 Section {
-                    SecureField("当前密码 / Current", text: $oldPassword)
-                    SecureField("新密码 / New (≥ 6 位)", text: $newPassword)
-                    SecureField("确认新密码 / Confirm", text: $confirm)
+                    SecureField(L("当前密码 / Current"), text: $oldPassword)
+                    SecureField(L("新密码 / New (≥ 6 位)"), text: $newPassword)
+                    SecureField(L("确认新密码 / Confirm"), text: $confirm)
                     if !confirm.isEmpty && newPassword != confirm {
-                        Text("两次新密码不一致").font(.caption).foregroundStyle(.red)
+                        Text(L("两次新密码不一致")).font(.caption).foregroundStyle(.red)
                     }
                 } footer: {
                     if let err = errorText {
@@ -47,21 +47,21 @@ struct ChangePasswordView: View {
                     } label: {
                         HStack {
                             if busy { ProgressView().controlSize(.small) }
-                            Text("确认修改 / Change")
+                            Text(L("确认修改 / Change"))
                         }
                     }
                     .disabled(!valid)
                 }
             }
-            .navigationTitle("修改密码")
+            .navigationTitle(L("修改密码"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L("取消")) { dismiss() } }
             }
             .alert("密码已修改", isPresented: $done) {
-                Button("好") { dismiss() }
+                Button(L("好")) { dismiss() }
             } message: {
-                Text("下次请用新密码登录。")
+                Text(L("下次请用新密码登录。"))
             }
         }
     }
@@ -104,14 +104,14 @@ struct PasswordResetView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("邮箱 或 手机号 / Email or phone", text: $identifier)
+                    TextField(L("邮箱 或 手机号 / Email or phone"), text: $identifier)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
                         .keyboardType(.emailAddress)
                         .disabled(codeSent)
                     if codeSent {
                         HStack {
-                            TextField("重置码 / Code", text: $code)
+                            TextField(L("重置码 / Code"), text: $code)
                                 .keyboardType(.numberPad)
                             if let dc = devCode {
                                 Text("演示码 \(dc)")
@@ -119,7 +119,7 @@ struct PasswordResetView: View {
                                     .foregroundStyle(Color.appAccent)
                             }
                         }
-                        SecureField("新密码 / New password (≥ 6 位)", text: $newPassword)
+                        SecureField(L("新密码 / New password (≥ 6 位)"), text: $newPassword)
                     }
                     Button {
                         codeSent ? verify() : start()
@@ -134,16 +134,16 @@ struct PasswordResetView: View {
                         Text(err).font(.caption).foregroundStyle(.red)
                     }
                 } header: {
-                    Text("忘记密码 / Reset password")
+                    Text(L("忘记密码 / Reset password"))
                 } footer: {
-                    Text("演示后端不发真实邮件/短信:重置码直接显示在上方,输入即可重置。生产环境由云端下发。")
+                    Text(L("演示后端不发真实邮件/短信:重置码直接显示在上方,输入即可重置。生产环境由云端下发。"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("找回密码")
+            .navigationTitle(L("找回密码"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L("取消")) { dismiss() } }
             }
         }
     }
@@ -205,7 +205,7 @@ struct AdminUsersView: View {
                     } label: {
                         HStack {
                             if busy { ProgressView().controlSize(.small) }
-                            Text("加载用户 / Load")
+                            Text(L("加载用户 / Load"))
                         }
                     }
                     .disabled(busy || token.isEmpty)
@@ -213,9 +213,9 @@ struct AdminUsersView: View {
                         Text(err).font(.caption).foregroundStyle(.red)
                     }
                 } header: {
-                    Text("管理员 / Admin")
+                    Text(L("管理员 / Admin"))
                 } footer: {
-                    Text("需后端设置 LIONPICK_ADMIN_TOKEN 环境变量;未设置时接口返回 503。左滑可删除用户。")
+                    Text(L("需后端设置 LIONPICK_ADMIN_TOKEN 环境变量;未设置时接口返回 503。左滑可删除用户。"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if !users.isEmpty {
@@ -238,10 +238,10 @@ struct AdminUsersView: View {
                     }
                 }
             }
-            .navigationTitle("用户管理")
+            .navigationTitle(L("用户管理"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L("完成")) { dismiss() } }
             }
         }
     }
