@@ -32,7 +32,7 @@ from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
 from app.services.cache import cache, make_key, hash_image_bytes_list
 from app.services.constraint_state import build_conversation_filter
-from app.services.contextual_query import build_retrieval_query
+from app.services.contextual_query import build_retrieval_query, _reorder_negation_object
 from app.services.currency import normalize_product_prices, pricing_cache_token
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -874,7 +874,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         # the SAME category with the price language stripped so we always show
         # the closest products; budget_relaxed tells the LLM they may be over budget.
         if not products and not _has_image(req.messages) and user_text.strip():
-            fb_query = _strip_price(retrieval_query) or retrieval_query
+            # Re-apply the "不要X的Y" → "Y 不要X" reorder: the comma form
+            # ("不要苹果的耳机，预算500") never reordered upstream (the regex is
+            # anchored and the comma blocks it), so stripping the price here is
+            # the FIRST time the bare "不要苹果的耳机" appears — reorder it so the
+            # fallback excludes only the brand instead of dropping the category.
+            fb_query = _reorder_negation_object(_strip_price(retrieval_query) or retrieval_query)
             fb = await asyncio.to_thread(
                 top_k, fb_query, k=5,
                 intent_text=(_strip_price(user_text) or None),

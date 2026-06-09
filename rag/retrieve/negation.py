@@ -23,8 +23,11 @@ import re
 import urllib.request
 
 
+# Negation triggers. "不想要/不需要" listed before "不要" (leftmost-alternative
+# clarity). "(?<!有)没有" so "有没有X" (a POSITIVE availability question, e.g.
+# "有没有华为手机") is NOT read as "exclude X" — only a bare "没有X" still counts.
 _NEG_PHRASE_RE = re.compile(
-    r"(?:不要|除了|不含|不带|不是|排除|也不要|没有|别要)\s*([^,，。;；！!?？]+)"
+    r"(?:不想要|不需要|不要|别要|不买|不选|除了|不含|不带|不是|排除|也不要|(?<!有)没有)\s*([^,，。;；！!?？]+)"
 )
 
 
@@ -87,7 +90,9 @@ def _local_brand_mentions(text: str) -> list[str]:
 def extract_negation(text: str) -> dict:
     """Best-effort extraction. Silent fallback to {} on any error
     (the prompt still has a fallback rule, so behavior degrades gracefully)."""
-    if not text or not any(neg in text for neg in ("不要", "不含", "不带", "除了", "排除")):
+    if not text or not any(neg in text for neg in (
+        "不要", "别要", "不想要", "不需要", "不买", "不选", "不含", "不带", "除了", "排除"
+    )):
         return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
 
     # Always include locally-detected country triggers ("日系"/"美系"/...) so

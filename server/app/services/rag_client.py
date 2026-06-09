@@ -115,7 +115,43 @@ def retrieval_cache_stats() -> dict:
 
 
 def _negation_signals(text: str) -> bool:
-    return any(s in text for s in ("不要", "不含", "不带", "除了", "排除", "no ", "without"))
+    return any(s in text for s in (
+        "不要", "别要", "不想要", "不需要", "不买", "不选",
+        "不含", "不带", "除了", "排除", "no ", "without",
+    ))
+
+
+def _brand_match_terms(brand) -> set[str]:
+    """Casefolded brand + alias terms, used to compare include vs exclude."""
+    terms = {str(brand).casefold()}
+    try:
+        from rag.retrieve.brand_origin import expand_brand_aliases
+        terms |= {str(t).casefold() for t in expand_brand_aliases(brand)}
+    except Exception:
+        pass
+    return terms
+
+
+def _reconcile_negation_with_includes(neg: dict, retrieval_filter) -> dict:
+    """Drop from the negation set anything the user POSITIVELY asked for.
+
+    "有没有华为手机,不要太贵的" puts 华为 in BOTH brand_include (the WHERE keeps
+    only 华为) and — if the extractor over-reaches — exclude_brands (apply_negation
+    then drops every 华为) → 0 results. A brand the user named, or the category
+    they're shopping in, must never be excluded. Mutates and returns `neg`.
+    """
+    inc = getattr(retrieval_filter, "brand_include", None) or []
+    if inc and neg.get("exclude_brands"):
+        protected: set[str] = set()
+        for b in inc:
+            protected |= _brand_match_terms(b)
+        neg["exclude_brands"] = [
+            xb for xb in neg["exclude_brands"] if not (_brand_match_terms(xb) & protected)
+        ]
+    cat = getattr(retrieval_filter, "category", None)
+    if cat and neg.get("exclude_categories"):
+        neg["exclude_categories"] = [c for c in neg["exclude_categories"] if c != cat]
+    return neg
 
 
 # R8.F.6: well-known Apple product-line tokens the user might type. When
@@ -274,6 +310,10 @@ def _heavy_retrieve(
                     "exclude_categories": [],
                     "exclude_keywords": inherited_keywords,
                 }
+            # Conflict guard: never exclude something the user EXPLICITLY asked
+            # for (positive intent wins). See _reconcile_negation_with_includes.
+            if isinstance(retrieval_filter, Filter):
+                neg = _reconcile_negation_with_includes(neg, retrieval_filter)
             candidates = apply_negation(candidates, neg)
         except Exception:
             pass

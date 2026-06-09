@@ -30,7 +30,10 @@ _PRICE_MAX_EN_RE = re.compile(
     r"[¥￥$]?\s*(\d+(?:\.\d+)?)",
     re.IGNORECASE,
 )
-_NEGATED_PREFIX_RE = re.compile(r"(?:不要|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;]*$", re.IGNORECASE)
+_NEGATED_PREFIX_RE = re.compile(
+    r"(?:不想要|不需要|不要|别要|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;的]*$",
+    re.IGNORECASE,
+)
 
 _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("美妆护肤", ("美妆护肤", "护肤品", "护肤")),
@@ -202,7 +205,9 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
     # R8: extract country-trigger keywords ("日系" / "美系" / ...) locally
     # so they persist across multi-turn conversations via Filter state.
     # `apply_negation` resolves these to ISO codes through brand_origin.
-    if text and any(neg in text for neg in ("不要", "不含", "不带", "除了", "排除", "也不要")):
+    if text and any(neg in text for neg in (
+        "不要", "别要", "不想要", "不需要", "不含", "不带", "除了", "排除", "也不要"
+    )):
         try:
             from rag.retrieve.negation import _local_country_keywords
             result.exclude_keywords = _local_country_keywords(text) or None
