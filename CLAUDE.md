@@ -273,6 +273,17 @@ Every other recurring hiccup: [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.m
   sources with URLs + access dates, and label vendor-reported numbers as
   claims. Worked example: `docs/COMPETITIVE_ANALYSIS.md` and
   `docs/ROADMAP.md` were both built this way (2026-05-30).
+- **工作流自主判断(用户长期开 xhigh + ultracode)**: 用户**常态开着 xhigh +
+  ultracode**,所以"ultracode 开着"是默认环境,**不代表每个任务都要扇出**。是否起
+  workflow(多 agent)**由你自己判断**,别因为 ultracode 开着就盲目多 agent:
+  - **solo(默认)** — 改代码(单线程、连贯编辑,尤其多处改动落在重叠文件时)、
+    琐碎/机械改动、文档、对话式答疑。
+  - **workflow(扇出)** — 只在**真正可并行**的活才起:并行搜索 / 造案造数据 /
+    对抗复核 / 穷举审计 / 大迁移。
+  原则:**改代码 = solo(单文件编辑扇不出,并行 agent 会在同一文件冲突);
+  测量 / 搜索 / 审计 / 造数据 = workflow**。每次起不起 workflow,用一句话说明你的
+  判断和理由(透明),但**判断权在你,不要让用户去切 effort**。
+  范例(R13):A 修复(单文件正则)= solo;D 评测套件(并行造案+对抗核验)= workflow。
 
 ---
 
