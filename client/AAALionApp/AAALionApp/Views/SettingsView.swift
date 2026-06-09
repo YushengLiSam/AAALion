@@ -56,7 +56,7 @@ struct SettingsView: View {
                         if let result = probeResult {
                             switch result {
                             case .ok(let version):
-                                Label("已连接 / Connected (v\(version))", systemImage: "checkmark.circle.fill")
+                                Label(Lf("已连接 (v%@)", version), systemImage: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
                                     .font(.footnote)
                             case .failed(let msg):
@@ -78,7 +78,7 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.orange)
                     } footer: {
-                        Text("默认 / default: \(Config.defaultBackendURL)")
+                        Text(Lf("默认:%@", Config.defaultBackendURL))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -192,7 +192,7 @@ struct SettingsView: View {
             HStack {
                 Text(L("未命中 / Misses")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(s.misses) (含 \(s.expiredMisses) 过期 / expired)")
+                Text(Lf("%@ (含 %@ 过期)", "\(s.misses)", "\(s.expiredMisses)"))
                     .font(.caption.monospacedDigit())
             }
             HStack {
@@ -241,7 +241,7 @@ struct SettingsView: View {
             cacheStats = stats
             cacheError = nil
         } catch {
-            cacheError = "无法获取 / can't fetch: \(error.localizedDescription)"
+            cacheError = Lf("无法获取:%@", error.localizedDescription)
         }
     }
 

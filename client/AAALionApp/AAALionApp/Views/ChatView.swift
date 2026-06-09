@@ -371,7 +371,7 @@ struct ChatView: View {
                 Task { @MainActor in
                     switch result {
                     case .failure(let error):
-                        viewModel.errorMessage = "文件选择失败 / File pick failed: \(error.localizedDescription)"
+                        viewModel.errorMessage = Lf("文件选择失败:%@", error.localizedDescription)
                     case .success(let urls):
                         guard !urls.isEmpty else {
                             viewModel.errorMessage = L("未选中任何文件 / No file selected")
@@ -396,15 +396,15 @@ struct ChatView: View {
                                 }
                             }
                             if let coordError {
-                                viewModel.errorMessage = "文件读取失败 / Coordinator: \(coordError.localizedDescription)"
+                                viewModel.errorMessage = Lf("文件读取失败:%@", coordError.localizedDescription)
                                 continue
                             }
                             if let readError {
-                                viewModel.errorMessage = "文件读取失败 / \(readError.localizedDescription)"
+                                viewModel.errorMessage = Lf("文件读取失败:%@", readError.localizedDescription)
                                 continue
                             }
                             guard let data = loaded, !data.isEmpty else {
-                                viewModel.errorMessage = "文件为空 / file empty: \(url.lastPathComponent)"
+                                viewModel.errorMessage = Lf("文件为空:%@", url.lastPathComponent)
                                 continue
                             }
                             let mime = Attachment.sniffMIME(from: data)
@@ -610,7 +610,7 @@ struct ChatView: View {
                 HStack {
                     Spacer()
                     Text(viewModel.remainingAttachmentSlots == 0
-                         ? "已达上限 \(Attachment.maxCount) / Max reached"
+                         ? Lf("已达上限 %@", "\(Attachment.maxCount)")
                          : "\(viewModel.pendingAttachments.count) / \(Attachment.maxCount)")
                         .font(.caption2)
                         .foregroundStyle(viewModel.remainingAttachmentSlots == 0 ? Color.red : .secondary)

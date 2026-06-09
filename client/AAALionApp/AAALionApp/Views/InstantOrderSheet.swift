@@ -131,7 +131,7 @@ struct InstantOrderSheet: View {
             }
             Divider()
             HStack {
-                Text("合计 \(totalQty) 件 / Total").font(.appCaption).foregroundStyle(Color.appTextSecondary)
+                Text(Lf("合计 %@ 件", "\(totalQty)")).font(.appCaption).foregroundStyle(Color.appTextSecondary)
                 Spacer()
                 Text("\(symbol)\(String(format: "%.2f", total))")
                     .font(.appBody.bold().monospacedDigit()).foregroundStyle(Color.appAccent)

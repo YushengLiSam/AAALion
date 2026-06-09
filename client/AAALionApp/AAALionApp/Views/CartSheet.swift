@@ -166,7 +166,7 @@ struct CartSheet: View {
                 Button {
                     openURL(url)
                 } label: {
-                    Label("在商店中查看 / View on \(item.provenance.sourcePlatform)", systemImage: "arrow.up.right.square")
+                    Label(Lf("在商店中查看 %@", item.provenance.sourcePlatform), systemImage: "arrow.up.right.square")
                 }
             }
             Button(role: .destructive) {

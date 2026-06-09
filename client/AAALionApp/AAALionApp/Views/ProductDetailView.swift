@@ -316,7 +316,7 @@ struct ProductDetailView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.up.right.square")
-                Text("去原页 / View on \(product.provenance.sourcePlatform)")
+                Text(Lf("去原页 %@", product.provenance.sourcePlatform))
             }
             .font(.appBody.bold())
             .frame(maxWidth: .infinity)

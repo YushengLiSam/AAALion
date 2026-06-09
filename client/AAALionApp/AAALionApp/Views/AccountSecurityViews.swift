@@ -219,7 +219,7 @@ struct AdminUsersView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if !users.isEmpty {
-                    Section("\(users.count) 个账号 / accounts") {
+                    Section(Lf("%@ 个账号", "\(users.count)")) {
                         ForEach(users) { u in
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack {

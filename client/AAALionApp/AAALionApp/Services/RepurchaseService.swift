@@ -27,7 +27,7 @@ struct RepurchaseService {
                     return "HTTP \(code): \(body)"
                 }
                 return "HTTP \(code)"
-            case .decode(let e): return "解析失败 / decode: \(e.localizedDescription)"
+            case .decode(let e): return Lf("解析失败:%@", e.localizedDescription)
             case .transport(let e): return e.localizedDescription
             }
         }

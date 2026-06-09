@@ -2,6 +2,8 @@
 
 " · 缓存汇率" = " · cached rate";
 "$ 美元" = "$ USD";
+"%@ (含 %@ 过期)" = "%@ (%@ expired)";
+"%@ 个账号" = "%@ accounts";
 "%@ 件" = "%@ items";
 "%@ 条已验证" = "%@ verified";
 "%@ 条推断" = "%@ inferred";
@@ -15,8 +17,6 @@
 "[推断?]" = "[推断?]";
 "[目录✓]" = "[目录✓]";
 "\\(hint)原价，人民币汇率暂不可用" = "\\(hint)原价，人民币汇率暂不可用";
-"\\(s.misses) (含 \\(s.expiredMisses) 过期 / expired)" = "expired)";
-"\\(users.count) 个账号 / accounts" = "accounts";
 "zh-CN 语音识别不可用" = "Speech recognition (zh-CN) unavailable";
 "¥ 人民币" = "¥ CNY";
 "· 汇率暂不可用" = "· rate unavailable";
@@ -67,15 +67,15 @@
 "北京市海淀区中关村大街 1 号" = "1 Zhongguancun St, Haidian, Beijing";
 "原价 \\(originalPrice)" = "原价 \\(originalPrice)";
 "原始币种" = "Source currency";
-"去原页 / View on \\(product.provenance.sourcePlatform)" = "View on \\(product.provenance.sourcePlatform)";
+"去原页 %@" = "View on %@";
 "去结算 / Checkout" = "Checkout";
 "参考汇率" = "Reference rate";
 "发起拼单 · 立省 15% / Start a group buy" = "Start a group buy";
 "取消" = "Cancel";
 "取消 / Cancel" = "Cancel";
 "取消收藏" = "Remove from favorites";
+"合计 %@ 件" = "%@ items total";
 "合计 / Total" = "Total";
-"合计 \\(totalQty) 件 / Total" = "Total";
 "后端地址 / Backend URL  (dev)" = "Backend URL  (dev)";
 "命中 / Hits" = "Hits";
 "命中/未命中 / Hits·Misses" = "Hits·Misses";
@@ -85,7 +85,7 @@
 "商品按 Frankfurter 参考汇率统一换算到此币种结算。" = "Prices are converted to this currency using Frankfurter reference rates.";
 "喜欢" = "Like";
 "在商品卡片或详情页点 ❤️ 收藏,这里随时回看。" = "Tap ❤️ on any product card or detail page to save it here.";
-"在商店中查看 / View on \\(item.provenance.sourcePlatform)" = "View on \\(item.provenance.sourcePlatform)";
+"在商店中查看 %@" = "View on %@";
 "地址" = "Address";
 "地址 / Address" = "Address";
 "复制 / Copy" = "Copy";
@@ -120,10 +120,9 @@
 "已清空购物车" = "Cart cleared";
 "已登录" = "Signed in";
 "已登录用户" = "Signed-in user";
-"已达上限 \\(Attachment.maxCount) / Max \\(Attachment.maxCount) attachments reached" = "Max \\(Attachment.maxCount) attachments reached";
-"已达上限 \\(Attachment.maxCount) / Max reached" = "Max reached";
+"已达上限 %@" = "Max %@ reached";
 "已过期" = "Expired";
-"已连接 / Connected (v\\(version))" = "Connected (v\\(version))";
+"已连接 (v%@)" = "Connected (v%@)";
 "平台" = "Platform";
 "开发者模式已关闭 / Dev mode OFF" = "Dev mode OFF";
 "开发者模式已开启 / Dev mode ON" = "Dev mode ON";
@@ -170,15 +169,14 @@
 "数量已改为 %@ · %@" = "Quantity → %@ · %@";
 "文件" = "Files";
 "文件 / Files" = "Files";
-"文件为空 / file empty: \\(url.lastPathComponent)" = "file empty: \\(url.lastPathComponent)";
-"文件读取失败 / Coordinator: \\(coordError.localizedDescription)" = "Coordinator: \\(coordError.localizedDescription)";
-"文件读取失败 / \\(readError.localizedDescription)" = "\\(readError.localizedDescription)";
-"文件选择失败 / File pick failed: \\(error.localizedDescription)" = "File pick failed: \\(error.localizedDescription)";
+"文件为空:%@" = "File is empty: %@";
+"文件读取失败:%@" = "File read failed: %@";
+"文件选择失败:%@" = "File pick failed: %@";
 "新密码 / New (≥ 6 位)" = "New (≥ 6 位)";
 "新密码 / New password (≥ 6 位)" = "New password (≥ 6 位)";
 "无法发起拼单" = "Couldn't start the group-buy";
 "无法启动语音识别: \\(error.localizedDescription)" = "无法启动语音识别: \\(error.localizedDescription)";
-"无法获取 / can't fetch: \\(error.localizedDescription)" = "can't fetch: \\(error.localizedDescription)";
+"无法获取:%@" = "Can't fetch: %@";
 "无法读取 Apple 身份令牌" = "Couldn't read the Apple identity token";
 "无需短信验证,直接注册 + 密码登录。密码本地以 PBKDF2-SHA256 哈希存储。" = "No SMS needed — sign up and log in with a password. Passwords are hashed locally with PBKDF2-SHA256.";
 "日元" = "JPY";
@@ -255,8 +253,8 @@
 "英镑" = "GBP";
 "获取重置码 / Get code" = "Get code";
 "获取验证码" = "Get code";
-"解析失败 / decode: \\(e.localizedDescription)" = "decode: \\(e.localizedDescription)";
 "解析失败: \\(e.localizedDescription)" = "解析失败: \\(e.localizedDescription)";
+"解析失败:%@" = "Parse failed: %@";
 "订单明细 / Items" = "Items";
 "设置 / Settings" = "Settings";
 "设置目标价" = "Set target price";
@@ -295,7 +293,7 @@
 "验证并登录" = "Verify & sign in";
 "验证码 / Code" = "Code";
 "麦克风 / 语音权限未授权" = "Microphone / speech permission not granted";
-"默认 / default: \\(Config.defaultBackendURL)" = "default: \\(Config.defaultBackendURL)";
+"默认:%@" = "Default: %@";
 "默认支付:零钱(演示) · Default payment: demo wallet" = "Default payment: demo wallet";
 "默认走公网 Cloudflare 隧道,不需要配置 LAN IP。切换为本地后端或换隧道时改这里。" = "Routes through the public Cloudflare Tunnel by default — no LAN IP needed. Change here only to point at a different backend.";
 "🍵 沏壶茶,马上就好" = "🍵 Brewing some tea — almost there";

@@ -1,8 +1,6 @@
 /* Auto-generated. Do not edit by hand — see tools/gen_strings. */
 
 "URL 无效 / invalid URL" = "URL 无效";
-"\\(s.misses) (含 \\(s.expiredMisses) 过期 / expired)" = "\\(s.misses) (含 \\(s.expiredMisses) 过期";
-"\\(users.count) 个账号 / accounts" = "\\(users.count) 个账号";
 "下单成功 / Done" = "下单成功";
 "为何推荐这款 / Why this?" = "为何推荐这款";
 "保存 / Save" = "保存";
@@ -17,17 +15,14 @@
 "加入购物车 / Add to Cart" = "加入购物车";
 "加载中 / Loading…" = "加载中";
 "加载用户 / Load" = "加载用户";
-"去原页 / View on \\(product.provenance.sourcePlatform)" = "去原页";
 "去结算 / Checkout" = "去结算";
 "发起拼单 · 立省 15% / Start a group buy" = "发起拼单 · 立省 15%";
 "取消 / Cancel" = "取消";
 "合计 / Total" = "合计";
-"合计 \\(totalQty) 件 / Total" = "合计 \\(totalQty) 件";
 "后端地址 / Backend URL  (dev)" = "后端地址";
 "命中 / Hits" = "命中";
 "命中/未命中 / Hits·Misses" = "命中/未命中";
 "命中率 / Hit rate" = "命中率";
-"在商店中查看 / View on \\(item.provenance.sourcePlatform)" = "在商店中查看";
 "地址 / Address" = "地址";
 "复制 / Copy" = "复制";
 "完成 / Done" = "完成";
@@ -39,9 +34,6 @@
 "已取消收藏 / Removed" = "已取消收藏";
 "已收藏 / Favorited" = "已收藏";
 "已收藏 / Saved" = "已收藏";
-"已达上限 \\(Attachment.maxCount) / Max \\(Attachment.maxCount) attachments reached" = "已达上限 \\(Attachment.maxCount)";
-"已达上限 \\(Attachment.maxCount) / Max reached" = "已达上限 \\(Attachment.maxCount)";
-"已连接 / Connected (v\\(version))" = "已连接";
 "开发者模式已关闭 / Dev mode OFF" = "开发者模式已关闭";
 "开发者模式已开启 / Dev mode ON" = "开发者模式已开启";
 "当前密码 / Current" = "当前密码";
@@ -61,13 +53,8 @@
 "收货地址 / Ship to" = "收货地址";
 "收货地址 / Shipping" = "收货地址";
 "文件 / Files" = "文件";
-"文件为空 / file empty: \\(url.lastPathComponent)" = "文件为空";
-"文件读取失败 / Coordinator: \\(coordError.localizedDescription)" = "文件读取失败";
-"文件读取失败 / \\(readError.localizedDescription)" = "文件读取失败";
-"文件选择失败 / File pick failed: \\(error.localizedDescription)" = "文件选择失败";
 "新密码 / New (≥ 6 位)" = "新密码";
 "新密码 / New password (≥ 6 位)" = "新密码";
-"无法获取 / can't fetch: \\(error.localizedDescription)" = "无法获取";
 "昵称(可选) / Display name" = "昵称(可选)";
 "更多分享方式 / Share" = "更多分享方式";
 "朗读 / Speak" = "朗读";
@@ -101,7 +88,6 @@
 "编辑 / Edit" = "编辑";
 "自动朗读首段 / Auto-read first paragraph" = "自动朗读首段";
 "获取重置码 / Get code" = "获取重置码";
-"解析失败 / decode: \\(e.localizedDescription)" = "解析失败";
 "订单明细 / Items" = "订单明细";
 "设置 / Settings" = "设置";
 "语言 / Language" = "语言";
@@ -114,4 +100,3 @@
 "重置并登录 / Reset" = "重置并登录";
 "重置码 / Code" = "重置码";
 "验证码 / Code" = "验证码";
-"默认 / default: \\(Config.defaultBackendURL)" = "默认";

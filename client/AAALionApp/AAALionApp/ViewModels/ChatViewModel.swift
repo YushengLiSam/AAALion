@@ -51,7 +51,7 @@ final class ChatViewModel {
     /// UI can show "已达上限".
     func appendAttachment(_ attachment: Attachment) {
         guard remainingAttachmentSlots > 0 else {
-            errorMessage = "已达上限 \(Attachment.maxCount) / Max \(Attachment.maxCount) attachments reached"
+            errorMessage = Lf("已达上限 %@", "\(Attachment.maxCount)")
             return
         }
         pendingAttachments.append(attachment)
