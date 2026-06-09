@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import sys
 import threading
 import time
@@ -168,6 +169,13 @@ _PRODUCT_LINE_ANCHORS: tuple[str, ...] = (
     "iphone", "ipad", "macbook", "airpods", "homepod",
     "imac", "mac mini", "mac studio", "mac pro", "vision pro",
     "apple watch",
+)
+
+# Comparison-intent markers. In a comparison the user wants to see ACROSS
+# product lines / brands, so the single-line anchor filter must not narrow to
+# one. Catches "对比X和Y", "X和Y哪个好", "X vs Y", "和华为比呢".
+_COMPARISON_RE = re.compile(
+    r"对比|对照|哪个|哪款|哪几款|vs\.?|相比|比一比|比较|[和跟与][^，。,；;]{1,16}比"
 )
 
 
@@ -388,7 +396,14 @@ def _heavy_retrieve(
     # (iPhone / iPad / MacBook / AirPods / Watch), require that token to
     # appear in the result title. Fail-soft: if the filter would empty the
     # list, keep the original rerank result (we never strand the user).
-    candidates = _filter_by_product_line(text, candidates)
+    # The product-line anchor filter is for SINGLE-line lookups ("iPhone13" →
+    # not iPad). In a comparison ("iPhone和小米哪个好") or any query naming ≥2
+    # brands it wrongly strips the OTHER brand → "目录里没有小米". Skip it there;
+    # the reranker already surfaces both (verified live on the 145-item index).
+    _is_comparison = bool(_COMPARISON_RE.search(text))
+    _multi_brand = bool(retrieval_filter and len(getattr(retrieval_filter, "brand_include", None) or []) >= 2)
+    if not (_is_comparison or _multi_brand):
+        candidates = _filter_by_product_line(text, candidates)
 
     # 5) Re-check hard constraints after retrieval. Foreign-source products
     # receive live CNY values only here, so RMB budgets become strict now.
