@@ -158,24 +158,20 @@ struct MessageBubbleView: View {
     private var renderedMessageText: AttributedString {
         var attr = AttributedString(message.text)
         guard message.role == .assistant else { return attr }
-
-        // Highlight verified markers in green.
-        var search = attr.startIndex..<attr.endIndex
-        while let range = attr[search].range(of: "[目录✓]") {
-            attr[range].foregroundColor = Color.green
-            attr[range].font = .system(size: 11, weight: .bold)
-            search = range.upperBound..<attr.endIndex
-        }
-
-        // Highlight inferred markers in amber.
-        search = attr.startIndex..<attr.endIndex
-        while let range = attr[search].range(of: "[推断?]") {
-            attr[range].foregroundColor = Color.orange
-            attr[range].font = .system(size: 11, weight: .bold)
-            search = range.upperBound..<attr.endIndex
-        }
-
+        // Highlight verified (green) + inferred (amber) provenance markers, in
+        // both Chinese and English since the reply language is user-selectable.
+        for marker in ["[目录✓]", "[catalog✓]"] { Self.colorize(&attr, marker, .green) }
+        for marker in ["[推断?]", "[inferred?]"] { Self.colorize(&attr, marker, .orange) }
         return attr
+    }
+
+    private static func colorize(_ attr: inout AttributedString, _ marker: String, _ c: Color) {
+        var search = attr.startIndex..<attr.endIndex
+        while let range = attr[search].range(of: marker) {
+            attr[range].foregroundColor = c
+            attr[range].font = .system(size: 11, weight: .bold)
+            search = range.upperBound..<attr.endIndex
+        }
     }
 
     @ViewBuilder

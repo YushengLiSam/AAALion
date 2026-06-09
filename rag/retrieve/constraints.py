@@ -23,6 +23,13 @@ _BUDGET_MAX_RE = re.compile(
     r"(?:到|至|为|成)?\s*[¥￥]?\s*(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?",
     re.IGNORECASE,
 )
+# R12 — English budget phrasing ("under ¥500", "below 500", "≤ 1000") so
+# English-mode queries and quick-reply chips filter by price too.
+_PRICE_MAX_EN_RE = re.compile(
+    r"(?:under|below|less than|within|up to|no more than|cheaper than|max\.?|≤|<=?)\s*"
+    r"[¥￥$]?\s*(\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
 _NEGATED_PREFIX_RE = re.compile(r"(?:不要|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;]*$", re.IGNORECASE)
 
 _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -184,7 +191,8 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
         sub_categories=_sub_categories(text),
         brand_include=[],
         brand_exclude=[],
-        price_max_cny=_price_bound(_PRICE_MAX_RE, text) or _price_bound(_BUDGET_MAX_RE, text),
+        price_max_cny=(_price_bound(_PRICE_MAX_RE, text) or _price_bound(_BUDGET_MAX_RE, text)
+                       or _price_bound(_PRICE_MAX_EN_RE, text)),
         price_min_cny=_price_bound(_PRICE_MIN_RE, text),
     )
     included, excluded = _brands(text)

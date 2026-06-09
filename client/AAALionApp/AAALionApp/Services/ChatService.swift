@@ -69,11 +69,15 @@ struct ChatService {
         // R9.B — anonymous per-device id so the backend can apply this
         // user's 👍/👎 preference prior. Omitted (nil) → pure relevance.
         var userId: String? = nil
+        // R12 — UI language ("zh"/"en") so the assistant replies in the
+        // language the user picked in Settings.
+        var language: String? = nil
 
         enum CodingKeys: String, CodingKey {
             case messages
             case filters
             case userId = "user_id"
+            case language
         }
     }
 
@@ -159,7 +163,9 @@ struct ChatService {
             filters: filters,
             // R9.B — attach the anonymous device id so the backend applies
             // this user's 👍/👎 preference prior to the results.
-            userId: DeviceIdentity.userId
+            userId: DeviceIdentity.userId,
+            // R12 — reply-language follows the in-app Language setting.
+            language: LanguageManager.shared.lang.rawValue
         )
         request.httpBody = try JSONEncoder().encode(wire)
         return request

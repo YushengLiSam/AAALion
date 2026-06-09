@@ -89,9 +89,12 @@ struct MarkdownMessageView: View {
         } else {
             attr = AttributedString(s)
         }
-        // R9.A.3 — provenance markers.
+        // R9.A.3 — provenance markers (R12: English variants too, since the
+        // assistant's reply language is user-selectable).
         color(&attr, marker: "[目录✓]", to: .green)
         color(&attr, marker: "[推断?]", to: .orange)
+        color(&attr, marker: "[catalog✓]", to: .green)
+        color(&attr, marker: "[inferred?]", to: .orange)
         return attr
     }
 

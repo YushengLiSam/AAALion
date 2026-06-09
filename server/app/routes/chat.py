@@ -51,6 +51,9 @@ class ChatRequest(BaseModel):
     # prior. Optional: omitting it just disables personalization for
     # that request (pure relevance).
     user_id: str | None = Field(default=None)
+    # R12 — UI language ("zh"/"en"). Drives the assistant's reply language so
+    # English-mode users get English answers + [catalog✓]/[inferred?] tags.
+    language: str | None = Field(default=None)
 
 
 # 把字典编码成 SSE(Server-Sent Events)标准格式:`data: {json}\n\n`。
@@ -726,6 +729,38 @@ def _augment_english(query: str, user_text: str) -> str:
 #   detect cart 意图 → 算 cache key → 构造 history → 嵌套 generator 流式吐 SSE。
 # 返回 StreamingResponse 走 SSE。LLM 还没产生 token 时 HTTP 头已经发出去了,
 # 这样 iOS 端能"立即"知道请求被接受。
+# R12 — English-mode strings. The assistant replies in the UI language: the
+# system prompt gets an English-output instruction, and the canned cart /
+# empty-query lines have English variants. Chinese prompt *instructions* (the
+# comparison / scene / OOD / budget addenda) stay Chinese — they steer the
+# model, which still answers in English thanks to this addendum.
+_EN_REPLY_ADDENDUM = (
+    "\n\n## LANGUAGE — HIGHEST PRIORITY\n"
+    "Respond ONLY in English: every sentence, bullet, label and product "
+    "explanation must be English. Translate Chinese product titles and brands "
+    "naturally (you may keep the original in parentheses once). For provenance "
+    "tags use [catalog✓] for facts taken from the catalog below and [inferred?] "
+    "for anything inferred — never the Chinese tags [目录✓]/[推断?]."
+)
+
+_CART_REPLIES = {
+    "zh": {
+        "checkout": "好的,正在为你结算 ✅",
+        "add": "已加入购物车 ✅",
+        "remove": "已从购物车移除 ✅",
+        "set_quantity": "已更新购物车数量 ✅",
+        "_": "好的 ✅",
+    },
+    "en": {
+        "checkout": "Sure — taking you to checkout ✅",
+        "add": "Added to your cart ✅",
+        "remove": "Removed from your cart ✅",
+        "set_quantity": "Cart quantity updated ✅",
+        "_": "Done ✅",
+    },
+}
+
+
 @router.post("/stream")
 async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # /ready 门控:Tujie 加的 readiness 检查。bge / cross-encoder / BM25 没预热完之前
@@ -735,6 +770,8 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
+    # R12 — UI language drives the assistant's reply language (zh default).
+    lang = "en" if (req.language or "zh").lower().startswith("en") else "zh"
     retrieval_query = _augment_english(build_retrieval_query(req.messages), user_text)
     # R11.fix — empty/whitespace input with no image: skip retrieval AND the
     # LLM. An empty user message makes the provider 400 (and leaks the raw
@@ -770,11 +807,19 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     clarify_chips: list[str] = []
     if clarify_dims:
         if _GIFT_HINT.search(user_text):
-            clarify_chips = ["送女友", "送男友", "送长辈", "送朋友",
-                             "预算 300 以内", "预算 300-800", "生日礼物"]
+            clarify_chips = (
+                ["For my girlfriend", "For my boyfriend", "For my parents",
+                 "For a friend", "Under ¥300", "Under ¥800", "Birthday gift"]
+                if lang == "en" else
+                ["送女友", "送男友", "送长辈", "送朋友",
+                 "预算 300 以内", "预算 300-800", "生日礼物"])
         else:
-            clarify_chips = ["美妆护肤", "数码电子", "服饰运动", "食品零食",
-                             "500 元以内", "1000 左右"]
+            clarify_chips = (
+                ["Beauty & skincare", "Electronics", "Sportswear",
+                 "Snacks", "Under ¥500", "Under ¥1000"]
+                if lang == "en" else
+                ["美妆护肤", "数码电子", "服饰运动", "食品零食",
+                 "500 元以内", "1000 左右"])
     if clarify_dims is None and not empty_query and not out_of_domain:
         if _has_image(req.messages):
             img_bytes_list = _extract_image_bytes_list(req.messages)
@@ -892,6 +937,8 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         system = _CLARIFY_PROMPT.format(dimensions=clarify_dims)
     else:
         system = _PROMPT.format(catalog=_build_catalog(products)) + addendum
+    if lang == "en":
+        system += _EN_REPLY_ADDENDUM
     if _has_image(req.messages):
         last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
         user_content = last_user.model_dump()["content"] if last_user else user_text
@@ -935,12 +982,8 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             # Short-circuit: skip retrieval cards + the LLM so we never emit a
             # reply that contradicts the action (e.g. the order sheet opens
             # while the text says "目录没货,无法下单"). Emit one canned line.
-            _cart_reply = {
-                "checkout": "好的,正在为你结算 ✅",
-                "add": "已加入购物车 ✅",
-                "remove": "已从购物车移除 ✅",
-                "set_quantity": "已更新购物车数量 ✅",
-            }.get(cart_event.get("action", ""), "好的 ✅")
+            _replies = _CART_REPLIES.get(lang, _CART_REPLIES["zh"])
+            _cart_reply = _replies.get(cart_event.get("action", ""), _replies["_"])
             yield _sse({"type": "delta", "text": _cart_reply})
             yield _sse({"type": "done"})
             return
@@ -954,11 +997,20 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         # R11.fix — empty/whitespace input: canned clarify, no LLM call (the
         # provider 400s on empty content). Single clarify + a friendly nudge.
         if empty_query:
-            yield _sse({"type": "clarify",
-                        "chips": ["推荐保湿面霜", "推荐运动鞋", "推荐降噪耳机", "推荐零食"]})
-            yield _sse({"type": "delta",
-                        "text": "你想找点什么呢?直接说品类、预算或场景就行,"
-                                "比如「五百元以内的降噪耳机」。"})
+            if lang == "en":
+                yield _sse({"type": "clarify",
+                            "chips": ["Moisturizer", "Running shoes",
+                                      "Noise-cancelling headphones", "Snacks"]})
+                yield _sse({"type": "delta",
+                            "text": "What are you looking for? Just name a category, "
+                                    "budget or occasion — e.g. “noise-cancelling "
+                                    "headphones under ¥500”."})
+            else:
+                yield _sse({"type": "clarify",
+                            "chips": ["推荐保湿面霜", "推荐运动鞋", "推荐降噪耳机", "推荐零食"]})
+                yield _sse({"type": "delta",
+                            "text": "你想找点什么呢?直接说品类、预算或场景就行,"
+                                    "比如「五百元以内的降噪耳机」。"})
             yield _sse({"type": "done"})
             return
 

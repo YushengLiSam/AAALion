@@ -43,7 +43,7 @@ struct SettingsView: View {
                 } header: {
                     Text("语言 / Language")
                 } footer: {
-                    Text("切换后整个 App 立即生效,包括导购助手的回复语言。\nSwitches the entire app immediately — including the assistant's reply language.")
+                    Text("切换后整个 App 立即生效,包括导购助手的回复语言。")
                 }
 
                 if devMode {
