@@ -73,7 +73,7 @@ If `/ready` is not `ready`, wait — `/chat/stream` returns 503 while warming
 |---|---|---|---|
 | 1 | "推荐一款适合油皮的洗面奶" | RAG retrieval + **provenance tags** `[目录✓]` (green) vs `[推断?]` (amber) | the green/amber badges — this is the anti-hallucination story |
 | 2 | "150 元以内的口红" | hard budget filter (CNY-normalized) | all cards ≤ ¥150 |
-| 3 | "不要苹果的耳机" then "也不要 Sony 的" | multi-turn **negation that persists** | no Apple/Sony cards across both turns |
+| 3 | "推荐降噪耳机,不要苹果" then "也不要 Sony 的" | multi-turn **negation that persists** | Apple gone turn 1, Sony also gone turn 2 (3→2 cards) |
 | 4 | upload a product photo | **multimodal** CLIP image search | matches the same product |
 | 5 | "Sony WH-1000XM5 和 Bose QC45 哪个好" | comparison → markdown table | side-by-side table |
 | 6 | "帮我下单" → confirm sheet | agentic **one-tap order** (R12) | order sheet opens, no contradicting text |
@@ -104,8 +104,10 @@ repurchase reminders (复购), account login (手机号/密码/Apple).
   prices/specs. Contrast with sycophantic "I can't find that" assistants.
 - **Hybrid retrieval**: dense (BGE) + BM25 + cross-encoder rerank; eval
   recall@5 ≈ 0.88, MRR ≈ 0.83, negation accuracy 1.000 on the audited set.
-- **Latency**: two cache layers (response + retrieval memo) turn an ~8s cold
-  retrieval into ~0.3s on repeats; that is why pre-warming matters.
+- **Latency**: two cache layers (response + retrieval memo). Measured on the
+  live CPU VM via `tools/warm-demo.py`: a **cold** English query is ~15-18s to
+  first token; **warmed it is ~1s (≈16× faster)**, Chinese ~4-11s → ~1s. That
+  is exactly why the §1.3 pre-warm matters — every scripted query lands warm.
 - **Multimodal**: CLIP image collection for "photo → same product".
 - **Full loop**: cart, one-tap order, group-buy, price-watch, repurchase,
   per-account preferences, and an in-app Chinese/English toggle.
