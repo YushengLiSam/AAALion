@@ -26,6 +26,7 @@ import re
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from app.services.jwt_session import issue as issue_jwt, verify as verify_jwt
 from app.services.user_store import get_user_store
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -70,6 +71,10 @@ class MigrateRequest(BaseModel):
     to_user_id: str = Field(min_length=1, max_length=128)
 
 
+class TokenVerifyRequest(BaseModel):
+    jwt: str = Field(min_length=8, max_length=2048)
+
+
 # R11 — account management requests.
 class PasswordChangeRequest(BaseModel):
     user_id: str = Field(min_length=1, max_length=128)
@@ -97,10 +102,15 @@ class AdminDeleteRequest(BaseModel):
 
 
 def _with_token(user: dict) -> dict:
-    # Demo: token == user_id. Cloud may return a signed token instead;
-    # the client treats it opaquely.
+    # Demo: the opaque `token` stays == user_id so the existing client keeps
+    # working unchanged. We ALSO issue a real signed, expiring HS256 JWT in
+    # `jwt` (verify via POST /auth/verify) — the production-grade session
+    # credential, additive and backward-compatible (clients ignore extra keys).
     user = dict(user)
-    user["token"] = user.get("user_id")
+    uid = user.get("user_id")
+    user["token"] = uid
+    if uid:
+        user["jwt"] = issue_jwt(uid)
     return user
 
 
@@ -181,6 +191,17 @@ async def me_endpoint(user_id: str) -> dict:
 async def migrate_endpoint(req: MigrateRequest) -> dict:
     store = get_user_store()
     return await asyncio.to_thread(store.migrate, req.from_user_id, req.to_user_id)
+
+
+@router.post("/verify")
+async def verify_token_endpoint(req: TokenVerifyRequest) -> dict:
+    """Validate the signed session JWT returned in `jwt` at login. Demonstrates
+    the production-grade verifiable token (the demo's opaque `token` path is
+    unchanged). Returns the decoded subject + expiry, or 401 if invalid/expired."""
+    payload = verify_jwt(req.jwt)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="invalid or expired token")
+    return {"valid": True, "user_id": payload.get("sub"), "exp": payload.get("exp")}
 
 
 # ---------------------------------------------------------------------------
