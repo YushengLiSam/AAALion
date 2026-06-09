@@ -239,9 +239,18 @@ def _product_card_event(p: dict) -> dict:
 
 # Intent detection for 4.1 cart flow.
 _ADD_TO_CART = re.compile(r"加入?购物?车|加购|加入车|放购物?车")
-_CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单")
+# "买单(?!反)" so "买单反相机"/"买单反" (DSLR camera) doesn't false-match the
+# "买单" (pay-the-bill) checkout verb.
+_CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单(?!反)")
+# A NEGATED checkout ("先不要下单" / "不下单了" / "暂时不结算") is the user
+# DECLINING to order — it must not trigger checkout. .search() finds the
+# negation anywhere; the checkout verb is the same set as _CHECKOUT.
+_NEG_CHECKOUT = re.compile(
+    r"(?:先不|先别|暂不|暂时不|还不|不用|不想|没|别|不)(?:要|想|用|着急|急着|现在|马上)?"
+    r"(?:下单|结(?:账|算)|去结算|买单)"
+)
 # R11.demo-fix — conversational cart CLEAR ("把购物车清空" / "全部删掉").
-# Distinct from _REMOVE_FROM_CART (which needs an ordinal): clear drops ALL
+# Distinct from the remove path (which needs an ordinal): clear drops ALL
 # lines, so it must NOT require a 第N个. iOS maps action=clear → cart.clear().
 _CLEAR_CART = re.compile(r"清空|全部删(?:掉|除|了)|都删(?:掉|了)|删光|全部(?:移除|清掉)|清掉购物车|全清")
 
@@ -301,7 +310,14 @@ def _count_claim_markers(text: str) -> dict[str, int]:
 # intent plus an ordinal so iOS can drop the Nth cart line. The ordinal is
 # 1-based (第一个=1); the client converts to a 0-based index. "最后一个"
 # maps to a sentinel -1 the client interprets as "last".
-_REMOVE_FROM_CART = re.compile(r"删(?:掉|除)?|去掉|移除|拿掉|不要(?!.*[?？])|清掉")
+# Explicit, unambiguous cart-delete verbs (always a cart op when + ordinal).
+_REMOVE_VERB = re.compile(r"删(?:掉|除)?|去掉|移除|拿掉|清掉")
+# "不要" is ambiguous: "不要第二个" can mean "delete cart line 2" OR (far more
+# often in a recommendation flow) "I don't want the 1st RESULT, show others".
+# Treat "不要 + 序数" as a cart delete ONLY with explicit cart context;
+# otherwise it's a search refinement and must flow to retrieval.
+_REMOVE_NEG = re.compile(r"不要(?!.*[?？])")
+_CART_CONTEXT = re.compile(r"购物车|车里|车中|购物袋|袋里")
 _CN_NUM = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
            "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
 _ORDINAL_RE = re.compile(r"第\s*([0-9一二两三四五六七八九十]+)\s*(?:个|件|款|项)?")
@@ -366,7 +382,7 @@ def _parse_set_quantity(text: str) -> tuple[int, int] | None:
 def _detect_cart_intent(text: str) -> dict | None:
     if not text:
         return None
-    if _CHECKOUT.search(text):
+    if _CHECKOUT.search(text) and not _NEG_CHECKOUT.search(text):
         return {"type": "cart_intent", "action": "checkout"}
     # Clear the whole cart ("把购物车清空") — before remove, since clear has
     # no ordinal and remove requires one.
@@ -378,9 +394,14 @@ def _detect_cart_intent(text: str) -> dict | None:
     if sq is not None:
         return {"type": "cart_intent", "action": "set_quantity", "index": sq[0], "quantity": sq[1]}
     # Remove only fires when there's BOTH a remove verb AND an ordinal /
-    # "最后" — keeps "不要日系" (a negation filter, not a cart op) from
-    # being misread as a delete.
-    if _REMOVE_FROM_CART.search(text):
+    # "最后". Explicit delete verbs (删/去掉/移除/...) are unambiguous; the
+    # ambiguous "不要 + 序数" additionally requires explicit cart context so
+    # "不要第一个,换别的推荐" (refine search results) is NOT misread as a
+    # cart delete and short-circuited away from retrieval.
+    remove_signal = _REMOVE_VERB.search(text) or (
+        _REMOVE_NEG.search(text) and _CART_CONTEXT.search(text)
+    )
+    if remove_signal:
         ordinal = _parse_ordinal(text)
         if ordinal is not None:
             return {"type": "cart_intent", "action": "remove", "index": ordinal}
