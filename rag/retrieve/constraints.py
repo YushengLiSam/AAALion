@@ -47,7 +47,12 @@ _INFERRED_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
                   "口红", "唇釉", "唇膏", "唇彩", "粉底", "散粉", "蜜粉", "眼霜", "眉笔",
                   "卸妆", "面膜", "护肤", "彩妆")),
     ("数码电子", ("耳机", "手机", "折叠屏", "笔记本", "平板", "相机", "摄像机",
-                  "游戏机", "游戏主机", "任天堂", "switch", "电脑")),
+                  "游戏机", "游戏主机", "任天堂", "switch", "电脑",
+                  # R12.bugfix — English/brand product-line names so a single
+                  # query OR a multi-turn opener like "推荐 iPhone" pins to
+                  # 数码电子 and follow-ups inherit the aisle. Match is
+                  # casefold-insensitive (see _category), so lowercase is fine.
+                  "iphone", "ipad", "airpods", "macbook", "apple watch")),
     ("服饰运动", ("卫衣", "羽绒", "球衣", "球服", "运动服", "运动上衣", "运动外套",
                   "牛仔裤", "瑜伽裤", "篮球鞋", "T恤", "上衣", "衣服", "服装",
                   "帽子", "卫裤", "短袖", "外套", "夹克")),
@@ -217,18 +222,22 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
 
 
 def _category(text: str) -> str | None:
+    # casefold so English/brand keywords ("iphone", "switch", "T恤") match
+    # regardless of the casing the user typed ("iPhone", "Switch", "iPHONE").
+    low = (text or "").casefold()
     for category, terms in _DIRECT_CATEGORIES:
-        if any(term in text for term in terms):
+        if any(term.casefold() in low for term in terms):
             return category
     for category, terms in _INFERRED_CATEGORIES:
-        if any(term in text for term in terms):
+        if any(term.casefold() in low for term in terms):
             return category
     return None
 
 
 def _sub_categories(text: str) -> list[str] | None:
+    low = (text or "").casefold()
     for terms, values in _SUB_CATEGORY_RULES:
-        if any(term in text for term in terms):
+        if any(term.casefold() in low for term in terms):
             return list(values)
     return None
 
