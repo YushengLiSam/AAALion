@@ -27,7 +27,7 @@ import urllib.request
 # clarity). "(?<!有)没有" so "有没有X" (a POSITIVE availability question, e.g.
 # "有没有华为手机") is NOT read as "exclude X" — only a bare "没有X" still counts.
 _NEG_PHRASE_RE = re.compile(
-    r"(?:不想要|不需要|不要|别要|不买|不选|除了|不含|不带|不是|排除|也不要|(?<!有)没有)\s*([^,，。;；！!?？]+)"
+    r"(?:不想要|不需要|不要|别要|别给我|不考虑|不买|不选|除了|不含|不带|不是|排除|也不要|(?<!有)没有)\s*([^,，。;；！!?？]+)"
 )
 
 
@@ -91,7 +91,8 @@ def extract_negation(text: str) -> dict:
     """Best-effort extraction. Silent fallback to {} on any error
     (the prompt still has a fallback rule, so behavior degrades gracefully)."""
     if not text or not any(neg in text for neg in (
-        "不要", "别要", "不想要", "不需要", "不买", "不选", "不含", "不带", "除了", "排除"
+        "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不买", "不选",
+        "不含", "不带", "除了", "排除", "就算了", "就不看", "不用了"
     )):
         return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
 

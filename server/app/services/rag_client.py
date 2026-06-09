@@ -117,8 +117,8 @@ def retrieval_cache_stats() -> dict:
 
 def _negation_signals(text: str) -> bool:
     return any(s in text for s in (
-        "不要", "别要", "不想要", "不需要", "不买", "不选",
-        "不含", "不带", "除了", "排除", "no ", "without",
+        "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不买", "不选",
+        "不含", "不带", "除了", "排除", "就算了", "就不看", "不用了", "no ", "without",
     ))
 
 
@@ -153,6 +153,37 @@ def _reconcile_negation_with_includes(neg: dict, retrieval_filter) -> dict:
     if cat and neg.get("exclude_categories"):
         neg["exclude_categories"] = [c for c in neg["exclude_categories"] if c != cat]
     return neg
+
+
+def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str], top: int = 5) -> list[dict]:
+    """Comparison coverage: keep each NAMED brand in the top `top`, so a reranker
+    that doubles up on one brand doesn't drop another (e.g. a 4-brand compare
+    losing 华为). Promotes a missing brand's best candidate into the top window,
+    demoting the lowest slot of an over-represented brand. No-op when every named
+    brand is already covered or absent from the result set entirely."""
+    if len(candidates) <= top or len([b for b in named_brands if b]) < 2:
+        return candidates
+
+    def _matches(prod, terms):
+        b = (prod.get("brand") or "").casefold()
+        return any(t and (t in b or b in t) for t in terms)
+
+    head, tail = candidates[:top], candidates[top:]
+    for nb in named_brands:
+        terms = _brand_match_terms(nb)
+        if any(_matches(p, terms) for p in head):
+            continue
+        idx = next((i for i, p in enumerate(tail) if _matches(p, terms)), None)
+        if idx is None:
+            continue  # this brand has no product anywhere in the result set
+        promote = tail.pop(idx)
+        from collections import Counter
+        hbrands = [(p.get("brand") or "").casefold() for p in head]
+        cnt = Counter(hbrands)
+        drop_i = next((i for i in range(len(head) - 1, -1, -1) if cnt[hbrands[i]] > 1), len(head) - 1)
+        tail.insert(0, head.pop(drop_i))
+        head.append(promote)
+    return head + tail
 
 
 # R8.F.6: well-known Apple product-line tokens the user might type. When
@@ -430,6 +461,11 @@ def _heavy_retrieve(
             )
         except Exception:
             pass
+
+    # Per-entity comparison coverage: only when the query is a comparison naming
+    # ≥2 brands — guarantees each named brand a slot so none gets dropped.
+    if _is_comparison and retrieval_filter and (getattr(retrieval_filter, "brand_include", None) or []):
+        candidates = _ensure_brand_coverage(candidates, retrieval_filter.brand_include, top=5)
 
     return candidates
 

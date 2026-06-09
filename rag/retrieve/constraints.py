@@ -31,9 +31,24 @@ _PRICE_MAX_EN_RE = re.compile(
     re.IGNORECASE,
 )
 _NEGATED_PREFIX_RE = re.compile(
-    r"(?:不想要|不需要|不要|别要|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;的]*$",
+    r"(?:不想要|不需要|不要|别要|别给我|不考虑|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;的]*$",
     re.IGNORECASE,
 )
+# SUFFIX dismissal: the brand comes FIRST, then a clause-final brush-off
+# ("小米的就算了" / "苹果的就不看了" / "安热沙的不要"). Distinct from the prefix
+# forms above and from 以外/之外. Applied to the text right AFTER the brand.
+_SUFFIX_DISMISS_RE = re.compile(
+    r"^的?\s*(?:这个|那个|那款|的话)?\s*(?:就)?"
+    r"(?:算了|不用了?|不考虑了?|不看了?|不喜欢|跳过|pass|不行了?|不要了)"
+)
+# Bare suffix "X的不要" — only when clause-final, so "苹果的不要太贵" (price
+# modifier) does NOT wrongly exclude the positively-asked brand.
+_SUFFIX_BUYAO_RE = re.compile(r"^的?\s*不要\s*(?=[，。,；;]|$)")
+
+
+def _is_suffix_negated(text: str, end: int) -> bool:
+    window = text[end:end + 12]
+    return bool(_SUFFIX_DISMISS_RE.match(window) or _SUFFIX_BUYAO_RE.match(window))
 
 _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("美妆护肤", ("美妆护肤", "护肤品", "护肤")),
@@ -202,11 +217,30 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
     result.brand_include = included or None
     result.brand_exclude = excluded or None
 
+    # Category-conflict guard: a scene/attribute word can infer a category that
+    # contradicts the more-specific sub_category or the named brands — e.g.
+    # "对比防晒...哪个更适合户外" infers 户外运动 while 防晒 is 美妆护肤, so the AND
+    # filter (category × sub) returns 0. The specific signal wins: drop the
+    # inferred category when the catalog has no (category, sub_category) pair for
+    # it, or (absent subs) none of the included brands live in it.
+    if result.category:
+        pairs = _catalog_cat_subcats()
+        bcats = _catalog_brand_cats()
+        sub_conflict = bool(result.sub_categories) and not any(
+            (result.category, sc) in pairs for sc in result.sub_categories
+        )
+        brand_conflict = bool(result.brand_include) and not any(
+            result.category in bcats.get(str(b).casefold(), frozenset()) for b in result.brand_include
+        )
+        if sub_conflict or (not result.sub_categories and brand_conflict):
+            result.category = None
+
     # R8: extract country-trigger keywords ("日系" / "美系" / ...) locally
     # so they persist across multi-turn conversations via Filter state.
     # `apply_negation` resolves these to ISO codes through brand_origin.
     if text and any(neg in text for neg in (
-        "不要", "别要", "不想要", "不需要", "不含", "不带", "除了", "排除", "也不要"
+        "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不含", "不带",
+        "除了", "排除", "也不要", "就算了", "就不看", "不用了"
     )):
         try:
             from rag.retrieve.negation import _local_country_keywords
@@ -274,6 +308,38 @@ def _catalog_brands() -> tuple[str, ...]:
     return tuple(sorted(brands, key=len, reverse=True))
 
 
+@lru_cache(maxsize=1)
+def _catalog_cat_subcats() -> frozenset[tuple[str, str]]:
+    """Valid (category, sub_category) pairs that actually exist in the catalog —
+    used to detect when an inferred category contradicts a more-specific
+    sub_category (e.g. '防晒' is 美妆护肤, never 户外运动)."""
+    pairs: set[tuple[str, str]] = set()
+    for path in (REPO_ROOT / "data" / "seed").glob("*/data/*.json"):
+        try:
+            p = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        c, s = p.get("category"), p.get("sub_category")
+        if isinstance(c, str) and isinstance(s, str):
+            pairs.add((c.strip(), s.strip()))
+    return frozenset(pairs)
+
+
+@lru_cache(maxsize=1)
+def _catalog_brand_cats() -> dict[str, frozenset[str]]:
+    """brand (casefold) → set of categories it appears in."""
+    out: dict[str, set[str]] = {}
+    for path in (REPO_ROOT / "data" / "seed").glob("*/data/*.json"):
+        try:
+            p = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        b, c = p.get("brand"), p.get("category")
+        if isinstance(b, str) and isinstance(c, str):
+            out.setdefault(b.strip().casefold(), set()).add(c.strip())
+    return {k: frozenset(v) for k, v in out.items()}
+
+
 def _brand_terms(catalog_brand: str) -> set[str]:
     from rag.retrieve.brand_origin import BRAND_ALIASES
 
@@ -290,14 +356,19 @@ def _brands(text: str) -> tuple[list[str], list[str]]:
     included: list[str] = []
     excluded: list[str] = []
     for catalog_brand in _catalog_brands():
-        positions = [
-            lowered.find(term)
+        hits = [
+            (lowered.find(term), len(term))
             for term in _brand_terms(catalog_brand)
             if lowered.find(term) >= 0
         ]
-        if not positions:
+        if not hits:
             continue
-        is_excluded = any(_is_negated(lowered, position) for position in positions)
+        # Excluded if any occurrence is negated by a prefix ("不要X"/"别给我X"),
+        # the 以外/之外 suffix, or a clause-final brush-off ("X的就算了"/"X的不要").
+        is_excluded = any(
+            _is_negated(lowered, pos) or _is_suffix_negated(lowered, pos + tlen)
+            for pos, tlen in hits
+        )
         target = excluded if is_excluded else included
         target.append(catalog_brand)
     excluded_set = set(excluded)
