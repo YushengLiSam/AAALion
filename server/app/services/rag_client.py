@@ -123,11 +123,19 @@ def _negation_signals(text: str) -> bool:
 
 
 def _brand_match_terms(brand) -> set[str]:
-    """Casefolded brand + alias terms, used to compare include vs exclude."""
+    """Casefolded brand + alias terms, used to compare include vs exclude.
+
+    Also expands the brand's individual whitespace/paren-split tokens: the
+    catalog stores some brands as combined strings ("Apple 苹果", "华为（HUAWEI）")
+    that have no alias cluster of their own, so without splitting they wouldn't
+    merge with their own aliases ("Apple"/"苹果") and a single brand would look
+    like several."""
     terms = {str(brand).casefold()}
     try:
         from rag.retrieve.brand_origin import expand_brand_aliases
-        terms |= {str(t).casefold() for t in expand_brand_aliases(brand)}
+        tokens = [brand] + str(brand).replace("（", " ").replace("）", " ").split()
+        for tok in tokens:
+            terms |= {str(t).casefold() for t in expand_brand_aliases(tok)}
     except Exception:
         pass
     return terms
@@ -155,27 +163,67 @@ def _reconcile_negation_with_includes(neg: dict, retrieval_filter) -> dict:
     return neg
 
 
-def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str], top: int = 5) -> list[dict]:
-    """Comparison coverage: keep each NAMED brand in the top `top`, so a reranker
-    that doubles up on one brand doesn't drop another (e.g. a 4-brand compare
-    losing 华为). Promotes a missing brand's best candidate into the top window,
-    demoting the lowest slot of an over-represented brand. No-op when every named
-    brand is already covered or absent from the result set entirely."""
-    if len(candidates) <= top or len([b for b in named_brands if b]) < 2:
+def _distinct_brand_count(brand_include) -> int:
+    """Count DISTINCT real brands, grouping aliases. The catalog stores some
+    brands under several strings ("Apple 苹果" / "Apple" / "苹果"), so a plain
+    len() over-counts and mis-classifies a single-brand query ("推荐iphone") as
+    multi-brand — which then wrongly skips the product-line anchor filter and
+    returns the whole Apple line instead of just iPhone."""
+    groups: list[set[str]] = []
+    for b in (brand_include or []):
+        terms = _brand_match_terms(b)
+        for g in groups:
+            if g & terms:
+                g |= terms
+                break
+        else:
+            groups.append(set(terms))
+    return len(groups)
+
+
+def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str],
+                           anchors: tuple[str, ...] = (), top: int = 5) -> list[dict]:
+    """Comparison coverage: keep each NAMED entity in the top `top`, so a reranker
+    that doubles up on one doesn't drop another (a 4-brand compare losing 华为).
+    Product-line-aware: when a line anchor is named ("iphone"), that entity is
+    matched by TITLE token, not by brand — so "iphone华为小米" fills the Apple slot
+    with an iPhone, not an iPad. Promotes a missing entity's best candidate into
+    the top window, demoting the lowest slot of an over-represented brand."""
+    anchor_set = {a.casefold() for a in anchors}
+    # Build coverage entities: (kind, matcher). Line anchors match by title; a
+    # brand that OWNS a present anchor (Apple owns iphone) is skipped — the
+    # precise anchor entity covers it.
+    entities: list[tuple[str, set[str]]] = [("title", {a}) for a in anchor_set]
+    for nb in named_brands or []:
+        terms = _brand_match_terms(nb)
+        if anchor_set and (anchor_set & terms):
+            continue
+        entities.append(("brand", terms))
+    # dedupe entities
+    seen: list[set[str]] = []
+    uniq = []
+    for kind, m in entities:
+        if any(m == s for s in seen):
+            continue
+        seen.append(m); uniq.append((kind, m))
+    entities = uniq
+    if len(candidates) <= top or len(entities) < 2:
         return candidates
 
-    def _matches(prod, terms):
+    def _match(prod, kind, m):
+        if kind == "title":
+            t = (prod.get("title") or "").lower()
+            return any(tok in t for tok in m)
         b = (prod.get("brand") or "").casefold()
-        return any(t and (t in b or b in t) for t in terms)
+        return any(tok and (tok in b or b in tok) for tok in m)
 
     head, tail = candidates[:top], candidates[top:]
-    for nb in named_brands:
-        terms = _brand_match_terms(nb)
-        if any(_matches(p, terms) for p in head):
+    for kind, m in entities:
+        if any(_match(p, kind, m) for p in head):
             continue
-        idx = next((i for i, p in enumerate(tail) if _matches(p, terms)), None)
+        idx = next((i for i, p in enumerate(tail) if _match(p, kind, m)), None)
         if idx is None:
-            continue  # this brand has no product anywhere in the result set
+            continue  # this entity has no product anywhere in the result set
         promote = tail.pop(idx)
         from collections import Counter
         hbrands = [(p.get("brand") or "").casefold() for p in head]
@@ -432,7 +480,7 @@ def _heavy_retrieve(
     # brands it wrongly strips the OTHER brand → "目录里没有小米". Skip it there;
     # the reranker already surfaces both (verified live on the 145-item index).
     _is_comparison = bool(_COMPARISON_RE.search(text))
-    _multi_brand = bool(retrieval_filter and len(getattr(retrieval_filter, "brand_include", None) or []) >= 2)
+    _multi_brand = bool(retrieval_filter) and _distinct_brand_count(getattr(retrieval_filter, "brand_include", None)) >= 2
     if not (_is_comparison or _multi_brand):
         candidates = _filter_by_product_line(text, candidates)
 
@@ -462,10 +510,12 @@ def _heavy_retrieve(
         except Exception:
             pass
 
-    # Per-entity comparison coverage: only when the query is a comparison naming
-    # ≥2 brands — guarantees each named brand a slot so none gets dropped.
-    if _is_comparison and retrieval_filter and (getattr(retrieval_filter, "brand_include", None) or []):
-        candidates = _ensure_brand_coverage(candidates, retrieval_filter.brand_include, top=5)
+    # Per-entity coverage: a comparison OR a bare multi-brand list ("iphone华为
+    # 小米呢") should keep EACH named brand in the top-5, so the reranker doubling
+    # up on one doesn't drop another (was losing iPhone here).
+    if (_is_comparison or _multi_brand) and retrieval_filter and (getattr(retrieval_filter, "brand_include", None) or []):
+        _anchors = tuple(a for a in _PRODUCT_LINE_ANCHORS if a in text.lower())
+        candidates = _ensure_brand_coverage(candidates, retrieval_filter.brand_include, anchors=_anchors, top=5)
 
     return candidates
 
