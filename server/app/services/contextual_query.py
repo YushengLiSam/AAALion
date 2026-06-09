@@ -44,6 +44,19 @@ def message_text(message: ChatMessage) -> str:
     return "\n".join(parts).strip()
 
 
+# "不要X的Y" (X = brand/attribute, Y = category) — a leading negation. The
+# greedy negation extractor sweeps the positive object Y into the exclusion set,
+# so retrieval drops the whole category and returns nothing ("不要苹果的耳机" → 0
+# cards). Reordering to "Y 不要X" puts the positive object first (the phrasing
+# that already works, e.g. "耳机不要苹果"), leaving only X to be excluded.
+_NEG_OBJ_RE = re.compile(r"^(不要|别要|不想要|不需要|不买|不选)([^的，。,；;\s]{1,12})的([^，。,；;]{1,16})$")
+
+
+def _reorder_negation_object(text: str) -> str:
+    m = _NEG_OBJ_RE.match(text.strip())
+    return f"{m.group(3)} {m.group(1)}{m.group(2)}" if m else text
+
+
 def build_retrieval_query(messages: Iterable[ChatMessage], *, fallback: str = "拍照找货") -> str:
     """Return the query string to send to RAG.
 
@@ -65,6 +78,10 @@ def build_retrieval_query(messages: Iterable[ChatMessage], *, fallback: str = "�
     current = current.strip()
     if not current or current == "(image-only query)":
         return fallback
+
+    # "不要X的Y" → "Y 不要X" so the positive object anchors retrieval and only X
+    # is excluded (fixes "不要苹果的耳机" returning 0 cards).
+    current = _reorder_negation_object(current)
 
     if not _looks_like_followup(current):
         return current
