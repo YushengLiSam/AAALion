@@ -572,12 +572,18 @@ async def _stream_chat_with_retry(provider, history: list[dict], max_attempts: i
     """Async-iterate provider.stream_chat with exponential backoff on early errors."""
     delay = 0.5
     for attempt in range(1, max_attempts + 1):
+        yielded = False
         try:
             async for delta in provider.stream_chat(history):
+                yielded = True
                 yield delta
             return
         except Exception as e:  # noqa: BLE001
-            if attempt == max_attempts:
+            # Once a token has gone out, a retry would re-stream the whole answer
+            # and the user sees it twice — so only retry on EARLY errors (before
+            # any delta). Mid-stream failures propagate as-is, matching the
+            # docstring above.
+            if yielded or attempt == max_attempts:
                 raise
             log.warning(f"LLM upstream error (attempt {attempt}/{max_attempts}): {e}; backoff {delay}s")
             await asyncio.sleep(delay)
@@ -1085,7 +1091,10 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 if t_first_delta is None:
                     t_first_delta = time.perf_counter()
         except Exception as e:  # noqa: BLE001
-            err = {"type": "error", "message": str(e), "code": "UPSTREAM"}
+            # Raw upstream errors (model name, URL, request id) must not leak to
+            # the client — log them, show a fixed friendly message.
+            log.warning(f"LLM stream failed after retries: {e}")
+            err = {"type": "error", "message": "抱歉，服务暂时不可用，请稍后重试。", "code": "UPSTREAM"}
             yield _sse(err)
             events_to_cache.append(err)
 
@@ -1104,8 +1113,14 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         yield _sse(done)
         events_to_cache.append(done)
 
-        # Don't pollute the cache with error-only streams.
-        if any(e.get("type") == "delta" for e in events_to_cache):
+        # Only cache a clean, complete stream: it must carry real text (≥1
+        # delta) AND have hit no error. The old guard checked deltas only, so a
+        # stream that emitted a few tokens and THEN errored got cached — every
+        # repeat of that query then replayed the error (and stale text) for the
+        # full TTL instead of re-hitting the recovered upstream.
+        has_delta = any(e.get("type") == "delta" for e in events_to_cache)
+        has_error = any(e.get("type") == "error" for e in events_to_cache)
+        if has_delta and not has_error:
             cache.put(cache_key, events_to_cache)
 
         t_done = time.perf_counter()
