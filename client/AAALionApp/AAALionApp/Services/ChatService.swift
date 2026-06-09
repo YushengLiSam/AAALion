@@ -84,46 +84,72 @@ struct ChatService {
     func stream(messages: [Message], filters: ChatRequest.Filters? = nil) -> AsyncThrowingStream<ChatDelta, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
-                do {
-                    let request = try buildRequest(messages: messages, filters: filters)
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                        throw NSError(
-                            domain: "ChatService",
-                            code: (response as? HTTPURLResponse)?.statusCode ?? -1,
-                            userInfo: [NSLocalizedDescriptionKey: "Unexpected status from backend"]
-                        )
-                    }
-                    // Each event arrives as a single `data: …` line on this
-                    // platform; `URLSession.bytes(_:).lines` is observed to
-                    // elide blank separator lines on iOS 17/18, so we decode
-                    // line-by-line rather than relying on the SSE empty-line
-                    // boundary.
-                    let decoder = JSONDecoder()
-                    for try await line in bytes.lines {
-                        if Task.isCancelled { break }
-                        let payload: String
-                        if line.hasPrefix("data: ") {
-                            payload = String(line.dropFirst(6))
-                        } else if line.hasPrefix("data:") {
-                            payload = String(line.dropFirst(5))
-                        } else {
+                // R12 — demo robustness: retry the INITIAL connection on a 503
+                // (backend still warming up behind the /ready gate) or a
+                // transient network error, but only before any event has been
+                // streamed — a mid-stream retry would duplicate the reply.
+                let maxAttempts = 3
+                var yieldedAny = false
+                for attempt in 1...maxAttempts {
+                    do {
+                        let request = try buildRequest(messages: messages, filters: filters)
+                        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                        guard let http = response as? HTTPURLResponse else {
+                            throw NSError(domain: "ChatService", code: -1,
+                                          userInfo: [NSLocalizedDescriptionKey: "No HTTP response from backend"])
+                        }
+                        if http.statusCode == 503, !yieldedAny, attempt < maxAttempts {
+                            // Backend warming up — back off briefly and retry.
+                            try await Task.sleep(nanoseconds: UInt64(attempt) * 1_500_000_000)
                             continue
                         }
-                        guard let data = payload.data(using: .utf8) else { continue }
-                        if let event = try? decoder.decode(ChatDelta.self, from: data) {
-                            continuation.yield(event)
-                            if case .done = event { break }
+                        guard http.statusCode == 200 else {
+                            throw NSError(domain: "ChatService", code: http.statusCode,
+                                          userInfo: [NSLocalizedDescriptionKey: "Backend returned HTTP \(http.statusCode)"])
                         }
-                    }
-                    continuation.finish()
-                } catch {
-                    if !Task.isCancelled {
-                        continuation.finish(throwing: error)
-                    } else {
+                        // Each event arrives as a single `data: …` line on this
+                        // platform; `URLSession.bytes(_:).lines` is observed to
+                        // elide blank separator lines on iOS 17/18, so we decode
+                        // line-by-line rather than relying on the SSE empty-line
+                        // boundary.
+                        let decoder = JSONDecoder()
+                        for try await line in bytes.lines {
+                            if Task.isCancelled { break }
+                            let payload: String
+                            if line.hasPrefix("data: ") {
+                                payload = String(line.dropFirst(6))
+                            } else if line.hasPrefix("data:") {
+                                payload = String(line.dropFirst(5))
+                            } else {
+                                continue
+                            }
+                            guard let data = payload.data(using: .utf8) else { continue }
+                            if let event = try? decoder.decode(ChatDelta.self, from: data) {
+                                yieldedAny = true
+                                continuation.yield(event)
+                                if case .done = event { break }
+                            }
+                        }
                         continuation.finish()
+                        return
+                    } catch {
+                        if Task.isCancelled { continuation.finish(); return }
+                        // Retry a transient connection error only if nothing has
+                        // streamed yet; otherwise surface it to the UI.
+                        let transient: Bool = {
+                            guard let u = error as? URLError else { return false }
+                            return [.timedOut, .networkConnectionLost, .cannotConnectToHost,
+                                    .notConnectedToInternet, .cannotFindHost, .dnsLookupFailed].contains(u.code)
+                        }()
+                        if transient, !yieldedAny, attempt < maxAttempts {
+                            try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_500_000_000)
+                            continue
+                        }
+                        continuation.finish(throwing: error)
+                        return
                     }
                 }
+                continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
         }
@@ -131,6 +157,10 @@ struct ChatService {
 
     private func buildRequest(messages: [Message], filters: ChatRequest.Filters?) throws -> URLRequest {
         var request = URLRequest(url: backendURL.appendingPathComponent("chat/stream"))
+        // R12 — explicit inactivity timeout. The CPU-only demo VM can take
+        // ~25-40s to first token on a cold English query; 75s leaves headroom
+        // without hanging the UI forever on a dead backend.
+        request.timeoutInterval = 75
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
