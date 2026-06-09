@@ -79,10 +79,15 @@ _PROMPT = (
     "   - `[推断?]` 如果该信息是基于常识或类似商品推断的(如使用感受/适用场景/化学成分细节);\n"
     "   标签放在该句末尾、句号之前。不要给标题/品牌名加标签,只给\"事实陈述\"加。\n"
     "   示例: \"珊珂洗颜专科 ¥52[目录✓], 适合敏感肌[推断?]。\"\n"
-    "6. **绝不要说『目录是空的 / 没有商品数据』**:下面目录里只要列出了商品,就必须从中推荐。"
-    "若没有完全满足用户某项约束(如『¥150 以内』『送女友』)的,就推荐最接近的几款,并直说"
-    "『没有完全符合的,这几款最接近,可考虑放宽预算』——绝不要因此说目录为空。"
-    "只有当下面目录真的一个商品都没有时,才说『暂时没找到符合的,换个品类或放宽条件试试』。\n"
+    "\n## 必须遵守的纪律(最高优先级)\n"
+    "- 下面的『商品目录』是为本次查询**检索到的候选**,代表检索结果、不是整个商店。"
+    "**绝对禁止**出现『商品目录为空』『目录里只有这几类』『目录商品有限/只有一款』"
+    "『请上传或导入目录』这类说法,也不要建议用户去淘宝/京东/小红书/抖音等其它平台或品牌官网下单。\n"
+    "- 若候选里没有完全符合用户(预算/品类/品牌)的商品:明确说明『没有完全符合的X』,"
+    "再把候选里**最接近**的当作替代推荐(例如最接近预算的几款),照常给推荐和理由,不要空手而归。\n"
+    "- 本应用**自带购物车**:用户说加入购物车/下单结算/删除/清空时,系统已自动完成对应操作,"
+    "你只需用一句话自然确认(如『已为你加入购物车』『正在为你结算』『已清空购物车』),"
+    "**不要**声称自己无法操作购物车、也不要让用户去别处自行操作。\n"
     "\n## 商品目录\n{catalog}\n"
 )
 
@@ -232,6 +237,10 @@ def _product_card_event(p: dict) -> dict:
 # Intent detection for 4.1 cart flow.
 _ADD_TO_CART = re.compile(r"加入?购物?车|加购|加入车|放购物?车")
 _CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单")
+# R11.demo-fix — conversational cart CLEAR ("把购物车清空" / "全部删掉").
+# Distinct from _REMOVE_FROM_CART (which needs an ordinal): clear drops ALL
+# lines, so it must NOT require a 第N个. iOS maps action=clear → cart.clear().
+_CLEAR_CART = re.compile(r"清空|全部删(?:掉|除|了)|都删(?:掉|了)|删光|全部(?:移除|清掉)|清掉购物车|全清")
 
 # R9.A.5 — comparison-intent detector (proposal #10). When the user asks
 # to compare two specific products ("A 和 B 哪个更好 / vs / 对比"), we
@@ -356,6 +365,10 @@ def _detect_cart_intent(text: str) -> dict | None:
         return None
     if _CHECKOUT.search(text):
         return {"type": "cart_intent", "action": "checkout"}
+    # Clear the whole cart ("把购物车清空") — before remove, since clear has
+    # no ordinal and remove requires one.
+    if _CLEAR_CART.search(text):
+        return {"type": "cart_intent", "action": "clear"}
     # Quantity set ("把数量改成2" / "第二个改成3个") — checked before remove
     # since both can mention an ordinal; the set-verb disambiguates.
     sq = _parse_set_quantity(text)
@@ -610,6 +623,103 @@ def _needs_clarification(text: str, messages) -> str | None:
     return "想找哪类商品(比如美妆护肤 / 数码 / 服饰 / 食品)、预算范围、有没有偏好的品牌或风格"
 
 
+# R11.demo-fix — out-of-domain detector. The catalog only sells physical goods
+# in 美妆护肤/数码电子/服饰运动/食品/母婴/家居/图书. A query for a car / flight /
+# hotel / house / weather / stock has NO real match, yet hybrid retrieval still
+# returns its top-5 (random相关性低的卡). When this fires we suppress the cards
+# (products=[]) and tell the LLM to decline politely — no 答非所问的 random 卡.
+# Multi-char phrases only (no bare 车/房) to avoid 厨房/婴儿车-style false hits.
+_OUT_OF_DOMAIN = re.compile(
+    r"汽车|买车|一辆车|租车|车险|机票|订票|订机票|航班|高铁票|火车票|船票|"
+    r"酒店|订房|民宿|房子|房产|买房|卖房|楼盘|租房|户型|"
+    r"天气|气温|下雨|股票|基金|彩票|挂号|看病|外卖|点餐|打车|约车|加油站|"
+    r"贷款|签证|护照|话费充值|游戏点卡|演唱会门票"
+)
+
+
+def _is_out_of_domain(text: str) -> bool:
+    """True when the query is for a service/category the catalog can't serve
+    AND it carries no concrete in-catalog signal. Conservative: a query that
+    also names a real category (e.g. '买车载手机支架') keeps its cards."""
+    if not text:
+        return False
+    if not _OUT_OF_DOMAIN.search(text):
+        return False
+    # If the user ALSO names a real catalog category/brand/budget, don't
+    # suppress — they likely want that catalog item (e.g. 车载耳机).
+    if _has_concrete_signal(text):
+        return False
+    return True
+
+
+# R11.demo-fix — strip price/budget language from a query so the budget-empty
+# FALLBACK retrieval re-fetches the same CATEGORY ignoring the price cap (top_k
+# re-parses the query text for both a hard price filter AND a price-intent
+# layer, so simply dropping the conversation_filter is not enough — the cap
+# would be re-derived from the text. Removing the price phrase is robust).
+_PRICE_PHRASE_RE = re.compile(
+    r"\d+(?:\.\d+)?\s*(?:元|块|万|w|rmb|￥|¥)?\s*"
+    r"(?:以内|以下|以上|之内|内|封顶|不超过|不要超过|左右|起步|起|上下)"
+    r"|预算\s*\d*(?:\s*(?:元|块|万))?"
+    r"|\d+\s*(?:到|-|~|至)\s*\d+\s*(?:元|块)?"
+    r"|便宜(?:点|些|一点|实惠)?|平价|实惠|性价比|划算|高端|高档",
+    re.IGNORECASE,
+)
+
+
+def _strip_price(text: str) -> str:
+    """Remove price/budget phrases; keep the category words for fallback retrieval."""
+    if not text:
+        return text
+    return _PRICE_PHRASE_RE.sub("", text).strip(" ,，、的")
+
+
+# R11.demo-fix — English shopping term → Chinese category hint. The catalog is
+# Chinese; an English query ("recommend a sunscreen") routes to the heavy
+# multilingual reranker which mis-ranks (it buried 防晒 below phones, then the
+# LLM falsely said "没有防晒"). Appending the Chinese category word restores
+# Chinese dense+BM25 recall and anchors the reranker. AUGMENTS, never replaces.
+_EN_CATEGORY_HINTS: tuple[tuple[str, str], ...] = (
+    ("noise cancelling", "降噪耳机"), ("noise-cancelling", "降噪耳机"),
+    ("running shoes", "跑鞋"), ("face wash", "洗面奶"), ("lip gloss", "唇釉"),
+    ("sunscreen", "防晒霜"), ("sunblock", "防晒霜"), ("spf", "防晒霜"),
+    ("lipstick", "口红"), ("moisturizer", "面霜"), ("cleanser", "洁面"),
+    ("serum", "精华"), ("essence", "精华"), ("toner", "化妆水"),
+    ("foundation", "粉底"), ("smartphone", "手机"), ("iphone", "iPhone 手机"),
+    ("laptop", "笔记本电脑"), ("notebook", "笔记本电脑"), ("tablet", "平板"),
+    ("headphones", "耳机"), ("headphone", "耳机"), ("earphones", "耳机"),
+    ("earphone", "耳机"), ("earbuds", "耳机"), ("camera", "相机"),
+    ("keyboard", "键盘"), ("speaker", "音箱"), ("sneakers", "运动鞋"),
+    ("backpack", "双肩包"), ("snacks", "零食"), ("snack", "零食"),
+    ("coffee", "咖啡"), ("diaper", "纸尿裤"), ("toothpaste", "牙膏"),
+    ("phone", "手机"),
+)
+
+
+def _augment_english(query: str, user_text: str) -> str:
+    """Append Chinese category words for any English shopping term present.
+
+    Match with a LEADING word boundary so 'phone' doesn't fire inside
+    'headphones'/'earphones'/'iphone' (only the longer term does), while
+    'spf50' still triggers 'spf'. Fires ONLY on queries with NO Chinese
+    characters — a mixed query like 'iPhone和小米' already retrieves fine in
+    Chinese, and augmenting it would skew the candidate pool."""
+    if any("一" <= c <= "鿿" for c in query):
+        return query
+    if not any("a" <= c <= "z" for c in query.lower()):
+        return query
+    src = f"{query} {user_text}".lower()
+    seen: set[str] = set()
+    hits: list[str] = []
+    for en, zh in _EN_CATEGORY_HINTS:
+        if zh in query or zh in seen:
+            continue
+        if re.search(r"\b" + re.escape(en), src):
+            seen.add(zh)
+            hits.append(zh)
+    return f"{query} {' '.join(hits)}".strip() if hits else query
+
+
 # 主路由:POST /chat/stream → SSE 流式响应。**整个后端最重要的函数**。
 # 流程见文件顶部 docstring 的 7 步。本函数把这 7 步串起来:
 #   503 ready 检查 → 提取文本/图片 → 检索(CLIP or hybrid+rerank) →
@@ -625,7 +735,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
 
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
-    retrieval_query = build_retrieval_query(req.messages)
+    retrieval_query = _augment_english(build_retrieval_query(req.messages), user_text)
+    # R11.fix — empty/whitespace input with no image: skip retrieval AND the
+    # LLM. An empty user message makes the provider 400 (and leaks the raw
+    # upstream error to the client) while retrieval returns random default
+    # cards. Answered with a canned clarify in the generator below.
+    empty_query = (not user_text.strip()) and not _has_image(req.messages)
 
     # Retrieval ----------------------------------------------------------------
     # R8.E.3: top_k* are sync (torch / sentence-transformers under the hood).
@@ -640,6 +755,15 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # retrieval entirely (no product cards) and let the LLM ask a clarifying
     # question via _CLARIFY_PROMPT below.
     clarify_dims = _needs_clarification(user_text, req.messages)
+    # R11.demo-fix — out-of-domain (car/flight/house/weather/...): suppress the
+    # random product cards and let the LLM decline politely (addendum below).
+    out_of_domain = (
+        clarify_dims is None and not empty_query
+        and not _has_image(req.messages) and _is_out_of_domain(user_text)
+    )
+    # Set when a budget/constraint over-filtered to empty and we fell back to
+    # the closest products — drives the "these may exceed budget" addendum.
+    budget_relaxed = False
     # R10 #5 — tappable quick-reply chips for the clarification turn. Each
     # chip is a ready-made next message; tapping it sends concrete signal
     # (品类/预算/对象) so the FOLLOW-UP turn retrieves normally.
@@ -651,7 +775,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         else:
             clarify_chips = ["美妆护肤", "数码电子", "服饰运动", "食品零食",
                              "500 元以内", "1000 左右"]
-    if clarify_dims is None:
+    if clarify_dims is None and not empty_query and not out_of_domain:
         if _has_image(req.messages):
             img_bytes_list = _extract_image_bytes_list(req.messages)
             # CLIP retriever is single-image; use the first attachment as the
@@ -671,6 +795,21 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 user_id=req.user_id,
             )
         products = await asyncio.to_thread(normalize_product_prices, products)
+        # R11.demo-fix — never hand the LLM an empty catalog. A hard price/brand
+        # constraint can filter everything out (e.g. "500 元以内的耳机" when the
+        # cheapest is ¥1686, or "5000 以内笔记本" when the cheapest is ¥6299);
+        # an empty catalog made the LLM claim "商品目录为空 / 请导入目录". Re-fetch
+        # the SAME category with the price language stripped so we always show
+        # the closest products; budget_relaxed tells the LLM they may be over budget.
+        if not products and not _has_image(req.messages) and user_text.strip():
+            fb_query = _strip_price(retrieval_query) or retrieval_query
+            fb = await asyncio.to_thread(
+                top_k, fb_query, k=5,
+                intent_text=(_strip_price(user_text) or None),
+                user_id=req.user_id,
+            )
+            products = await asyncio.to_thread(normalize_product_prices, fb)
+            budget_relaxed = bool(products)
     t_retrieval = time.perf_counter()
 
     # Cart-intent detection ----------------------------------------------------
@@ -730,6 +869,23 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             "3-4 件互补的商品凑成一套(尽量来自不同类目, 比如食品+数码+服饰)。每件用 "
             "[目录✓] 标注价格/品牌,简短说明该件在该场景中的用途。"
         )
+    # R11.demo-fix — budget over-filtered to empty; we fell back to the closest
+    # products. Tell the LLM they may exceed budget so it frames honestly
+    # instead of claiming the catalog is empty.
+    if budget_relaxed:
+        addendum += (
+            "\n\n8. **预算无完全匹配**: 没有完全符合用户预算/约束的商品,下面的候选是目录里"
+            "**最接近**的(可能超出预算或不完全匹配)。请如实说明这一点(例如『没有 X 元以内的,"
+            "目录里最接近的是这几款』)并推荐其中最接近的,**绝不要**说目录为空。"
+        )
+    # R11.demo-fix — out-of-domain: no cards this turn; instruct a polite decline.
+    if out_of_domain:
+        addendum += (
+            "\n\n8. **超出经营范围**: 用户问的是本商城不经营的商品/服务(如汽车/机票/酒店/房产/"
+            "天气等)。请礼貌说明你是电商导购助手、目录里没有该类商品(这属于纪律第二条的例外,"
+            "无需推荐替代商品),并引导用户说出想买的商品品类(美妆/数码/服饰/食品等),不要推荐"
+            "任何不相关商品。"
+        )
     # R10 #5 — on a clarification turn, swap in the 反问 prompt (no catalog,
     # no comparison/scene addendum) so the LLM asks instead of recommending.
     if clarify_dims:
@@ -768,6 +924,10 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         t_first_delta: float | None = None
 
         # Cart intent comes first so iOS can update its UI immediately.
+        # R11.fix — emit LIVE only, do NOT append to events_to_cache: a cached
+        # cart_intent would replay ON TOP of this live one on a cache HIT, so
+        # the client saw it twice (double add / remove / checkout). It's cheap
+        # and deterministic from the query, so live-every-time is correct.
         if cart_event:
             yield _sse(cart_event)
             # R12-fix — a cart-action utterance ("帮我下单" / "加入购物车" /
@@ -786,11 +946,21 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             return
 
         # R10 #5 — clarification chips, emitted early so iOS can render the
-        # tappable quick-replies alongside the LLM's 反问 question.
+        # tappable quick-replies alongside the 反问 question. Same as
+        # cart_event: emit live only, never cache (else double-emit on hit).
         if clarify_chips:
-            clarify_ev = {"type": "clarify", "chips": clarify_chips}
-            yield _sse(clarify_ev)
-            events_to_cache.append(clarify_ev)
+            yield _sse({"type": "clarify", "chips": clarify_chips})
+
+        # R11.fix — empty/whitespace input: canned clarify, no LLM call (the
+        # provider 400s on empty content). Single clarify + a friendly nudge.
+        if empty_query:
+            yield _sse({"type": "clarify",
+                        "chips": ["推荐保湿面霜", "推荐运动鞋", "推荐降噪耳机", "推荐零食"]})
+            yield _sse({"type": "delta",
+                        "text": "你想找点什么呢?直接说品类、预算或场景就行,"
+                                "比如「五百元以内的降噪耳机」。"})
+            yield _sse({"type": "done"})
+            return
 
         # Cache hit: replay quickly.
         if cached_events:

@@ -205,3 +205,64 @@ def apply_negation(products: list[dict], neg: dict) -> list[dict]:
                 continue
         out.append(p)
     return out
+
+
+# ---------------------------------------------------------------------------
+# R11.fix — POSITIVE origin constraint ("要国产 / 国货"). Distinct from the
+# negation extractor above (which only handles 不要X / 除了X). Implemented as a
+# standalone filter so it can't regress the explicit-negation path.
+# ---------------------------------------------------------------------------
+
+_DOMESTIC_RE = re.compile(r"国产|国货|国内品牌|本土品牌|民族品牌")
+_DOMESTIC_NEG_RE = re.compile(r"不要\s*(?:国产|国货|国内品牌)|别要\s*(?:国产|国货)|非国产")
+
+
+def requires_domestic(text: str) -> bool:
+    """True when the user POSITIVELY asks for 国产 / 国货 (CN-origin) products —
+    an origin constraint that should drop foreign brands. Guards against the
+    negated form '不要国产'."""
+    if not text:
+        return False
+    return bool(_DOMESTIC_RE.search(text)) and not _DOMESTIC_NEG_RE.search(text)
+
+
+def apply_domestic_filter(products: list[dict]) -> list[dict]:
+    """Keep only CN-origin (or unknown-origin) products; drop known-foreign
+    brands. Uses brand_origin.product_origin, which resolves AI-gen demo seed
+    by BRAND name (its provenance.origin_country is a mis-tagged 'CN'), so a
+    foreign brand like adidas / HOKA / 迪卡侬 is correctly dropped. Fail-soft:
+    if filtering would empty the list, return the input unchanged."""
+    try:
+        from rag.retrieve.brand_origin import product_origin
+    except Exception:
+        return products
+    out = [p for p in products if (product_origin(p) or "CN") == "CN"]
+    return out if out else products
+
+
+# "X 以外 / X 之外" — exclude brand X (e.g. multi-turn "华为以外还有吗").
+_EXCEPT_RE = re.compile(r"([^，。、；;！!？?\s]{2,16})\s*(?:以外|之外)")
+
+
+def except_brands(text: str) -> list[str]:
+    """Brands the user wants EXCLUDED via the 'X以外 / X之外' pattern (e.g. the
+    multi-turn follow-up '华为以外还有吗'). The phrase before 以外/之外 is
+    intersected with the known-brand set, so a non-brand like '五百元以外'
+    excludes nothing. Standalone — does not touch the 不要X/除了X path."""
+    if not text:
+        return []
+    try:
+        from rag.retrieve.brand_origin import BRAND_ORIGIN
+    except Exception:
+        return []
+    known = sorted(BRAND_ORIGIN.keys(), key=len, reverse=True)
+    found: list[str] = []
+    seen: set[str] = set()
+    for m in _EXCEPT_RE.finditer(text):
+        phrase = m.group(1).lower()
+        for b in known:
+            bl = b.lower()
+            if bl and bl not in seen and bl in phrase:
+                found.append(b)
+                seen.add(bl)
+    return found

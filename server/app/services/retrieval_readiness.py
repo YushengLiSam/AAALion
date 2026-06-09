@@ -36,10 +36,30 @@ def warm_retrieval_pipeline() -> dict[str, str]:
 
     top_k("推荐适合日常使用的商品", k=5)
 
+    # R11.fix — preload CLIP (the image→image retriever) too. It loads a
+    # ~600 MB OpenCLIP model lazily on the first 拍照找货 (~37 s cold), so a
+    # demo-day restart would make the first photo query look hung. Warm it by
+    # running one real image query against a seed product image.
+    clip = "disabled"
+    if os.getenv("RAG_PREWARM_CLIP", "1") == "1":
+        try:
+            import glob
+
+            from rag.retrieve.query import query_image
+
+            imgs = glob.glob(str(REPO_ROOT / "data" / "seed" / "**" / "images" / "*.jpg"), recursive=True)
+            if imgs:
+                with open(imgs[0], "rb") as f:
+                    query_image(f.read(), k=1)
+                clip = "ready"
+        except Exception:
+            clip = "error"
+
     return {
         "prewarm": "completed",
         "embedding": "ready",
         "bm25": "ready",
         "reranker": reranker,
+        "clip": clip,
         "query_path": "ready",
     }

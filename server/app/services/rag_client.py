@@ -278,6 +278,35 @@ def _heavy_retrieve(
         except Exception:
             pass
 
+    # 3.5) R11.fix — POSITIVE origin constraint ("要国产 / 国货"). The negation
+    # extractor only handles 不要X / 除了X, so an implicit "国产" requirement
+    # never dropped foreign brands (golden case 84 leaked HOKA/adidas/迪卡侬).
+    # Standalone filter, applied before rerank so the CN-only set is reranked.
+    try:
+        from rag.retrieve.negation import requires_domestic, apply_domestic_filter
+        if requires_domestic(text):
+            candidates = apply_domestic_filter(candidates)
+    except Exception:
+        pass
+
+    # 3.6) R11.fix — "X以外 / X之外" excludes brand X (e.g. the multi-turn
+    # follow-up "华为以外还有吗"). Scan the RAW current-turn message
+    # (preference_text) AND the retrieval text, since the contextual rewrite
+    # may drop the 以外 clause. Fail-soft (never strand the user).
+    try:
+        from rag.retrieve.negation import except_brands
+        from rag.retrieve.brand_origin import expand_brand_aliases
+        _exc = except_brands(preference_text) or except_brands(text)
+        if _exc:
+            _ex_set: set[str] = set()
+            for b in _exc:
+                _ex_set |= expand_brand_aliases(b)
+            _filtered = [c for c in candidates
+                         if not any(x and x in (c.get("brand") or "").lower() for x in _ex_set)]
+            candidates = _filtered or candidates
+    except Exception:
+        pass
+
     # 4) Rerank with cross-encoder. Keep a slightly larger pool when price
     # intent may reorder candidates into the final top-k.
     # Fast-path (env-toggleable via RAG_FAST_PATH, default ON): skip rerank

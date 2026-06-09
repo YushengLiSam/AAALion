@@ -261,6 +261,19 @@ struct ChatView: View {
                     // one-tap confirm sheet; empty cart → open the cart so the
                     // user can add something first.
                     if cart.isEmpty { showCart = true } else { showInstantOrder = true }
+                case "clear":
+                    // R11.demo-fix — conversational "把购物车清空". Drop every
+                    // line and toast, so the cart-management demo works by voice.
+                    if !cart.items.isEmpty {
+                        cart.clear()
+                        viewModel.repurchaseToast = "已清空购物车"
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.6))
+                            if viewModel.repurchaseToast == "已清空购物车" {
+                                viewModel.repurchaseToast = nil
+                            }
+                        }
+                    }
                 case "remove":
                     // R10 — conversational delete "删掉第二个". index is
                     // 1-based; -1 means "last". Convert to a 0-based cart
