@@ -2,7 +2,12 @@ import Foundation
 
 /// Streams `ChatDelta` events from the backend's SSE endpoint.
 struct ChatService {
-    var backendURL: URL = Config.backendURL
+    /// Resolved from Config on every access (not captured once), so a runtime
+    /// URL change via the dev-mode Settings sheet takes effect WITHOUT an app
+    /// relaunch. Previously this was a stored property frozen at init — since
+    /// ChatViewModel holds a single ChatService for the whole app session, a
+    /// mid-demo tunnel-URL swap was silently ignored until a force-quit.
+    var backendURL: URL { Config.backendURL }
 
     struct ChatRequest: Encodable {
         // Wire shape: each message has role + content.
