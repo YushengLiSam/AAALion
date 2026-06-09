@@ -29,6 +29,23 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Picker(selection: Binding(
+                        get: { LanguageManager.shared.lang },
+                        set: { LanguageManager.shared.lang = $0 }
+                    )) {
+                        Text("中文").tag(LanguageManager.Lang.zh)
+                        Text("English").tag(LanguageManager.Lang.en)
+                    } label: {
+                        Text("语言 / Language")
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("语言 / Language")
+                } footer: {
+                    Text("切换后整个 App 立即生效,包括导购助手的回复语言。\nSwitches the entire app immediately — including the assistant's reply language.")
+                }
+
                 if devMode {
                     Section {
                         TextField("https://your-tunnel.trycloudflare.com or http://192.168.0.1:8000", text: $backendURLText)
