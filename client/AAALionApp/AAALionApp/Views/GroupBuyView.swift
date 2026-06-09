@@ -71,7 +71,7 @@ struct GroupBuyView: View {
                     .strikethrough()
                     .foregroundStyle(Color.appTextSecondary)
             }
-            Text("拼单立省 \(g.discountPct)%")
+            Text(Lf("拼单立省 %@", "\(g.discountPct)%"))
                 .font(.appCaption)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10).padding(.vertical, 3)
@@ -82,7 +82,7 @@ struct GroupBuyView: View {
     private func progressBlock(_ g: GroupBuy) -> some View {
         VStack(spacing: 6) {
             HStack {
-                Text(g.isComplete ? "已拼成！" : "已 \(g.filled)/\(g.targetSize) 人, 还差 \(g.remaining) 人")
+                Text(g.isComplete ? L("已拼成！") : Lf("已 %@/%@ 人, 还差 %@ 人", "\(g.filled)", "\(g.targetSize)", "\(g.remaining)"))
                     .font(.appBody.weight(.semibold))
                     .foregroundStyle(g.isComplete ? Color.green : Color.appTextPrimary)
                 Spacer()
@@ -117,7 +117,7 @@ struct GroupBuyView: View {
     private func countdown(_ g: GroupBuy) -> some View {
         let h = g.secondsLeft / 3600
         let m = (g.secondsLeft % 3600) / 60
-        return Text(g.status == "expired" ? "拼单已过期" : "剩 \(h) 小时 \(m) 分 截止")
+        return Text(g.status == "expired" ? L("拼单已过期") : Lf("剩 %@ 小时 %@ 分 截止", "\(h)", "\(m)"))
             .font(.appCaption)
             .foregroundStyle(Color.appTextSecondary)
     }

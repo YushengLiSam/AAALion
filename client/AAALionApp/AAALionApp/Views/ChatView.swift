@@ -283,7 +283,7 @@ struct ChatView: View {
                         if cart.items.indices.contains(pos) {
                             let removed = cart.items[pos]
                             cart.remove(productId: removed.productId)
-                            viewModel.repurchaseToast = "已删除 · \(removed.title)"
+                            viewModel.repurchaseToast = Lf("已删除 · %@", removed.title)
                             Task { @MainActor in
                                 try? await Task.sleep(for: .seconds(1.6))
                                 if viewModel.repurchaseToast?.contains(removed.title) == true {
@@ -303,8 +303,8 @@ struct ChatView: View {
                             cart.setQuantity(productId: item.productId, quantity: qty)
                             let title = item.title
                             viewModel.repurchaseToast = qty <= 0
-                                ? "已删除 · \(title)"
-                                : "数量已改为 \(qty) · \(title)"
+                                ? Lf("已删除 · %@", title)
+                                : Lf("数量已改为 %@ · %@", "\(qty)", title)
                             Task { @MainActor in
                                 try? await Task.sleep(for: .seconds(1.6))
                                 if viewModel.repurchaseToast?.contains(title) == true {

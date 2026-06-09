@@ -555,7 +555,7 @@ struct ProductDetailView: View {
                     HStack(spacing: 4) {
                         Text("¥")
                             .foregroundStyle(Color.appTextSecondary)
-                        TextField("目标价 (例如 \(Int(product.displayedPrice * 0.9))) ", text: $priceWatchTargetText)
+                        TextField(Lf("目标价 (例如 %@) ", "\(Int(product.displayedPrice * 0.9))"), text: $priceWatchTargetText)
                             .keyboardType(.numberPad)
                             .textFieldStyle(.plain)
                             .font(.appBody.monospacedDigit())

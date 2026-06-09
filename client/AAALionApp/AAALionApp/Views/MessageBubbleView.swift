@@ -90,13 +90,13 @@ struct MessageBubbleView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "checkmark.seal.fill")
                                 .foregroundStyle(Color.green)
-                            Text("\(summary.verified) 条已验证")
+                            Text(Lf("%@ 条已验证", "\(summary.verified)"))
                         }
                         Text("·").foregroundStyle(.secondary)
                         HStack(spacing: 3) {
                             Image(systemName: "questionmark.bubble")
                                 .foregroundStyle(Color.orange)
-                            Text("\(summary.inferred) 条推断")
+                            Text(Lf("%@ 条推断", "\(summary.inferred)"))
                         }
                     }
                     .font(.system(size: 10, weight: .medium))

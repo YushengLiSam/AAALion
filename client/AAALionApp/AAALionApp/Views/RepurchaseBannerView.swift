@@ -124,12 +124,12 @@ struct RepurchaseBannerView: View {
     private func overdueChip(_ days: Int) -> some View {
         let (text, bg, fg): (String, Color, Color) = {
             if days <= 0 {
-                return ("到期", Color.appAccentMuted.opacity(0.4), Color.appAccent)
+                return (L("到期"), Color.appAccentMuted.opacity(0.4), Color.appAccent)
             }
             if days <= 7 {
-                return ("超期\(days)天", Color.appAccentMuted.opacity(0.55), Color.appAccent)
+                return (Lf("超期%@天", "\(days)"), Color.appAccentMuted.opacity(0.55), Color.appAccent)
             }
-            return ("超期\(days)天", Color.appAccent.opacity(0.2), Color.appAccent)
+            return (Lf("超期%@天", "\(days)"), Color.appAccent.opacity(0.2), Color.appAccent)
         }()
         return Text(text)
             .font(.system(size: 10, weight: .semibold, design: .rounded))

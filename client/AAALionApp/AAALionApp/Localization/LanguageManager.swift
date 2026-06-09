@@ -53,6 +53,14 @@ func L(_ zhKey: String) -> String {
     Bundle.main.localizedString(forKey: zhKey, value: zhKey, table: nil)
 }
 
+/// Localized + formatted, for interpolated strings. The key is the Chinese
+/// format string with printf placeholders (e.g. "已 %d/%d 人"); the en/zh-Hans
+/// table maps it to the translated format, then args are filled in. Reliable
+/// for String-typed values where SwiftUI's auto-LocalizedStringKey can't apply.
+func Lf(_ zhFormatKey: String, _ args: CVarArg...) -> String {
+    String(format: L(zhFormatKey), arguments: args)
+}
+
 // MARK: - Runtime bundle-language override
 
 private var _langBundlePathKey: UInt8 = 0

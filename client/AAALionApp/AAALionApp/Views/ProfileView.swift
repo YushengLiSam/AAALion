@@ -253,7 +253,7 @@ struct ProfileView: View {
                 Text(g.product?.title ?? g.productId)
                     .font(.footnote.weight(.medium))
                     .lineLimit(1)
-                Text("已 \(g.filled)/\(g.targetSize) 人 · 立省 \(g.discountPct)%")
+                Text(Lf("已 %@/%@ 人 · 立省 %@", "\(g.filled)", "\(g.targetSize)", "\(g.discountPct)%"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
