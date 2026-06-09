@@ -21,11 +21,21 @@ import json
 import os
 import time
 
-_SECRET = os.environ.get(
-    "LIONPICK_JWT_SECRET", "lionpick-demo-secret-change-in-prod"
-).encode()
+_DEFAULT_SECRET = "lionpick-demo-secret-change-in-prod"
+_SECRET = os.environ.get("LIONPICK_JWT_SECRET", _DEFAULT_SECRET).encode()
 _TTL = int(os.environ.get("LIONPICK_JWT_TTL_SEC", str(7 * 24 * 3600)))
 _ALG = "HS256"
+
+if _SECRET.decode(errors="replace") == _DEFAULT_SECRET:
+    # The session JWT now gates account deletion. With the public in-source
+    # secret the token is FORGEABLE — set LIONPICK_JWT_SECRET in the server's
+    # .env to a real random value so the /auth/delete guard actually holds.
+    import logging
+    logging.getLogger("lionpick").warning(
+        "LIONPICK_JWT_SECRET is unset — using the public default secret. "
+        "Session JWTs are forgeable; /auth/delete protection is NOT effective "
+        "until a real secret is configured."
+    )
 
 
 def _b64u(raw: bytes) -> str:

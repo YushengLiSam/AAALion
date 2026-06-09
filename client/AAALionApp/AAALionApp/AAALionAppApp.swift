@@ -49,7 +49,8 @@ private struct ScreenshotHost: View {
                     AuthUser(userId: "pw:demo@example.com",
                              provider: "password",
                              displayName: L("演示用户"),
-                             token: "pw:demo@example.com")
+                             token: "pw:demo@example.com",
+                             jwt: nil)
                 )
             }
         default:

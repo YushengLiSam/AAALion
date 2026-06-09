@@ -101,6 +101,24 @@ class AdminDeleteRequest(BaseModel):
     user_id: str = Field(min_length=1, max_length=128)
 
 
+def _require_session(authorization: str | None, user_id: str) -> None:
+    """Authenticate a request as the owner of `user_id`.
+
+    Verifies a `Authorization: Bearer <jwt>` header (the signed session token
+    issued at login) and that its subject matches `user_id`. Raises 401 if the
+    token is missing / invalid / expired, 403 if it belongs to a different
+    account. NOTE: security depends on LIONPICK_JWT_SECRET being set to a real
+    secret on the server — with the in-source default the token is forgeable.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="missing session token")
+    payload = verify_jwt(authorization.split(" ", 1)[1].strip())
+    if payload is None:
+        raise HTTPException(status_code=401, detail="invalid or expired session")
+    if payload.get("sub") != user_id:
+        raise HTTPException(status_code=403, detail="forbidden")
+
+
 def _with_token(user: dict) -> dict:
     # Demo: the opaque `token` stays == user_id so the existing client keeps
     # working unchanged. We ALSO issue a real signed, expiring HS256 JWT in
@@ -247,10 +265,20 @@ async def password_reset_verify_endpoint(req: PasswordResetVerifyRequest) -> dic
 
 
 @router.post("/delete")
-async def delete_account_endpoint(req: DeleteAccountRequest) -> dict:
+async def delete_account_endpoint(
+    req: DeleteAccountRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
     """R11 — delete (注销) the current account + purge its per-user data
-    (preferences / price-watch / repurchase). Password accounts must include
-    their password to confirm."""
+    (preferences / price-watch / repurchase).
+
+    SECURITY: requires a valid session JWT whose subject == req.user_id, so an
+    account can only be deleted by its owner — this closes the anonymous-delete
+    hole where any caller could destroy any non-password account (phone / apple
+    / wechat) just by guessing its user_id. Password accounts must ALSO supply
+    their password (defense in depth). The client sends the JWT issued at login
+    as `Authorization: Bearer <jwt>`."""
+    _require_session(authorization, req.user_id)
     store = get_user_store()
     try:
         return await asyncio.to_thread(store.delete_user, req.user_id, req.password, True)

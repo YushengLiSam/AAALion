@@ -131,6 +131,12 @@ struct AuthService {
         var req = URLRequest(url: baseURL.appendingPathComponent("auth/delete"))
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Owner-only: prove the session with the signed JWT issued at login.
+        // The backend verifies sub == user_id, so only the account's owner can
+        // delete it. Without this the endpoint accepted an anonymous user_id.
+        if let jwt = AuthState.shared.user?.jwt {
+            req.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        }
         req.timeoutInterval = 30
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await URLSession.shared.data(for: req)
@@ -203,11 +209,16 @@ struct AuthUser: Codable, Hashable {
     let provider: String
     let displayName: String?
     let token: String?
+    /// Signed, expiring HS256 session token issued at login. Sent as
+    /// `Authorization: Bearer <jwt>` on owner-only operations (account delete).
+    /// Persisted with the rest of the account in UserDefaults.
+    let jwt: String?
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case provider
         case displayName = "display_name"
         case token
+        case jwt
     }
 }
 
