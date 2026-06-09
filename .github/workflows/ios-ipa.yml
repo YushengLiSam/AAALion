@@ -7,7 +7,7 @@
 # 2-minute sideload locally. Free-Apple-ID signing lasts 7 days, then re-run.
 #
 # Manual only (you ask for a build when you want to install).
-# (rebuild bump — ASCII PRODUCT_NAME=LionPick so Sideloadly finds the executable)
+# (rebuild bump — v0.2.0 (build 2): in-app 中英 language toggle + signed JWT)
 
 name: iOS Unsigned IPA
 

@@ -15,6 +15,38 @@
 
 ---
 
+## 2026-06-09 — v0.2.0: in-app 中英 language toggle, signed JWT, demo hardening
+
+**by**: 管图杰 (JackGuan99) · CI-verified (iOS Simulator Build + RAG Eval green) · backend auto-deployed to `main`
+
+App version **0.1.0 → 0.2.0** (build **1 → 2**) — `MARKETING_VERSION` /
+`CURRENT_PROJECT_VERSION` in `client/AAALionApp/project.yml`. First bump since
+the project was named; backend changes are backward-compatible so installed
+0.1.0 builds keep working unchanged.
+
+- **In-app language toggle (中文 / English)** — a Settings → Language picker
+  switches the whole UI *and the assistant's reply language* at runtime, no
+  relaunch (runtime `Bundle` override + root `.id(lang)` rebuild). 313/356
+  user-facing strings localized via `en.lproj` / `zh-Hans.lproj` generated from
+  the source literals; `Lf(...)` handles interpolated/dynamic strings. Backend:
+  `/chat/stream` takes an optional `language` (defaults to `zh`) → replies in
+  that language. **Old installs omit it and keep getting Chinese — no break.**
+- **Real signed session token** — login now also issues a signed, expiring
+  **HS256 JWT** (`jwt` field) verifiable via `POST /auth/verify`; the opaque
+  `token == user_id` demo path is untouched and clients ignore the extra field.
+  Stdlib-only, zero new deps (`server/app/services/jwt_session.py`).
+- **Demo reliability** — network-resilient chat stream (explicit timeout +
+  auto-retry + friendly error state); `tools/warm-demo.py` (measured cold→warm
+  first-token **≈16×**: 15-18s → ~1s); `docs/DEMO_RUNBOOK.md` +
+  `docs/DEFENSE_DECK_OUTLINE.md`.
+- **Bug fix (retrieval)** — English/brand product-line names (iPhone/iPad/
+  AirPods…) now pin to 数码电子, so a multi-turn opener "推荐 iPhone" → "再便宜
+  点的" keeps the aisle (`_category`/`_sub_categories` casefold-match). 43
+  server tests pass.
+- **Tracked separately** — negation phrased "不要X的Y" ("不要苹果的耳机") returns
+  0 cards; spun off as a background fix task. The demo uses the working comma
+  form "推荐降噪耳机,不要苹果".
+
 ## 2026-06-01 — R10.2: clarification, eval hardening, Markdown, image fix, CD bugfix, device deploy
 
 **by**: Yusheng · all live-verified on cloud + device
