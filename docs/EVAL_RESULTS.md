@@ -3,6 +3,7 @@
 > 评测脚本: `rag/eval/run.py` (CLI) + `rag/eval/report.py` (HTML 看板) + `rag/eval/image_eval.py` (多模态)
 > 评测代码: `rag/eval/core.py`
 > Golden 集: `rag/eval/golden.jsonl` - 92 cases / 80 positive / 12 no-match / 28 带 `forbidden_product_ids`
+> + `rag/eval/golden_compositional.jsonl` - 61 cases（多轮/对比/组合，更硬）。`rag.eval.run` 两套都跑。
 > 图像索引: `data/.chroma/products_image` collection - 145 vectors (OpenCLIP ViT-B/32)
 
 ## 怎么跑
@@ -38,6 +39,38 @@ docker run --rm -e ANONYMIZED_TELEMETRY=False -e CHROMA_TELEMETRY=False `
 Chroma/PostHog 的 `capture() takes 1 positional argument but 3 were given`
 属于遥测兼容噪声，不影响检索结果；设置 `ANONYMIZED_TELEMETRY=False`
 可避免该输出。
+
+## R13 (2026-06-10)：当前生产真值 — 两套 golden（92 canonical + 61 compositional）
+
+本会话（R12/R13）的全部修复合入后重跑：negation「不要X的Y」重排（`耳机 不要苹果`，
+线上已验证从 0 卡→3 卡）、iPhone/英文产品线名 pin 类目、Yusheng 的 demo 加固（强制
+对比表、英文硬过滤、分类法补全、200-probe 对抗扫描扫出的 5 个洞）。`rag.eval.run`
+现在**同时跑两套**：canonical `golden.jsonl`（92）+ 此前未接线、本轮接入的
+`golden_compositional.jsonl`（61，多轮/对比/组合，更硬；281 个引用 ID 全核验有效）。
+GitHub Actions Linux runner 从 `data/seed` 重建索引后全量重跑。
+
+### 生产路径 (hybrid_rerank, k=10)
+
+| 集子 | recall@5 | recall@10 | MRR | precision@5 | 反选 negation |
+|---|---|---|---|---|---|
+| **golden 92 例**（canonical） | **0.947** | 0.971 | 0.860 | 0.367 | **1.000** |
+| **compositional 61 例**（36 多轮/对比/组合） | **0.832** | 0.867 | 0.861 | 0.469 | **1.000** |
+
+### rerank 消融（cross-encoder 是关键，硬集上增益更大）
+
+| 策略 | 92 例 recall@5 | 61 例 recall@5 |
+|---|---|---|
+| dense-only | 0.737 | 0.580 |
+| hybrid (dense+BM25) | 0.738 | 0.609 |
+| **hybrid+rerank（生产）** | **0.947** | **0.832** |
+
+→ rerank 在 92 例 +0.21，在更硬的 61 例 **+0.25**。
+
+**相对 R11 的变化**：92 例 recall@5 `0.939 → 0.947`、MRR `→ 0.860`、反选
+**`0.971 → 1.000`**（本轮 negation 修复打满）。61 例为首次测出的诚实硬指标
+（多轮/组合 0.832）。两套反选均 **1.000**。**答辩引用这组当前数，勿用旧的 0.88/0.939。**
+
+---
 
 ## R11 重测 (2026-06-03)：+7 对抗 +3 预算用例，92-case 全量重生成
 
