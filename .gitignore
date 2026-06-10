@@ -108,3 +108,8 @@ docs/wechat_*.md
 docs/wechat/
 client/AAALionApp/build/
 client/AAALionApp/build-device/
+
+# Built sideload .ipa artifacts — local install only, never committed.
+# `apps/` holds the device .ipa downloaded from the iOS Unsigned IPA CI run.
+apps/
+*.ipa
