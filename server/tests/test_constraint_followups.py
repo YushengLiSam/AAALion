@@ -393,3 +393,29 @@ class ClusterDNegatedBrandList(unittest.TestCase):
         f = build_retrieval_filter("耳机不要苹果的、要华为的")
         self.assertTrue(any("华为" in b for b in (f.brand_include or [])), f.brand_include)
         self.assertFalse(any("华为" in b for b in (f.brand_exclude or [])), f.brand_exclude)
+
+
+class TopWearMapping(unittest.TestCase):
+    def test_tops_map_to_top_subcategories_only(self) -> None:
+        f = build_retrieval_filter("对比一下上衣")
+        self.assertNotIn("运动长裤", f.sub_categories or [])
+        self.assertIn("短袖T恤", f.sub_categories or [])
+
+    def test_outerwear_maps_to_outer_layers(self) -> None:
+        f = build_retrieval_filter("推荐几款外套")
+        self.assertIn("冲锋衣", f.sub_categories or [])
+        self.assertNotIn("运动短裤", f.sub_categories or [])
+
+    def test_specific_garments_unaffected(self) -> None:
+        self.assertEqual(build_retrieval_filter("推荐运动长裤").sub_categories, ["运动长裤"])
+        self.assertEqual(build_retrieval_filter("推荐冲锋衣").sub_categories, ["冲锋衣"])
+
+    @unittest.skipUnless(_E2E_ENABLED, _SKIP_E2E_MSG)
+    def test_tops_comparison_returns_no_pants(self) -> None:
+        from app.services.rag_client import top_k
+
+        products = top_k("对比一下上衣", k=5, intent_text="对比一下上衣")
+        subs = {p.get("sub_category") for p in products}
+        print(f"\n[上衣对比 subs] {subs}")
+        self.assertGreater(len(products), 0)
+        self.assertFalse(subs & {"运动长裤", "运动短裤", "牛仔裤", "瑜伽裤", "户外裤"}, subs)

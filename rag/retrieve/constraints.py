@@ -191,6 +191,11 @@ _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
     (("运动长裤", "卫裤", "束脚裤", "长裤"), ["运动长裤"]),
     (("运动裤", "休闲裤"), ["运动长裤", "运动短裤"]),
     (("速干T恤", "运动T恤", "运动t恤", "速干t恤", "T恤", "t恤", "短袖"), ["短袖T恤", "速干T恤"]),
+    # R13.1 — generic top-wear words AFTER the specific top rules. 上衣 had
+    # only the category pin (whole 服饰运动 aisle), so "对比一下上衣" let a
+    # 运动长裤 rerank into the cards next to the tops.
+    (("上衣",), ["卫衣", "羽绒服", "冲锋衣", "抓绒外套", "短袖T恤", "速干T恤"]),
+    (("外套", "夹克"), ["冲锋衣", "抓绒外套", "羽绒服", "卫衣"]),
     (("篮球鞋",), ["篮球鞋"]),
     (("跑步鞋", "跑鞋", "马拉松鞋"), ["跑步鞋"]),
     (("板鞋", "休闲鞋", "复古鞋"), ["运动休闲鞋"]),
