@@ -18,7 +18,11 @@ _CHEAP = ("便宜", "平价", "性价比", "预算", "低价", "划算")
 _EXPENSIVE = ("贵", "高端", "旗舰", "预算充足", "好一点")
 _ALTERNATIVE = ("换", "其他", "别的", "还有", "类似", "同款")
 _NEGATION = ("不要", "除了", "不含", "不带", "排除")
-_FOLLOWUP_HINTS = _CHEAP + _EXPENSIVE + _ALTERNATIVE + _NEGATION + ("这个", "那个", "它", "再")
+# Comparison-only follow-ups ("对比一下哪个好" / "哪个更好" / "有什么区别") name no
+# product, so they must inherit the prior turn's category — otherwise retrieval
+# gets a context-free "对比一下哪个好" and the LLM has nothing to compare.
+_COMPARE = ("对比", "哪个", "哪款", "比一", "比较", "区别", "谁好", "更好")
+_FOLLOWUP_HINTS = _CHEAP + _EXPENSIVE + _ALTERNATIVE + _NEGATION + _COMPARE + ("这个", "那个", "它", "再")
 
 _ANCHOR_TERMS = (
     "洗面奶", "洁面", "精华", "防晒", "护肤", "面霜", "乳液", "手机", "耳机", "笔记本",
