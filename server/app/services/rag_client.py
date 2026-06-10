@@ -181,6 +181,53 @@ def _distinct_brand_count(brand_include) -> int:
     return len(groups)
 
 
+_CATALOG_CACHE: "list[dict] | None" = None
+_CATALOG_LOCK = threading.Lock()
+
+
+def _catalog_index() -> list[dict]:
+    """All catalog products (full dicts), loaded once. Used as a fallback source
+    so a NAMED brand/line missing from the retrieved pool can still be shown."""
+    global _CATALOG_CACHE
+    if _CATALOG_CACHE is None:
+        with _CATALOG_LOCK:
+            if _CATALOG_CACHE is None:
+                import glob
+                import json
+                items: list[dict] = []
+                root = Path(__file__).resolve().parents[3]
+                for p in glob.glob(str(root / "data" / "seed" / "*" / "data" / "*.json")):
+                    try:
+                        d = json.load(open(p, encoding="utf-8"))
+                    except Exception:
+                        continue
+                    if d.get("product_id"):
+                        d.setdefault("_retrieval", {"source": "catalog"})
+                        items.append(d)
+                _CATALOG_CACHE = items
+    return _CATALOG_CACHE
+
+
+def _entity_match(prod: dict, kind: str, m: set[str]) -> bool:
+    if kind == "title":
+        t = (prod.get("title") or "").lower()
+        return any(tok in t for tok in m)
+    b = (prod.get("brand") or "").casefold()
+    return any(tok and (tok in b or b in tok) for tok in m)
+
+
+def _catalog_fallback(kind: str, m: set[str], exclude_ids: set, prefer_subcats: set) -> dict | None:
+    """Best catalog product for a named entity not present in the result pool.
+    Prefers a product whose sub_category matches what's dominant in the result
+    (so an iPhone — not a MacBook — fills the Apple slot in a phone list)."""
+    cands = [p for p in _catalog_index()
+             if p.get("product_id") not in exclude_ids and _entity_match(p, kind, m)]
+    if not cands:
+        return None
+    cands.sort(key=lambda p: 0 if (prefer_subcats and p.get("sub_category") in prefer_subcats) else 1)
+    return dict(cands[0])
+
+
 def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str],
                            anchors: tuple[str, ...] = (), top: int = 5) -> list[dict]:
     """Comparison coverage: keep each NAMED entity in the top `top`, so a reranker
@@ -207,29 +254,32 @@ def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str],
             continue
         seen.append(m); uniq.append((kind, m))
     entities = uniq
-    if len(candidates) <= top or len(entities) < 2:
+    if not candidates or len(entities) < 2:
         return candidates
 
-    def _match(prod, kind, m):
-        if kind == "title":
-            t = (prod.get("title") or "").lower()
-            return any(tok in t for tok in m)
-        b = (prod.get("brand") or "").casefold()
-        return any(tok and (tok in b or b in tok) for tok in m)
-
+    from collections import Counter
     head, tail = candidates[:top], candidates[top:]
+    prefer_subcats = {s for s, _ in Counter(
+        p.get("sub_category") for p in head if p.get("sub_category")).most_common(2)}
     for kind, m in entities:
-        if any(_match(p, kind, m) for p in head):
+        if any(_entity_match(p, kind, m) for p in head):
             continue
-        idx = next((i for i, p in enumerate(tail) if _match(p, kind, m)), None)
-        if idx is None:
-            continue  # this entity has no product anywhere in the result set
-        promote = tail.pop(idx)
-        from collections import Counter
-        hbrands = [(p.get("brand") or "").casefold() for p in head]
-        cnt = Counter(hbrands)
-        drop_i = next((i for i in range(len(head) - 1, -1, -1) if cnt[hbrands[i]] > 1), len(head) - 1)
-        tail.insert(0, head.pop(drop_i))
+        idx = next((i for i, p in enumerate(tail) if _entity_match(p, kind, m)), None)
+        if idx is not None:
+            promote = tail.pop(idx)
+        else:
+            # (b) catalog fallback: the named entity is nowhere in the retrieved
+            # pool — pull its best product from the full catalog so a named
+            # brand/line is NEVER answered with "目录里没有X".
+            existing = {p.get("product_id") for p in head + tail}
+            promote = _catalog_fallback(kind, m, existing, prefer_subcats)
+            if promote is None:
+                continue
+        if len(head) >= top:
+            hbrands = [(p.get("brand") or "").casefold() for p in head]
+            cnt = Counter(hbrands)
+            drop_i = next((i for i in range(len(head) - 1, -1, -1) if cnt[hbrands[i]] > 1), len(head) - 1)
+            tail.insert(0, head.pop(drop_i))
         head.append(promote)
     return head + tail
 
