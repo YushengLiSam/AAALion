@@ -301,3 +301,95 @@ class WorkflowAuditFixes(unittest.TestCase):
         self.assertTrue(_is_out_of_domain("我想买辆车"))
         self.assertTrue(_is_out_of_domain("我想买车"))
         self.assertFalse(_is_out_of_domain("买个车载手机支架"))
+
+
+# ---------------------------------------------------------------------------
+# R13 — Cluster C (card noise / relevance gate) + Cluster D (exclusion wording)
+# ---------------------------------------------------------------------------
+
+class ClusterDNegationStripper(unittest.TestCase):
+    def test_strips_exclusion_clause(self) -> None:
+        from app.routes.chat import _strip_negation
+
+        self.assertEqual(_strip_negation("推荐咖啡，不要速溶的"), "推荐咖啡")
+        self.assertEqual(_strip_negation("推荐耳机 不要索尼的"), "推荐耳机")
+        self.assertEqual(_strip_negation("coffee without instant ones"), "coffee")
+
+    def test_keeps_budget_phrase(self) -> None:
+        from app.routes.chat import _strip_negation
+
+        # 不要超过300 is a PRICE bound, not an exclusion — must survive.
+        self.assertEqual(_strip_negation("耳机不要超过300"), "耳机不要超过300")
+
+
+class ClusterCRelevanceGate(unittest.TestCase):
+    @unittest.skipUnless(_E2E_ENABLED, _SKIP_E2E_MSG)
+    def test_nonexistent_category_returns_empty(self) -> None:
+        from app.services.rag_client import top_k
+
+        for q in ("电饭煲", "香薰", "recommend a rice cooker"):
+            products = top_k(q, k=5)
+            titles = [p.get("title", "") for p in products]
+            print(f"\n[C no-match {q!r}] {titles}")
+            self.assertEqual(products, [], f"junk cards leaked for {q!r}: {titles}")
+
+    @unittest.skipUnless(_E2E_ENABLED, _SKIP_E2E_MSG)
+    def test_aisle_query_never_leaks_cross_aisle(self) -> None:
+        from app.services.rag_client import top_k
+
+        # "家居香薰" pins the 家居家具 aisle: same-aisle substitutes are an
+        # acceptable "closest match" answer, but the original bug — a
+        # cross-aisle skincare gift set riding in via a bad sub_category —
+        # must stay dead.
+        products = top_k("推荐个家居香薰", k=5)
+        cats = {p.get("category") for p in products}
+        print(f"\n[C 家居香薰 aisles] {cats}")
+        self.assertLessEqual(cats, {"家居家具"}, f"cross-aisle leak: {cats}")
+
+    @unittest.skipUnless(_E2E_ENABLED, _SKIP_E2E_MSG)
+    def test_oxygen_machine_has_no_filler_cards(self) -> None:
+        from app.services.rag_client import top_k
+
+        products = top_k("医用制氧机", k=5)
+        titles = [p.get("title", "") for p in products]
+        print(f"\n[C 制氧机] {titles}")
+        self.assertGreater(len(products), 0)
+        for t in titles:
+            self.assertIn("制氧机", t, f"filler card alongside 制氧机: {titles}")
+
+    @unittest.skipUnless(_E2E_ENABLED, _SKIP_E2E_MSG)
+    def test_scene_query_exempt_from_gate(self) -> None:
+        from app.services.rag_client import top_k
+
+        # 场景搭配 queries score low by nature (top ~0.046 for this one) and
+        # must NOT be no-matched when chat.py disables the gate for them.
+        products = top_k("三亚度假要准备什么", k=5, relevance_gate=False)
+        print(f"\n[C scene exempt] {[p.get('title','')[:30] for p in products]}")
+        self.assertGreater(len(products), 0)
+
+
+class ClusterDNegatedBrandList(unittest.TestCase):
+    def test_enumerated_negated_brands_all_excluded(self) -> None:
+        f = build_retrieval_filter("推荐耳机，不要索尼的、Bose的、苹果的、华为的")
+        excluded = "、".join(f.brand_exclude or [])
+        for b in ("索尼", "Sony"):
+            self.assertTrue(b in excluded or "Sony" in excluded, excluded)
+        self.assertIn("Bose", excluded)
+        self.assertTrue("苹果" in excluded or "Apple" in excluded, excluded)
+        self.assertTrue("华为" in excluded, excluded)
+        # And none of them may leak into brand_include.
+        included = "、".join(f.brand_include or [])
+        for tok in ("Sony", "Bose", "Apple", "苹果", "华为"):
+            self.assertNotIn(tok, included)
+
+    def test_positive_object_after_negated_modifier_survives(self) -> None:
+        # "不要苹果的耳机" — 耳机 is the POSITIVE object; only Apple is excluded.
+        f = build_retrieval_filter("耳机不要苹果的")
+        self.assertTrue(any("苹果" in b or "Apple" in b for b in (f.brand_exclude or [])))
+        self.assertEqual(f.category, "数码电子")
+
+    def test_positive_brand_after_list_negation_not_excluded(self) -> None:
+        # "不要苹果的、要华为的" — Apple excluded, Huawei POSITIVELY wanted.
+        f = build_retrieval_filter("耳机不要苹果的、要华为的")
+        self.assertTrue(any("华为" in b for b in (f.brand_include or [])), f.brand_include)
+        self.assertFalse(any("华为" in b for b in (f.brand_exclude or [])), f.brand_exclude)

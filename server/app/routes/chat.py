@@ -91,9 +91,10 @@ _PROMPT = (
     "『请上传或导入目录』这类说法,也不要建议用户去淘宝/京东/小红书/抖音等其它平台或品牌官网下单。\n"
     "- 若候选里没有完全符合用户(预算/品类/品牌)的商品:明确说明『没有完全符合的X』,"
     "再把候选里**最接近**的当作替代推荐(例如最接近预算的几款),照常给推荐和理由,不要空手而归。\n"
-    "- 本应用**自带购物车**:用户说加入购物车/下单结算/删除/清空时,系统已自动完成对应操作,"
-    "你只需用一句话自然确认(如『已为你加入购物车』『正在为你结算』『已清空购物车』),"
-    "**不要**声称自己无法操作购物车、也不要让用户去别处自行操作。\n"
+    "- 购物车由系统在你之外自动处理:真正的加购/下单/删除指令**不会进入本对话**,"
+    "所以**本轮一定不是购物车操作**。绝不要声称『已加入购物车』『已为你下单/结算』『已删除』"
+    "等任何购物车动作(系统没有做,这是虚假确认);也不要说自己无法操作购物车。"
+    "想引导购买时,告诉用户直接说『加入购物车』即可。\n"
     "\n## 商品目录\n{catalog}\n"
 )
 
@@ -761,6 +762,24 @@ def _strip_price(text: str) -> str:
     return _PRICE_PHRASE_RE.sub("", text).strip(" ,，、的")
 
 
+# R13 cluster-D — strip exclusion clauses ("推荐咖啡,不要速溶的" → "推荐咖啡")
+# so the exclusion-emptied probe below can ask "does the CATEGORY exist at
+# all?". (?!超过) keeps the budget phrase "不要超过300" intact — that's a price
+# bound, not an exclusion.
+_NEGATION_CLAUSE_RE = re.compile(
+    r"[，,、;；\s]*(?:但|可是)?(?:不想要|不需要|不要(?!超过)|别要|别给我|不考虑|不买|不选|不含|不带|排除|除了)[^，。,;；]*"
+    r"|[，,、;；\s]*\b(?:no|without)\s+[a-z][a-z '\-]*",
+    re.IGNORECASE,
+)
+
+
+def _strip_negation(text: str) -> str:
+    """Remove exclusion clauses; keep the positive shopping need."""
+    if not text:
+        return text
+    return _NEGATION_CLAUSE_RE.sub("", text).strip(" ,，、;；的")
+
+
 # R11.demo-fix — English shopping term → Chinese category hint. The catalog is
 # Chinese; an English query ("recommend a sunscreen") routes to the heavy
 # multilingual reranker which mis-ranks (it buried 防晒 below phones, then the
@@ -854,6 +873,19 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # Set when a budget/constraint over-filtered to empty and we fell back to
     # the closest products — drives the "these may exceed budget" addendum.
     budget_relaxed = False
+    # R13 cluster-D — exclusion messaging state. `exclusion_note` is
+    # ("active", names) when results exist WITH user exclusions applied (the
+    # LLM must say "已排除X", never "目录没有X"), or ("emptied", names,
+    # examples) when the exclusions filtered the category to zero (the LLM
+    # must say "都被排除了", not "没有该品类"). `no_match` marks a genuinely
+    # empty retrieval (cluster C: cards suppressed, LLM told to be honest).
+    exclusion_note: tuple | None = None
+    no_match = False
+    conversation_filter = None
+    # R13 — scene queries ("露营要带的东西") legitimately retrieve LOW-score,
+    # cross-category items; the relevance gate must not no-match them. Detected
+    # here (pre-retrieval) and reused for the scene addendum below.
+    scene_kw = _detect_scene(user_text)
     # R10 #5 — tappable quick-reply chips for the clarification turn. Each
     # chip is a ready-made next message; tapping it sends concrete signal
     # (品类/预算/对象) so the FOLLOW-UP turn retrieves normally.
@@ -891,6 +923,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 conversation_filter=conversation_filter,
                 intent_text=user_text,
                 user_id=req.user_id,
+                relevance_gate=not scene_kw,
             )
         products = await asyncio.to_thread(normalize_product_prices, products)
         # R11.demo-fix — never hand the LLM an empty catalog. A hard price/brand
@@ -910,9 +943,44 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 top_k, fb_query, k=5,
                 intent_text=(_strip_price(user_text) or None),
                 user_id=req.user_id,
+                relevance_gate=not scene_kw,
             )
             products = await asyncio.to_thread(normalize_product_prices, fb)
             budget_relaxed = bool(products)
+
+        # R13 cluster-D — exclusion-aware messaging (see flag docs above).
+        if not _has_image(req.messages) and user_text.strip():
+            excluded_names: list[str] = []
+            if conversation_filter is not None:
+                excluded_names += list(conversation_filter.brand_exclude or [])
+                excluded_names += list(conversation_filter.exclude_keywords or [])
+            try:
+                from app.services.rag_client import _negation_signals
+                has_negation = _negation_signals(user_text) or _negation_signals(retrieval_query)
+            except Exception:
+                has_negation = bool(excluded_names)
+            if not products and (excluded_names or has_negation):
+                # The exclusions may have filtered the whole category to zero
+                # ("推荐咖啡,不要速溶的" when every coffee is instant). Probe the
+                # category WITHOUT the exclusion clause: if it has products, the
+                # honest answer is "都被排除了", never "目录没有咖啡". The probe
+                # results are context for the LLM only — they violate the
+                # user's exclusion, so they are NOT sent as cards.
+                relaxed_q = _strip_negation(_strip_price(retrieval_query) or retrieval_query)
+                if relaxed_q and relaxed_q != retrieval_query:
+                    try:
+                        relaxed = await asyncio.to_thread(
+                            top_k, relaxed_q, k=3,
+                            intent_text=(_strip_negation(_strip_price(user_text)) or None),
+                        )
+                    except Exception:
+                        relaxed = []
+                    if relaxed:
+                        examples = "、".join((p.get("title") or "")[:24] for p in relaxed[:3])
+                        exclusion_note = ("emptied", excluded_names, examples)
+            elif products and excluded_names:
+                exclusion_note = ("active", excluded_names, "")
+            no_match = not products and exclusion_note is None and not budget_relaxed
     t_retrieval = time.perf_counter()
 
     # Cart-intent detection ----------------------------------------------------
@@ -969,7 +1037,6 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             "| 价格 | ¥720 | ¥760 |\n"
             "| 适用场景 | 熬夜修护 | 日常稳肌 |\n"
         )
-    scene_kw = _detect_scene(user_text)
     if scene_kw:
         addendum += (
             f"\n\n7. **本轮是场景搭配 ({scene_kw})**: 不要推同类目 3 个,而是从目录里挑 "
@@ -992,6 +1059,34 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             "天气等)。请礼貌说明你是电商导购助手、目录里没有该类商品(这属于纪律第二条的例外,"
             "无需推荐替代商品),并引导用户说出想买的商品品类(美妆/数码/服饰/食品等),不要推荐"
             "任何不相关商品。"
+        )
+    # R13 cluster-D — exclusion-aware wording. Never let the LLM claim the
+    # catalog "doesn't have" something the USER excluded.
+    if exclusion_note:
+        _kind, _excluded, _examples = exclusion_note
+        _names = "、".join(dict.fromkeys(_excluded))
+        if _kind == "active":
+            addendum += (
+                f"\n\n9. **已应用用户的排除条件**: 已按用户要求排除「{_names}」。"
+                f"被排除的品牌/商品在目录中**可能仍在售**,只是用户不要它们——"
+                f"**绝不要**说『目录暂无{_names}』『没有{_names}』,"
+                "要表述成『已为你排除…,以下是其他选择』。"
+            )
+        else:
+            addendum += (
+                "\n\n9. **排除条件清空了结果**: 目录里其实有该品类的商品(例如 "
+                f"{_examples}),但**全部命中了用户的排除条件**"
+                + (f"(如「{_names}」)" if _names else "")
+                + "。请如实说明『该品类的商品都属于被排除的类型』,**不要**说目录没有该品类;"
+                "可以问用户要不要放宽条件。本轮没有商品卡。(此为纪律第二条的例外,无需推荐替代商品)"
+            )
+    # R13 cluster-C — genuinely no relevant product: cards are suppressed
+    # (relevance gate), so tell the LLM to be honest instead of inventing.
+    if no_match:
+        addendum += (
+            "\n\n10. **没有匹配的商品**: 检索没有找到与本次需求相关的商品,本轮没有商品卡。"
+            "请用一两句话如实说明目录暂时没有该类商品,并引导用户换一个品类"
+            "(美妆/数码/服饰/食品等)。不要编造商品,也不要硬塞无关推荐。(此为纪律第二条的例外)"
         )
     # R10 #5 — on a clarification turn, swap in the 反问 prompt (no catalog,
     # no comparison/scene addendum) so the LLM asks instead of recommending.

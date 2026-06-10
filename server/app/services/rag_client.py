@@ -115,6 +115,38 @@ def retrieval_cache_stats() -> dict:
         }
 
 
+# Function words that must not count as "the query overlaps this product".
+_OVERLAP_EN_STOP = frozenset({
+    "the", "for", "and", "with", "under", "below", "over", "than", "less",
+    "more", "best", "cheap", "cheaper", "recommend", "want", "need", "buy",
+    "get", "please", "ones", "one", "any", "good", "some", "show", "give",
+})
+
+
+def _lexical_overlap(query: str, candidates: list[dict], top_n: int = 5) -> bool:
+    """True when any top candidate's title/brand shares a content token with
+    the query (CJK bigram, or an ASCII word ≥3 chars that isn't a function
+    word). Used as a no-match VETO: lexical grounding means the pool is not
+    junk even when the cross-encoder runs cold on terse phrasing ("要折叠屏").
+    Returns True (no veto) when the query has no content tokens at all."""
+    q = query or ""
+    grams: set[str] = set()
+    for m in re.finditer(r"[一-鿿]{2,}", q):
+        s = m.group(0)
+        grams |= {s[i:i + 2] for i in range(len(s) - 1)}
+    words = {
+        w for w in re.findall(r"[a-z]{3,}", q.lower())
+        if w not in _OVERLAP_EN_STOP
+    }
+    if not grams and not words:
+        return True
+    for p in candidates[:top_n]:
+        doc = f"{p.get('title', '')} {p.get('brand', '')}".lower()
+        if any(g in doc for g in grams) or any(w in doc for w in words):
+            return True
+    return False
+
+
 def _negation_signals(text: str) -> bool:
     return any(s in text for s in (
         "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不买", "不选",
@@ -370,6 +402,7 @@ def _heavy_retrieve(
     rerank_on: bool,
     negation_on: bool,
     price_on: bool,
+    relevance_gate: bool = True,
 ) -> list[dict]:
     """The expensive, preference-INDEPENDENT retrieval pipeline (steps 1-6).
 
@@ -512,14 +545,87 @@ def _heavy_retrieve(
     rerank_input_cap = int(os.getenv("RERANK_INPUT_CAP", "0"))
     if rerank_input_cap > 0 and len(candidates) > rerank_input_cap:
         candidates = candidates[:rerank_input_cap]
-    if rerank_on and len(candidates) > k and not skip_rerank:
+    # R13 — was `len(candidates) > k` ("nothing to cut, skip the cost"), but
+    # the relevance gate below needs the cross-encoder SCORES even when the
+    # pool is small: a hard filter can narrow to ≤k junk items ("家居香薰" →
+    # 5 家居家具 products, none of them 香薰) and ungated small pools streamed
+    # straight to the client. Scoring ≤k pairs is microseconds-cheap.
+    did_rerank = rerank_on and len(candidates) > 1 and not skip_rerank
+    if did_rerank:
         try:
             from rag.retrieve.rerank import rerank
             candidates = rerank(text, candidates, top_k=rerank_limit)
         except Exception:
             candidates = candidates[:rerank_limit]
+            did_rerank = False
     else:
         candidates = candidates[:rerank_limit]
+
+    # 4.2) R13 cluster-C fix — relevance gate on the reranked pool. top_k used
+    # to return k cards no matter how irrelevant: "医用制氧机" streamed the one
+    # real match plus 4 random skincare cards; "电饭煲" (not in catalog at all)
+    # streamed 5 noodle/soy-sauce cards while the LLM text said "没有".
+    #
+    # Absolute scores do NOT separate cleanly across query shapes (golden
+    # regression: "要折叠屏" relevant top 0.04 vs 电饭煲 junk top 0.04), so the
+    # gate is layered:
+    #   * NO-MATCH floor — returns [] — fires only when ALL THREE hold:
+    #     (a) no SPECIFIC hard-filter signal shaped the pool (sub-category /
+    #         brand / price / exclusions from the query or conversation mean
+    #         terse constraint turns like "品牌不限,预算加到3500" are matched
+    #         BY THE FILTER, whatever their text-vs-doc score). A bare
+    #         CATEGORY pin does NOT exempt: "家居香薰" pins 家居家具 via the
+    #         家居 prefix, yet the aisle has no 香薰 — that's exactly a
+    #         no-match;
+    #     (b) no lexical overlap — no query CJK-bigram / ASCII word appears in
+    #         any top candidate's title+brand ("要折叠屏" overlaps 折叠屏手机
+    #         titles and is saved; 电饭煲 overlaps nothing);
+    #     (c) top sigmoid score below the per-model junk floor (ZH base:
+    #         junk ≤0.16; v2-m3 runs colder, all-junk ≤0.02).
+    #   * TAIL trim — only when the TOP card is itself confidently relevant
+    #     (top ≥ ceiling; otherwise the whole pool is cold — negation phrasing
+    #     chills the cross-encoder, e.g. "化妆水不要韩系" tops at 0.08 with the
+    #     true answer at 0.009 — and relative ratios are noise). With a hot
+    #     top, drop a card only if BOTH far below the top (score < top×ratio)
+    #     AND absolutely junk-low (< ceiling) — the 制氧机 skincare riders
+    #     (0.107 vs top 0.855) die, same-aisle runners-up survive.
+    # Skipped when rerank didn't run (brand fast-path — hard filters already
+    # imply relevance) and for scene queries (`relevance_gate=False` from
+    # chat.py: "三亚度假要准备什么" legitimately scores 0.046 and WANTS
+    # cross-category diversity).
+    if relevance_gate and did_rerank and candidates and os.getenv("RAG_RELEVANCE_GATE", "1") == "1":
+        _sig0 = candidates[0].get("_retrieval") or {}
+        _top_score = _sig0.get("rerank_score")
+        if _top_score is not None:
+            _multi = "v2-m3" in str(_sig0.get("rerank_model") or "")
+            # ZH floor 0.10: nonexistent products top out ≤0.08 even with a
+            # warm "推荐个X" phrasing (香薰 0.060 / 电动牙刷 0.076 / 扫地机器人
+            # 0.039), while legit category browses both carry a filter (exempt)
+            # AND score ≥0.85. The colder multilingual model keeps 0.025.
+            _floor = (float(os.getenv("RAG_NOMATCH_FLOOR_MULTI", "0.025")) if _multi
+                      else float(os.getenv("RAG_NOMATCH_FLOOR_ZH", "0.10")))
+            _filter_specific = bool(retrieval_filter is not None and (
+                retrieval_filter.sub_categories or retrieval_filter.sub_category
+                or retrieval_filter.brand_include or retrieval_filter.brand_exclude
+                or retrieval_filter.exclude_keywords or retrieval_filter.has_price_constraint
+            ))
+            if (
+                _top_score < _floor
+                and not _filter_specific
+                and not _lexical_overlap(f"{text} {preference_text}", candidates)
+            ):
+                return []
+            _ceil = (float(os.getenv("RAG_TAIL_CEIL_MULTI", "0.03")) if _multi
+                     else float(os.getenv("RAG_TAIL_CEIL_ZH", "0.12")))
+            if _top_score >= _ceil:
+                _cutoff = _top_score * float(os.getenv("RAG_CARD_TAIL_RATIO", "0.15"))
+                candidates = [
+                    c for c in candidates
+                    if not (
+                        ((c.get("_retrieval") or {}).get("rerank_score") or 0.0) < _cutoff
+                        and ((c.get("_retrieval") or {}).get("rerank_score") or 0.0) < _ceil
+                    )
+                ]
 
     # 4.5) Product-line anchor filter (R8.F.6).
     #
@@ -586,6 +692,7 @@ def top_k(
     conversation_filter=None,
     intent_text: str | None = None,
     user_id: str | None = None,
+    relevance_gate: bool = True,
 ) -> list[dict]:
     """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products.
 
@@ -768,7 +875,9 @@ def top_k(
     # the dominant latency, especially on the English path. The cheap,
     # user-specific preference reorder (step 7) stays below, OUTSIDE the
     # cache, so 👍/👎 still re-orders live and proposal #12 is preserved.
-    _rc_key = _retrieval_cache_key(text, k, retrieval_filter, preference_text)
+    _rc_key = _retrieval_cache_key(
+        text, k, retrieval_filter, f"{preference_text}|gate={relevance_gate}"
+    )
     candidates = _retrieval_cache_get(_rc_key)
     if candidates is None:
         candidates = _heavy_retrieve(
@@ -781,6 +890,7 @@ def top_k(
             rerank_on=rerank_on,
             negation_on=negation_on,
             price_on=price_on,
+            relevance_gate=relevance_gate,
         )
         _retrieval_cache_put(_rc_key, candidates)
 

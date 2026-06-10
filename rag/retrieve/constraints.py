@@ -34,8 +34,17 @@ _PRICE_MAX_EN_RE = re.compile(
     r"[¥￥$]?\s*(\d+(?:\.\d+)?)",
     re.IGNORECASE,
 )
+# The trailing class excludes 的 so the POSITIVE object after a negated
+# modifier is safe ("不要苹果的耳机" must not exclude 耳机). R13 — a 顿号/和
+# list of negated brands ("不要索尼的、Bose的、苹果的") needs the scope to
+# cross each "X的、" segment, else only the first brand was excluded and the
+# rest landed in brand_include. A list segment requires the separator AFTER
+# 的, so the bare "苹果的耳机" form still stops at 的.
 _NEGATED_PREFIX_RE = re.compile(
-    r"(?:不想要|不需要|不要|别要|别给我|不考虑|不选|不买|排除|除了|避开|no\s*|without\s*)[^，。；,;的]*$",
+    r"(?:不想要|不需要|不要|别要|别给我|不考虑|不选|不买|排除|除了|避开|no\s*|without\s*)"
+    r"(?:[^，。；,;]{1,12}?的?\s*[、和或])*"
+    # 要 also stops the scope: "不要苹果的、要华为的" flips positive at 要.
+    r"[^，。；,;的要]*$",
     re.IGNORECASE,
 )
 # SUFFIX dismissal: the brand comes FIRST, then a clause-final brush-off
@@ -87,8 +96,11 @@ _INFERRED_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
                   "帽子", "卫裤", "短袖", "外套", "夹克")),
     ("母婴健康", ("奶粉", "纸尿裤", "尿不湿", "辅食", "米粉", "孕妇", "叶酸",
                   "蛋白粉", "婴儿", "母婴", "奶瓶")),
+    # R13 — 香薰/香氛 removed: the catalog sells no scent product, and the
+    # category pin only corralled junk 家居 cards for those queries; with no
+    # filter signal the relevance gate now no-matches them honestly.
     ("家居家具", ("四件套", "床上用品", "床品", "被子", "枕头", "插线板", "插排",
-                  "排插", "香薰", "香氛", "家居", "家具")),
+                  "排插", "家居", "家具")),
     ("图书音像", ("小说", "漫画", "字典", "词典", "工具书", "科幻", "名著")),
     ("食品饮料", ("速溶咖啡", "咖啡", "牛奶", "酸奶", "泡面", "方便面", "功能饮料",
                   "碳酸饮料", "气泡水", "茶饮", "调味品", "酱油")),
@@ -199,7 +211,11 @@ _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
     # —— 家居家具 ——
     (("四件套", "床上用品", "床品", "被套", "被子", "枕头"), ["床上用品"]),
     (("插线板", "插排", "排插", "接线板", "插座"), ["插线板"]),
-    (("香薰", "香氛", "家居香氛", "扩香"), ["礼盒/家居香氛"]),
+    # R13 — the 香薰→礼盒/家居香氛 rule was removed: the catalog has NO real
+    # 香薰 product; the only item under that sub_category is a miscategorized
+    # 雪花秀 skincare gift set, which this rule hard-pulled into 香薰 results
+    # ("文字说没有香薰,卡片却给洁面套装"). 香薰 keeps its 家居家具 category pin
+    # via _INFERRED_CATEGORIES, and the relevance gate handles the no-match.
     (("医用冰箱", "家用健康家电", "家电"), ["家用健康家电"]),
     # —— 食品饮料 ——
     (("功能饮料", "能量饮料"), ["功能饮料"]),
@@ -412,7 +428,10 @@ def _brands(text: str) -> tuple[list[str], list[str]]:
 
 
 def _is_negated(text: str, position: int) -> bool:
-    prefix = text[max(0, position - 18):position]
+    # 30-char window so the negation verb stays visible across a brand list
+    # ("不要索尼的、Bose的、苹果的、华为的" — 华为 sits >18 chars after 不要).
+    # Punctuation in the regex classes still resets scope at clause breaks.
+    prefix = text[max(0, position - 30):position]
     if _NEGATED_PREFIX_RE.search(prefix):
         return True
     # R11.fix — "X以外 / X之外" (e.g. multi-turn "华为以外还有吗"): the brand is
