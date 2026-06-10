@@ -83,18 +83,42 @@ def _merge_turn(state: Filter, text: str) -> None:
 
     if not clear_category and turn.category:
         prev_category = state.category
+        prev_sub_categories = state.sub_categories
         category_changed = bool(prev_category and prev_category != turn.category)
+        # A genuine product-DOMAIN switch: either the category changes outright,
+        # OR the prior turns pinned only sub-categories with no category (the
+        # generic 鞋子 rule) and none of those inherited subs live under the new
+        # category in the catalog. The catalog (category, sub_category) table
+        # tells 鞋子→化妆品 (real switch) apart from 跑鞋→篮球鞋 (both 服饰运动,
+        # a refinement that must keep its budget).
+        if category_changed:
+            domain_switch = True
+        elif not prev_category and prev_sub_categories:
+            try:
+                from rag.retrieve.constraints import _catalog_cat_subcats
+
+                pairs = _catalog_cat_subcats()
+                domain_switch = not any(
+                    (turn.category, s) in pairs for s in prev_sub_categories
+                )
+            except Exception:
+                domain_switch = False
+        else:
+            domain_switch = False
+
         state.category = turn.category
-        # Drop sub-categories inherited from a DIFFERENT product domain when the
-        # new turn names a category but no sub of its own. Covers an explicit
-        # category change AND the case where the prior turn pinned only
-        # sub-categories with category=None — the generic 鞋子 rule sets shoe subs
-        # with no category, so a later "化妆品" turn must still drop the stale
-        # shoe subs (else the filter ANDs 美妆护肤 with 篮球鞋… → wrong/zero cards).
-        if (prev_category != turn.category
-                and not turn.sub_category and not turn.sub_categories):
-            state.sub_category = None
-            state.sub_categories = None
+        # On a real domain switch, drop sub-categories AND the inherited budget
+        # that the switching turn doesn't itself restate — a "1000元以上" floor
+        # set while shopping shoes must not silently filter a later "推荐化妆品"
+        # (else 化妆品 wrongly shows only items over ¥1000). The switching turn's
+        # own budget, if any, is re-applied by the budget block below.
+        if domain_switch:
+            if not turn.sub_category and not turn.sub_categories:
+                state.sub_category = None
+                state.sub_categories = None
+            if not clear_budget:
+                state.price_min_cny = None
+                state.price_max_cny = None
         # R13 — a category switch also drops inherited brands with no products
         # in the new aisle: iPad turns pin brand=Apple, and a later "护肤品"
         # turn otherwise keeps AND-ing brand=Apple onto 美妆护肤 → 0 results.

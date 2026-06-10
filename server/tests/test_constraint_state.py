@@ -87,6 +87,19 @@ class ConversationConstraintStateTests(unittest.TestCase):
         self.assertEqual(result.category, "美妆护肤")
         self.assertIsNone(result.sub_category)
         self.assertIsNone(result.sub_categories)
+        # The "1000元以上" floor was set while shopping shoes; switching to
+        # 化妆品 must drop it (a different aisle shouldn't inherit the budget).
+        self.assertIsNone(result.price_min_cny)
+        self.assertIsNone(result.price_max_cny)
+
+    def test_subcategory_refinement_within_domain_keeps_budget(self) -> None:
+        # Control for the budget reset above: 鞋子→篮球鞋 stays in 服饰运动 (篮球鞋
+        # lives there in the catalog), so it's a refinement, not a domain switch —
+        # the budget must survive. Guards against over-clearing on shoe→shoe.
+        result = build_conversation_filter(_turns("1000元以上的鞋子", "换成篮球鞋"))
+
+        self.assertEqual(result.category, "服饰运动")
+        self.assertEqual(result.price_min_cny, 1000.0)
 
     @patch("rag.retrieve.hybrid.hybrid_topk")
     def test_empty_authoritative_state_does_not_reinfer_cancelled_anchor(self, hybrid_topk) -> None:
