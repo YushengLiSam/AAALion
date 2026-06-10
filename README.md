@@ -28,7 +28,7 @@ LionPick 是一款原生 iOS 购物助手。FastAPI 后端**已部署至 GCP 云
 
 **后端现已运行在云端**（GCP 虚拟机，由 `systemd` 托管，经 Cloudflare tunnel 提供公网 HTTPS），并具备**持续部署**能力：推送到 `main` 后约 2 分钟自动完成部署，带 `/ready` 健康检查与失败自动回滚（`tools/cloud-autodeploy.sh`）。iOS App 默认指向云端，因此**演示不再依赖任何人的 Mac 处于开机状态**。
 
-**检索核心指标（92 例 golden 测试集，生产 Hybrid+Rerank 链路）：recall@5 0.939，MRR 0.818，否定/反选准确率 0.971，无匹配正确率 0.952。** 数据来自 [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)（R11 复测，2026-06-03）——该结果早于 `7c6c455` 与 R13 的否定修复，最终答辩引用前需重新生成。运行 `python -m rag.eval.run` 可获得实时数据。
+**检索核心指标（生产 Hybrid+Rerank 链路，R13 全量重测 2026-06-10）：92 例 canonical golden 集 recall@5 0.947、MRR 0.860、否定/反选准确率 1.000、无匹配正确率 0.952；61 例 compositional 难集（多轮/对比/组合）分数召回 0.832、二元召回 0.983、反选 1.000。** 数据与方法论见 [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)，看板见 [`docs/eval_report.html`](docs/eval_report.html)。运行 `python -m rag.eval.run` 可获得实时数据。
 
 **R10 已交付内容（全部在云端 + iPhone 12 Pro Max / iPad Air 上实机验证）：**
 - **4.1 购物车深化（完整）** —— 对话式加购、**修改数量**（"把数量改成2" / "第二个改成3个"）、**删除**（"删掉第二个"）、左滑删除，以及结算流程（地址 + 订单摘要 + 模拟下单完成）。
