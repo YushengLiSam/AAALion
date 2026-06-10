@@ -194,6 +194,31 @@ final class ChatViewModel {
         cancel()
     }
 
+    // MARK: - Clear conversation.
+
+    /// Wipe the conversation back to an empty slate: cancel any in-flight
+    /// stream, voice capture and TTS, drop every message, and clear the
+    /// composer, staged attachments, clarification chips, pending cart
+    /// intent and error banner. Proactive repurchase reminders are left
+    /// untouched — they aren't part of the chat transcript.
+    func clearConversation() {
+        streamTask?.cancel()
+        streamTask = nil
+        SpeechService.shared.stop()
+        TTSService.shared.stop()
+        messages.removeAll()
+        draft = ""
+        pendingAttachments.removeAll()
+        clarifyChips.removeAll()
+        errorMessage = nil
+        cartIntent = nil
+        cartIntentIndex = nil
+        cartIntentQuantity = nil
+        isStreaming = false
+        isRecording = false
+        autoTTSSpokenMessageIDs.removeAll()
+    }
+
     // MARK: - TTS.
 
     func speakAssistant(text: String) {

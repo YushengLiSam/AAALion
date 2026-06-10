@@ -22,6 +22,8 @@ struct ChatView: View {
     // R12 — one-tap order (whole cart) confirm sheet, fired by the
     // conversational "帮我下单/结算" intent.
     @State private var showInstantOrder = false
+    // Clear-conversation confirm dialog (top-left "new chat" button).
+    @State private var showClearConfirm = false
     @FocusState private var inputFocused: Bool
 
     // R8.D: dev-mode toggle. Long-press the gear icon for 1.5 s to flip
@@ -110,6 +112,15 @@ struct ChatView: View {
             }
             .animation(.easeOut(duration: 0.2), value: viewModel.repurchaseToast)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showClearConfirm = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                    .accessibilityLabel(L("清空对话"))
+                    .disabled(viewModel.messages.isEmpty)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 14) {
                         // R11 — account avatar. Logged out → login page;
@@ -219,6 +230,23 @@ struct ChatView: View {
             }
             .sheet(isPresented: $showFavorites) {
                 FavoritesView()
+            }
+            // Clear the current conversation (top-left button). Destructive,
+            // so it's gated behind a confirmation — an accidental tap mid-demo
+            // shouldn't wipe the transcript.
+            .confirmationDialog(
+                L("清空当前对话?"),
+                isPresented: $showClearConfirm,
+                titleVisibility: .visible
+            ) {
+                Button(L("清空对话"), role: .destructive) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.clearConversation()
+                    }
+                }
+                Button(L("取消"), role: .cancel) {}
+            } message: {
+                Text(L("将清除全部消息且无法撤销"))
             }
             // First-launch soft prompt (once, skippable). Presenting the
             // login cover is deferred to the prompt's onDismiss so the

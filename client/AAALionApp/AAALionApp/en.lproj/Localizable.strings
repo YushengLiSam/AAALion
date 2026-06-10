@@ -101,6 +101,7 @@
 "密码已修改" = "Password changed";
 "密码至少 6 位" = "Password must be at least 6 characters";
 "将删除你的账号及其偏好 / 收藏 / 拼单数据,不可恢复。" = "This permanently deletes your account and its preferences / favorites / group-buy data.";
+"将清除全部消息且无法撤销" = "This clears all messages and can't be undone.";
 "已 %@/%@ 人 · 立省 %@" = "%@/%@ joined · save %@";
 "已 %@/%@ 人, 还差 %@ 人" = "%@/%@ joined · %@ to go";
 "已下单 / Order placed" = "Order placed";
@@ -202,6 +203,8 @@
 "测试连接 / Test connection" = "Test connection";
 "淘汰 / Evictions" = "Evictions";
 "清空 / Clear" = "Clear";
+"清空对话" = "Clear chat";
+"清空当前对话?" = "Clear this conversation?";
 "演示" = "Demo";
 "演示下单:不接入真实支付,仅记录购买用于复购提醒。" = "Demo order: no real payment; we only log the purchase for reorder reminders.";
 "演示后端不发真实邮件/短信:重置码直接显示在上方,输入即可重置。生产环境由云端下发。" = "The demo backend sends no real email/SMS — the reset code is shown above; enter it to reset. Production delivers it from the cloud.";
