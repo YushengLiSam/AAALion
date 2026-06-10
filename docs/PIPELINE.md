@@ -1,104 +1,103 @@
-# Development Pipeline (Team SOP)
+# 开发流水线(团队 SOP)
 
-Read this before touching any code. It tells you the order of operations, how to test what you're building, and how to land changes without breaking the other two developers.
+动手写任何代码之前先读本文。它告诉你操作的先后顺序、如何测试你正在构建的东西,以及如何在不影响另外两位开发者的前提下把改动落地。
 
-> **For non-engineer readers**: this document is for teammates who are
-> going to write code on the project. If you're trying to understand
-> what the project DOES rather than how to develop it, start at
-> [`docs/explainers/README.md`](explainers/README.md) instead.
+> **写给非工程读者**:本文面向将要在项目里写代码的队友。
+> 如果你想了解的是这个项目"做什么"而不是怎么开发它,
+> 请从 [`docs/explainers/README.md`](explainers/README.md) 开始阅读。
 
-## How to develop
+## 如何开发
 
-### Parallel-work-friendly order
+### 便于并行工作的顺序
 
-1. **管图杰 / RAG** brings up the vector index + ingests `data/seed/` first. Output: a populated Chroma collection (or Qdrant `:6333`).
-2. **李雨晟 / backend** wraps it with FastAPI, exposing `/chat/stream`. He can stub retrieval initially by returning a fixed top-3 from a local JSON.
-3. **陈澍枫 / iOS** builds the chat UI against the SSE endpoint. He can stub the backend by running `python tools/mock_backend.py` in another terminal.
+1. **管图杰 / RAG** 先把向量索引拉起来并摄入 `data/seed/`。产出:一个已填充数据的 Chroma 集合(或 Qdrant `:6333`)。
+2. **李雨晟 / 后端** 用 FastAPI 把它包起来,对外暴露 `/chat/stream`。初期他可以打桩(stub)检索,从本地 JSON 返回固定的 top-3。
+3. **陈澍枫 / iOS** 对着 SSE 端点搭建聊天 UI。他可以在另一个终端运行 `python tools/mock_backend.py` 来打桩后端。
 
-### Stubs each role provides for the others
+### 各角色为其他人提供的桩(stub)
 
-- **RAG stub**: `rag/retrieve/query.py` accepts `--stub` and returns the first 3 products from `data/seed/`. No Qdrant required.
-- **Backend stub**: serve fixture tokens (read from `server/app/fixtures/sample_stream.txt`) so iOS can test SSE parsing without Doubao.
-- **iOS stub**: not needed by others; iOS only consumes.
+- **RAG 桩**:`rag/retrieve/query.py` 接受 `--stub` 参数,返回 `data/seed/` 中的前 3 个商品。不需要 Qdrant。
+- **后端桩**:提供固定的 token 流(从 `server/app/fixtures/sample_stream.txt` 读取),让 iOS 无需 Doubao 即可测试 SSE 解析。
+- **iOS 桩**:其他人不需要;iOS 只做消费端。
 
-### Branch model
+### 分支模型
 
-- `main` is stable. Only scaffold + accepted PRs land here.
-- Each developer's personal branch: `shufeng`, `sam`, `tujie`. Work-in-progress lives here.
-- Feature branches when you want a clean PR: `<owner>/<feature>` e.g. `tujie/negation-filter`.
-- Rebase your personal branch onto `main` daily so divergence stays small.
+- `main` 保持稳定。只有脚手架 + 通过评审的 PR 才能落到这里。
+- 每位开发者的个人分支:`shufeng`、`sam`、`tujie`。进行中的工作放在这里。
+- 当你想要一个干净的 PR 时使用特性分支:`<owner>/<feature>`,例如 `tujie/negation-filter`。
+- 每天把你的个人分支 rebase 到 `main` 上,保持分歧尽量小。
 
-### Commit hygiene
+### 提交规范
 
-- Imperative subject ("Add SSE delta type", not "Added"/"Adding").
-- Body: *why*, not *what*.
-- One logical change per commit; small commits land faster than perfect ones.
+- 主题行用祈使句("Add SSE delta type",而不是 "Added"/"Adding")。
+- 正文写 *为什么*,而不是 *改了什么*。
+- 一次提交只包含一个逻辑改动;小提交比完美提交落地更快。
 
-### PR rules
+### PR 规则
 
-- PR title: same form as commit subject.
-- Description must include:
-  - **What** changed (1-2 sentences).
-  - **Why** (link to the requirement or issue).
-  - **How to test** (commands + expected output).
-- Reviewer:
-  - iOS PRs → 陈澍枫 self-merges (no other iOS dev).
-  - Backend → 李雨晟 self-merges.
-  - RAG → 管图杰 self-merges.
-  - **Cross-area** PRs (e.g. changing an API contract) → require the affected owner's approval.
+- PR 标题:与提交主题行同样的形式。
+- 描述必须包含:
+  - **改了什么**(1-2 句话)。
+  - **为什么**(链接到需求或 issue)。
+  - **如何测试**(命令 + 预期输出)。
+- 评审人:
+  - iOS PR → 陈澍枫自行合并(没有其他 iOS 开发)。
+  - 后端 → 李雨晟自行合并。
+  - RAG → 管图杰自行合并。
+  - **跨领域** PR(例如修改 API 契约)→ 需要受影响领域负责人的批准。
 
-## How to test
+## 如何测试
 
-Three layers, in increasing cost:
+三个层次,成本依次递增:
 
-### 1. RAG eval (cheapest, run on every RAG change)
+### 1. RAG 评测(最便宜,每次 RAG 改动都要跑)
 
 ```bash
 cd rag
 python -m eval --golden eval/golden.jsonl
 ```
 
-Reports recall@5 and a CSV of misses. Target: ≥ 80% recall@5 on the golden set by 06-05.
+报告 recall@5 以及一份未命中(miss)的 CSV。目标:06-05 之前在黄金集上 recall@5 ≥ 80%。
 
-### 2. Backend integration
+### 2. 后端集成
 
 ```bash
 cd server
 pytest tests/
 ```
 
-Uses a live Qdrant (started by the test fixture) and a **mocked Doubao client** — no real API calls in tests, deterministic. Cost: 0¥.
+使用真实运行的 Qdrant(由测试 fixture 启动)和一个 **被 mock 的 Doubao 客户端** —— 测试中没有真实 API 调用,结果确定。成本:0¥。
 
 ### 3. iOS
 
-- `XCTest` for `ChatService` SSE parsing (`Cmd+U` in Xcode).
-- Manual UI smoke on iPhone 13 simulator + the real device (for camera flow).
-- Before each demo: run the full end-to-end on the real iPhone 13 with the real backend.
+- 用 `XCTest` 测 `ChatService` 的 SSE 解析(在 Xcode 中按 `Cmd+U`)。
+- 在 iPhone 13 模拟器 + 真机上做手动 UI 冒烟测试(相机流程需要真机)。
+- 每次演示前:在真实 iPhone 13 上对接真实后端跑一遍完整的端到端流程。
 
-## How to iterate
+## 如何迭代
 
-### Daily cadence
+### 每日节奏
 
-- Morning: pull `main`, rebase your branch.
-- Stand-up text in the team channel: yesterday / today / blockers (one line each).
-- Evening: push your branch even if WIP — protects against laptop loss and lets others see progress.
+- 早上:拉取 `main`,rebase 你的分支。
+- 在团队群里发站会文字:昨天 / 今天 / 阻塞点(各一行)。
+- 晚上:即使是 WIP 也要推送你的分支 —— 防止笔记本丢失造成损失,也让其他人看到进展。
 
-### Weekly cadence (every Sunday)
+### 每周节奏(每周日)
 
-- 30-min sync. Demo your latest. Update [`ROADMAP.md`](ROADMAP.md). Re-prioritize bonus features based on what's risky.
+- 30 分钟同步会。演示你的最新进展。更新 [`ROADMAP.md`](ROADMAP.md)。根据风险高低重新排定加分项功能的优先级。
 
-### When you're stuck
+### 卡住的时候
 
-- Stuck for >30 min: ask in the team channel with a snippet + what you tried.
-- Stuck for >2 hours: pair-debug on a call. Time is more expensive than ego.
+- 卡住超过 30 分钟:在团队群里发代码片段 + 你已经尝试过什么。
+- 卡住超过 2 小时:打电话结对调试。时间比面子更贵。
 
-### Code review tips for this team
+### 针对本团队的代码评审建议
 
-- Trust the owner's call on their area; review for correctness, not style preference.
-- Approve if the diff makes the system better, even if you'd write it differently.
-- Never block on hypothetical future use cases — the freeze is 2026-06-10.
+- 信任负责人在其领域内的判断;评审正确性,而不是风格偏好。
+- 只要这个 diff 让系统变得更好就批准,即使你自己会写得不一样。
+- 永远不要因为假设性的未来用例而阻塞 —— 代码冻结日是 2026-06-10。
 
-## Local-run quickstart (5 commands)
+## 本地运行快速上手(5 条命令)
 
 ```bash
 cd server && docker compose up -d qdrant         # 1. vector DB

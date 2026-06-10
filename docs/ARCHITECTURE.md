@@ -1,37 +1,37 @@
-# Architecture
+# 架构
 
-End-to-end design of the RAG-based multimodal e-commerce agent.
+基于 RAG 的多模态电商导购 Agent 的端到端设计。
 
-> **For a CS-sophomore-friendly version of this document**, see
-> [`docs/explainers/10-app-architecture.md`](explainers/10-app-architecture.md).
-> The explainer covers the same content in plain English with concrete
-> file paths, while this document is the engineer-facing depth reference.
-> Pick whichever is right for your audience.
+> **本文档的"大二学生也能读懂"版本**,见
+> [`docs/explainers/10-app-architecture.md`](explainers/10-app-architecture.md)。
+> 该讲解版用通俗语言覆盖相同内容,并附具体文件路径;
+> 而本文档是面向工程师的深度参考。
+> 请按受众选择合适的版本。
 
-## Intro for non-CS readers
+## 写给非计算机背景读者的导读
 
-If you've never built a web app before, the project breaks down into
-four layers:
+如果你从未做过 Web 应用,本项目可以拆成
+四层:
 
-1. **An iPhone app** built with SwiftUI. The user types or speaks; the
-   app shows the answer.
-2. **A backend** (a small Python web server) that the iPhone talks to.
-   It receives chat messages, decides which products are relevant, and
-   asks a large language model (LLM) to write a reply.
-3. **A retrieval pipeline** (called RAG) that searches our product
-   catalog for the right items to recommend. This is the smart part —
-   it combines keyword search, semantic search, and a final ranking
-   pass.
-4. **An external LLM** (claude-haiku-4-5 via TokenRouter) that writes
-   the natural-language reply, given the products the retrieval
-   pipeline found.
+1. **一个 iPhone 应用**,用 SwiftUI 构建。用户打字或语音输入;
+   应用展示答案。
+2. **一个后端**(一个小型 Python Web 服务器),iPhone 与它通信。
+   它接收聊天消息,判断哪些商品相关,然后
+   请大语言模型(LLM)生成回复。
+3. **一条检索管线**(称为 RAG),在我们的商品
+   目录中搜索值得推荐的商品。这是"聪明"的部分 ——
+   它结合了关键词检索、语义检索和最终的重排
+   环节。
+4. **一个外部 LLM**(通过 TokenRouter 调用 claude-haiku-4-5),根据检索
+   管线找到的商品,
+   撰写自然语言回复。
 
-The rest of this document is the engineer-facing detail. If anything
-below uses a term you don't know, the explainers in
-[`docs/explainers/`](explainers/) define every concept in plain English
-first.
+本文档其余部分是面向工程师的细节。如果下文
+出现你不认识的术语,
+[`docs/explainers/`](explainers/) 中的讲解文档会先用通俗语言
+定义每个概念。
 
-## High-level flow
+## 高层流程
 
 ```
  ┌──────────────┐   text+image   ┌─────────────┐   query    ┌──────────┐
@@ -48,95 +48,95 @@ first.
                               └─────────────────┘
 ```
 
-## Components
+## 组件
 
-### 1. iOS client (`client/`)
-- **SwiftUI** target iOS 17+; one `ChatViewModel` per conversation (`@Observable`).
-- **SSE** consumed via `URLSession.bytes(for:)` → `AsyncStream<ChatDelta>`; cancellation wired to `.task {}` lifecycle.
-- **Product card** rendered inline in chat; tap → `ProductDetailView`. Images via `AsyncImage` with `URLCache.shared`.
-- **Image upload** path: `PhotosPicker` (iOS 17+) → JPEG compress → multipart POST to `/chat/multimodal`.
-- **No API keys** — only knows `PUBLIC_BACKEND_URL`.
+### 1. iOS 客户端(`client/`)
+- **SwiftUI**,目标 iOS 17+;每个会话一个 `ChatViewModel`(`@Observable`)。
+- **SSE** 通过 `URLSession.bytes(for:)` 消费 → `AsyncStream<ChatDelta>`;取消逻辑挂接到 `.task {}` 生命周期。
+- **商品卡片**内联渲染在聊天流中;点击 → `ProductDetailView`。图片用 `AsyncImage` 加 `URLCache.shared`。
+- **图片上传**路径:`PhotosPicker`(iOS 17+)→ JPEG 压缩 → multipart POST 到 `/chat/multimodal`。
+- **不持有任何 API 密钥** —— 只知道 `PUBLIC_BACKEND_URL`。
 
-### 2. Backend (`server/`)
-- **FastAPI** with `uvicorn`. Streaming endpoint emits `text/event-stream` lines.
-- **`/chat/stream`** (POST, SSE): { messages, filters? } → tokens + product cards.
-- **`/chat/multimodal`** (POST, SSE): multipart (image + text) → same SSE.
-- **`/products/{id}`** (GET): detail by id, served from the indexed JSON.
-- **`/health`** (GET): process liveness; **`/ready`** (GET): retrieval models
-  and complete query path warmed for user traffic.
-- **FX normalization**: `services/currency.py` fetches and caches latest
-  reference quotes for non-CNY source prices, enriches response payloads with
-  `price_cny` + `exchange_rate`, and leaves original catalog prices intact.
-- **Orchestration**: merge multi-turn/API retrieval constraint state → hybrid RAG → rerank
-  → strict converted-CNY budget check → assemble prompt and stream model
-  response; product cards are emitted from returned catalog records.
-- **Doubao client**: thin wrapper around the ARK API (OpenAI-compatible). Reads key from `.env`.
-- **Hardening**: timeout (30s end-to-end), retry on 5xx (backoff 0.5s × 2), per-IP rate limit (defer to v2).
+### 2. 后端(`server/`)
+- **FastAPI** 配 `uvicorn`。流式端点输出 `text/event-stream` 行。
+- **`/chat/stream`**(POST,SSE):{ messages, filters? } → token 流 + 商品卡片。
+- **`/chat/multimodal`**(POST,SSE):multipart(图片 + 文本)→ 相同的 SSE。
+- **`/products/{id}`**(GET):按 id 返回详情,数据来自已索引的 JSON。
+- **`/health`**(GET):进程存活;**`/ready`**(GET):检索模型
+  与完整查询路径已预热完毕、可承接用户流量。
+- **汇率归一化**:`services/currency.py` 为非人民币标价的商品获取并缓存
+  最新参考汇率,在响应负载中补充
+  `price_cny` + `exchange_rate`,同时保持目录原价不变。
+- **编排**:合并多轮对话/API 检索约束状态 → 混合 RAG → 重排
+  → 严格的折算人民币预算校验 → 组装 prompt 并流式输出模型
+  回复;商品卡片由返回的目录记录生成。
+- **Doubao 客户端**:对 ARK API(OpenAI 兼容)的轻量封装。密钥从 `.env` 读取。
+- **加固**:超时(端到端 30s)、5xx 重试(退避 0.5s × 2)、按 IP 限流(推迟到 v2)。
 
-### 3. RAG (`rag/`)
-- **Ingest**:
-  - `chunk.py`: each product JSON → multiple chunks: `marketing_description`, each `official_faq` entry, each `user_reviews` entry. Each chunk carries `product_id`, `category`, `sub_category`, `brand`, `base_price`, and source `currency`.
-  - `embed_text.py`: `BAAI/bge-small-zh-v1.5` embeddings stored in Chroma `products_text`.
-  - `embed_image.py`: OpenCLIP ViT-B/32 on A100 for each product main image → Chroma `products_image`.
-- **Retrieve**:
-  - `constraints.py`: query text and optional API fields → `Filter` for category, subcategory, brand include/exclude, and RMB budget.
-  - `query.py` + `bm25.py` + `hybrid.py`: dense and sparse candidate retrieval use the same filter before reciprocal-rank fusion.
-  - `rerank.py`: cross-encoder reranking for top-20 → top-5.
-- **Conversation constraints**: `server/app/services/constraint_state.py` folds
-  user turns into an authoritative `Filter`; follow-ups may inherit, replace,
-  exclude, or cancel category/brand/RMB-budget conditions.
-- **Readiness warmup**: `server/app/services/retrieval_readiness.py` loads
-  embedding/BM25/reranker and executes one real `top_k` call before chat is
-  available; `Dockerfile.rag` caches model weights during image build.
-- **Prompts**: `prompts/system.md` enforces "answer only from retrieved products, never invent prices/coupons/skus".
-- **Eval**: `eval/golden.jsonl` contains 68 audited/regression cases, including four multi-turn constraint-state cases; `python -m rag.eval.report` writes HTML/JSON metrics including scenario slices.
+### 3. RAG(`rag/`)
+- **入库(Ingest)**:
+  - `chunk.py`:每个商品 JSON → 多个 chunk:`marketing_description`、每条 `official_faq`、每条 `user_reviews`。每个 chunk 携带 `product_id`、`category`、`sub_category`、`brand`、`base_price` 及来源 `currency`。
+  - `embed_text.py`:`BAAI/bge-small-zh-v1.5` 嵌入向量,存入 Chroma 的 `products_text`。
+  - `embed_image.py`:在 A100 上用 OpenCLIP ViT-B/32 处理每个商品主图 → 存入 Chroma 的 `products_image`。
+- **检索(Retrieve)**:
+  - `constraints.py`:由查询文本及可选 API 字段 → 生成 `Filter`,覆盖品类、子品类、品牌包含/排除以及人民币预算。
+  - `query.py` + `bm25.py` + `hybrid.py`:稠密与稀疏候选检索在倒数排名融合(RRF)之前使用同一个过滤器。
+  - `rerank.py`:交叉编码器(cross-encoder)重排,top-20 → top-5。
+- **会话约束**:`server/app/services/constraint_state.py` 将
+  用户各轮发言折叠成权威 `Filter`;后续轮次可以继承、替换、
+  排除或取消品类/品牌/人民币预算条件。
+- **就绪预热**:`server/app/services/retrieval_readiness.py` 加载
+  嵌入模型/BM25/重排器,并在开放聊天前先执行一次真实的 `top_k` 调用;
+  `Dockerfile.rag` 在镜像构建期缓存模型权重。
+- **提示词**:`prompts/system.md` 强制约定"只根据检索到的商品作答,绝不编造价格/优惠券/SKU"。
+- **评测**:`eval/golden.jsonl` 含 68 条经审计的回归用例,其中包括四条多轮约束状态用例;`python -m rag.eval.report` 输出 HTML/JSON 指标,含分场景切片。
 
-## Data flow per turn
+## 单轮数据流
 
-1. Docker/FastAPI startup completes retrieval warmup; `/ready` becomes `200`.
-2. iOS sends `{messages: [...], filters?: {}}` to `/chat/stream`.
-3. Backend extracts the retrieval query and folds user turns into structured
-   constraint state. For example, a later `预算加到3500元`, `不要 Sony 了，
-   改成 Bose`, or `预算不限` replaces/cancels inherited constraints; explicit
-   request filter fields override inferred state. `RAG_HARD_FILTERS=0`
-   disables text/conversation inference for A/B.
-4. Chroma dense retrieval and BM25 apply the same filter, then hybrid fusion
-   and reranking produce the candidate list.
-5. For an RMB range, indexed CNY prices are filtered early; foreign-priced
-   candidates are converted at response time and then checked strictly,
-   preserving original price and dated FX metadata.
-6. Backend builds prompt: `system_prompt` + `retrieved_context_block` + `conversation_history`.
-7. Backend streams Doubao response. Two event types:
+1. Docker/FastAPI 启动完成检索预热;`/ready` 变为 `200`。
+2. iOS 向 `/chat/stream` 发送 `{messages: [...], filters?: {}}`。
+3. 后端提取检索查询,并把用户各轮发言折叠为结构化
+   约束状态。例如,后续的 `预算加到3500元`、`不要 Sony 了,
+   改成 Bose` 或 `预算不限` 会替换/取消继承的约束;显式的
+   请求过滤字段优先于推断状态。`RAG_HARD_FILTERS=0`
+   可关闭文本/会话推断,用于 A/B 对比。
+4. Chroma 稠密检索与 BM25 应用同一过滤器,随后混合融合
+   与重排产出候选列表。
+5. 对人民币区间约束,已索引的 CNY 价格会被提前过滤;外币标价的
+   候选在响应阶段折算后再做严格校验,
+   并保留原价及带日期的汇率元数据。
+6. 后端组装 prompt:`system_prompt` + `retrieved_context_block` + `conversation_history`。
+7. 后端流式转发 Doubao 回复。两种事件类型:
    - `data: {"type":"delta","text":"..."}`
-   - `data: {"type":"product_card","product":{...}}` — emitted once per cited product, sourced from the indexed JSON (no hallucinated fields).
-8. iOS renders deltas into the streaming message bubble; on each `product_card` event, append a card with CNY primary pricing and original-price traceability.
+   - `data: {"type":"product_card","product":{...}}` —— 每个被引用的商品发送一次,数据取自已索引的 JSON(不含任何臆造字段)。
+8. iOS 把 delta 渲染进流式消息气泡;每收到一个 `product_card` 事件,追加一张以人民币为主价、可追溯原价的商品卡片。
 
-## Multimodal (拍照找货) path
+## 多模态(拍照找货)路径
 
-1. iOS picks/captures image, posts to `/chat/multimodal`.
-2. Backend runs the image through OpenCLIP (mode depends on deployment: A100 over RPC, or local CPU fallback).
-3. Image vector → Chroma `products_image` collection → top-k.
-4. Same prompt assembly + streaming as text path, with retrieved products as context.
+1. iOS 选择/拍摄图片,POST 到 `/chat/multimodal`。
+2. 后端用 OpenCLIP 处理图片(模式取决于部署:A100 走 RPC,或本地 CPU 兜底)。
+3. 图片向量 → Chroma `products_image` 集合 → top-k。
+4. 之后的 prompt 组装与流式输出与文本路径相同,检索到的商品作为上下文。
 
-## Anti-hallucination guarantees
+## 防幻觉保证
 
-- The model never sees the full product DB; only retrieved context. If retrieval misses, the system_prompt instructs "tell the user you can't find a matching product" rather than guessing.
-- Product cards rendered on the client come from indexed JSON, not from model text — the model's job is the *reasoning text*, the cards are *programmatic*.
-- Source prices, SKUs, image URLs always come from the indexed data; a
-  user-facing CNY amount is derived from a dated, identified FX quote and
-  does not overwrite the catalog evidence.
+- 模型永远看不到完整商品库,只看到检索上下文。若检索未命中,system_prompt 会要求"告知用户找不到匹配商品",而不是瞎猜。
+- 客户端渲染的商品卡片来自已索引的 JSON,而非模型文本 —— 模型负责*推理文字*,卡片是*程序化生成*的。
+- 原始价格、SKU、图片 URL 一律来自已索引数据;
+  面向用户展示的人民币金额由带日期、可溯源的汇率折算得出,
+  且不会覆盖目录中的原始证据。
 
-## Deployment
+## 部署
 
-- Chroma persists locally under `data/.chroma/`; Docker provides a reproducible
-  Windows backend and evaluation environment. The Docker backend is exposed
-  only after its `/ready` healthcheck observes completed retrieval prewarm.
-- Re-run text ingest after metadata changes such as the newly indexed
-  `currency` field required for RMB-aware retrieval filtering.
-- A100 used **only** for index-build (CLIP) and batch eval — not the request path.
-- iOS client points at the laptop running `uvicorn` (LAN dev) or any host the backend is deployed on.
+- Chroma 本地持久化在 `data/.chroma/` 下;Docker 提供可复现的
+  Windows 后端与评测环境。Docker 后端只有在其 `/ready` 健康检查
+  确认检索预热完成后才对外暴露。
+- 元数据变更后需重跑文本入库,例如新加入索引的
+  `currency` 字段(人民币感知的检索过滤所必需)。
+- A100 **仅**用于索引构建(CLIP)和批量评测 —— 不在请求路径上。
+- iOS 客户端指向运行 `uvicorn` 的笔记本(局域网开发)或后端部署的任意主机。
 
-## Diagram refs
+## 图示参考
 
-- `sam's sample.png` in the workspace root shows the 5-step flow Sam sketched.
-- For the demo video, we'll regenerate a polished version once UI lands.
+- 工作区根目录的 `sam's sample.png` 展示了 Sam 手绘的 5 步流程。
+- 演示视频所需的精修版图,待 UI 落地后再重新绘制。

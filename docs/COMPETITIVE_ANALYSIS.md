@@ -1,150 +1,149 @@
-# 狮选 LionPick — Honest Competitive Analysis (2026-05-30)
+# 狮选 LionPick — 坦诚的竞品分析 (2026-05-30)
 
-> Where our product actually stands vs the market, grounded in web
-> research (sources at the bottom). Written to be honest, not flattering
-> — a judge will know the incumbents, so overclaiming loses more points
-> than it gains. "We" = 狮选 LionPick at `6b57d2d`.
-
----
-
-## 1. The landscape in one paragraph
-
-By mid-2026 the market converged on one pattern: **conversational LLM
-front-end → multimodal product retrieval → agentic checkout**, split into
-two philosophies. **Alibaba (千问+淘宝, live 2026-05-11)** ships the
-"**assistant**": category-level candidate lists, human stays in the loop.
-**ByteDance (豆包+抖音 "一句话购物", expanded beta from 2026-03-30)** ships
-the "**agent**": specific SKUs, checkout *inside* 豆包, app boundaries
-hidden — built on the **火山方舟** RAG/multimodal stack. JD (京犀) is in
-beta; Pinduoduo has no mature external AI 导购 but owns the **拼单** social
-mechanic. Globally, Amazon Rufus, Perplexity, Google AI Mode, OpenAI and
-Microsoft all shipped agentic checkout in late 2025 — **then OpenAI pulled
-back from Instant Checkout and Klarna re-hired humans**, proving execution
-reliability, not discovery, is the hard part.
-
-**The single most important fact for us:** the competition host
-(ByteDance) ships the closest comparable to us (豆包 一句话购物) on a public
-RAG stack (火山方舟). We are, in effect, building a focused, transparent,
-open version of their own product. That framing reads as fluent to their
-judges.
+> 本文基于网络调研(来源见文末),如实呈现我们的产品在市场中的真实位置。
+> 写作目标是坦诚而非美化——评委对头部玩家了如指掌,夸大其词
+> 失分多于得分。"我们" = 狮选 LionPick,代码版本 `6b57d2d`。
 
 ---
 
-## 2. Capability matrix — us vs the field
+## 1. 一段话看懂市场格局
 
-| Capability | 狮选 (us) | 淘宝/千问 | 豆包/抖音 (ByteDance) | JD 京犀 | PDD | Rufus / Perplexity / Google |
+到 2026 年年中,市场已收敛为同一种模式:**对话式 LLM
+前端 → 多模态商品检索 → 代理式(agentic)结账**,并分化为
+两种思路。**阿里(千问+淘宝,2026-05-11 上线)** 走的是
+"**助手**"路线:给出品类级候选列表,人始终在决策环中。
+**字节跳动(豆包+抖音 "一句话购物",2026-03-30 起扩大内测)** 走的是
+"**代理(agent)**"路线:直接给出具体 SKU,在豆包*内部*完成结账,隐藏应用
+边界——构建在 **火山方舟** 的 RAG/多模态技术栈之上。京东(京犀)尚在
+内测;拼多多没有成熟的对外 AI 导购,但握有 **拼单** 这一社交
+机制。放眼全球,Amazon Rufus、Perplexity、Google AI Mode、OpenAI 与
+Microsoft 都在 2025 年末上线了代理式结账——**随后 OpenAI 从
+Instant Checkout 收缩,Klarna 重新雇回人工**,这证明真正难的
+是执行的可靠性,而不是发现(discovery)。
+
+**对我们而言最重要的一个事实:** 比赛主办方
+(字节跳动)在公开的 RAG 技术栈(火山方舟)上推出了与我们最接近的
+对标产品(豆包 一句话购物)。我们实际上是在做一个聚焦、透明、
+开放版的他们自家产品。这个叙事框架在他们的评委看来会非常
+对路。
+
+---
+
+## 2. 能力矩阵——我们 vs 全行业
+
+| 能力 | 狮选(我们) | 淘宝/千问 | 豆包/抖音(字节跳动) | 京东 京犀 | 拼多多 | Rufus / Perplexity / Google |
 |---|---|---|---|---|---|---|
-| Text semantic search | ✅ hybrid+rerank | ✅ shipped, 4B SKU | ✅ beta | ✅ beta | partial | ✅ shipped |
-| Photo / image search | ✅ CLIP image-first | ✅ 拍立淘 (mature) | ✅ via 方舟 | claimed | — | ✅ (Rufus/Snap-to-Shop) |
-| Multi-turn dialogue | ✅ **+persistent negation** | ✅ (weak) | ✅ (weak) | ✅ (weak) | — | ✅ |
-| Negation / exclusion | ✅ **structured, 1.000 on golden** | ⚠️ documented "答非所问" | ⚠️ context-conflation | ⚠️ "已读乱回" | — | ⚠️ varies |
-| Personalization | ✅ explainable 👍/👎 prior | ✅ | ✅ (history) | ✅ (no time-decay) | ✅ (social graph) | ✅ |
-| Group-buy / 拼单 | ✅ **(simulated, labelled)** | — | — | — | ✅ **core** | — |
-| Agentic cart/checkout | ✅ (demo, in-app) | ✅ shipped | ✅ beta (in-app) | ✅ beta | — | ✅ (then OpenAI retreated) |
-| Answer transparency | ✅ **hallucination receipts + why-card** | ❌ ad black box | ❌ ad black box | ❌ | ❌ | partial |
-| Real catalog scale | ❌ ~145 demo products | 4B | Douyin catalog | JD catalog | PDD catalog | 50B+ (Google) |
-| Real payment | ❌ demo checkout | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Real multi-user / accounts | ⚠️ seam built, cloud-pending | ✅ | ✅ (Douyin bind) | ✅ | ✅ | ✅ |
+| 文本语义搜索 | ✅ 混合检索+重排 | ✅ 已上线,4B SKU | ✅ 内测 | ✅ 内测 | 部分 | ✅ 已上线 |
+| 拍照 / 图像搜索 | ✅ CLIP 图像优先 | ✅ 拍立淘(成熟) | ✅ 经由方舟 | 宣称支持 | — | ✅ (Rufus/Snap-to-Shop) |
+| 多轮对话 | ✅ **+否定条件持久化** | ✅(弱) | ✅(弱) | ✅(弱) | — | ✅ |
+| 否定 / 排除 | ✅ **结构化,golden 集上 1.000** | ⚠️ 有公开报道的"答非所问" | ⚠️ 上下文混淆 | ⚠️ "已读乱回" | — | ⚠️ 表现不一 |
+| 个性化 | ✅ 可解释的 👍/👎 先验 | ✅ | ✅(基于历史) | ✅(无时间衰减) | ✅(社交图谱) | ✅ |
+| 团购 / 拼单 | ✅ **(模拟实现,已明确标注)** | — | — | — | ✅ **核心** | — |
+| 代理式购物车/结账 | ✅(演示,应用内) | ✅ 已上线 | ✅ 内测(应用内) | ✅ 内测 | — | ✅(随后 OpenAI 收缩) |
+| 回答透明度 | ✅ **幻觉回执 + 推荐理由卡** | ❌ 广告黑箱 | ❌ 广告黑箱 | ❌ | ❌ | 部分 |
+| 真实商品库规模 | ❌ ~145 个演示商品 | 4B | 抖音商品库 | 京东商品库 | 拼多多商品库 | 50B+ (Google) |
+| 真实支付 | ❌ 演示结账 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 真实多用户 / 账号体系 | ⚠️ 接缝已建,待接云端 | ✅ | ✅(绑定抖音) | ✅ | ✅ | ✅ |
 
-Legend: ✅ have it · ⚠️ partial/weak · ❌ don't have it.
-
----
-
-## 3. Where we are genuinely competitive (lead with these)
-
-1. **Negation / exclusion + multi-turn robustness.** This is the
-   incumbents' *documented* weak spot — independent reviewers caught
-   Taobao, JD and Douyin all "答非所问" / conflating context (e.g. Douyin:
-   a gift for a grandmother → "适合送喜欢健康的男朋友的奶奶的养生壶"). We
-   handle "不要日系" *and persist it across turns* ("再便宜点的呢" keeps the
-   ban), with negation accuracy 1.000 on our golden set. **A robust
-   negation/compare flow is the clearest place a judge sees real
-   technical merit.** Academia agrees — there's a dedicated 2025 paper on
-   negation query rewriting; it's a known-hard problem.
-
-2. **Answer transparency.** The ad-incentive black box is unsolved
-   industry-wide — neither Alibaba nor ByteDance has reconciled
-   "recommendation vs. ad placement." Our **hallucination receipts**
-   (每条claim标 已验证/推断) + **"why recommended" card** (shows the
-   retrieval signals + preference bonus) + **non-commercial ranking** is a
-   credible, demo-able differentiator the incumbents structurally can't
-   match.
-
-3. **拼单 × AI fusion (white-space).** PDD owns 拼单 but has no AI 导购; the
-   AI players (淘宝/豆包/JD) have no 拼单. **Nobody fuses conversational AI
-   导购 with group-buy.** Ours is simulated, but the *concept* — "AI helps
-   you pick, then helps you 拼单 cheaper with friends" — is genuinely
-   novel positioning, and PDD's model proves the social mechanic drives
-   conversion.
-
-4. **Eval rigor.** We have a held-out golden set (71 cases), measured
-   recall@5 (~0.88–0.98 depending on subset), MRR, negation accuracy
-   1.000, p50 latency ~68 ms, an anti-cherry-pick audit, and a stress
-   test. Research on hackathon judging is explicit: **eval rigor is an
-   increasing discriminator** for AI-agent tracks — metrics beat vibes.
-
-5. **Architecture maturity for a student team.** Hybrid (dense+BM25) +
-   cross-encoder rerank + query rewrite + structured negation filter +
-   retrieval cache is exactly the textbook 2025 SOTA pipeline. Clean
-   provider/cloud/identity seams. systemd + tunnel deploy. This reads as
-   engineering maturity.
+图例:✅ 具备 · ⚠️ 部分/较弱 · ❌ 不具备。
 
 ---
 
-## 4. Where we are honestly behind (own these, don't hide them)
+## 3. 我们真正有竞争力的地方(答辩时主打这些)
 
-1. **Catalog scale & realism.** ~145 demo products vs 4B–50B. Our seed
-   data is synthetic (we now use real product data for the demo, but the
-   catalog is tiny). *Framing:* we're a vertical proof-of-concept, not a
-   marketplace — judge the pipeline, not the inventory.
-2. **No real payment / real multi-user yet.** Checkout is a demo path;
-   group-buy is simulated; accounts work but aren't wired to a cloud user
-   store. The seams are built — it's a wiring + scope decision, not a
-   rewrite. *And:* even OpenAI **retreated** from agentic checkout and
-   Klarna **re-hired humans** — so a scoped, reliable demo is the *correct*
-   choice, not a shortfall. Lean on that.
-3. **Not on Doubao right now.** We run TokenRouter haiku for latency (14 s
-   → 2 s). For a ByteDance competition that's a narrative risk — be ready
-   to explain it's a provider-swap behind one env var and the 方舟/Doubao
-   path is wired.
-4. **English path is slow** (multilingual reranker, 30 s+). Demo in
-   Chinese; it's a Chinese-market product anyway.
-5. **Our eval numbers are on our own golden set,** not a public benchmark
-   (ESCI etc.). Don't compare our 0.98 to public 0.66 — different sets.
-   Present honestly as "on our held-out set."
-6. **Multimodal fine-grained attribute errors.** Plain CLIP processes
-   images globally and misses fine attributes (the SOTA fix is a
-   vision-LLM caption/attribute pass — see proposal). Our photo search
-   demos well but will mis-rank visually-similar items.
+1. **否定 / 排除 + 多轮鲁棒性。** 这是头部玩家*有公开记录*的
+   弱点——独立评测者发现淘宝、京东、抖音都存在
+   "答非所问"/上下文混淆(例如抖音:
+   给奶奶买礼物 → "适合送喜欢健康的男朋友的奶奶的养生壶")。我们
+   能处理"不要日系"*并让它跨轮次持续生效*("再便宜点的呢"仍保留该
+   排除),在我们的 golden 集上否定准确率 1.000。**一个鲁棒的
+   否定/对比流程,是评委最容易看出真实技术含量的
+   地方。** 学界也认同——2025 年有一篇专门研究
+   否定查询改写的论文;这是公认的难题。
+
+2. **回答透明度。** 广告激励带来的黑箱是全行业未解的
+   问题——阿里和字节跳动都没有理清
+   "推荐 vs. 广告位"的关系。我们的**幻觉回执**
+   (每条claim标 已验证/推断)+ **"为什么推荐"卡片**(展示
+   检索信号 + 偏好加分)+ **非商业化排序**,是一个
+   可信、可现场演示的差异化点,头部玩家在结构上无法
+   跟进。
+
+3. **拼单 × AI 融合(市场空白)。** 拼多多握有拼单但没有 AI 导购;
+   AI 玩家(淘宝/豆包/京东)没有拼单。**没有人把对话式 AI
+   导购和拼单结合起来。** 我们的实现是模拟的,但这个*概念*——"AI 帮
+   你选,再帮你和朋友拼单更便宜"——是真正
+   新颖的定位,且拼多多的模式已证明这种社交机制能驱动
+   转化。
+
+4. **评测严谨性。** 我们有留出的 golden 集(71 例)、实测
+   recall@5(~0.88–0.98,视子集而定)、MRR、否定准确率
+   1.000、p50 延迟 ~68 ms、防挑数据(anti-cherry-pick)审计,以及压力
+   测试。关于黑客松评审的研究明确指出:在 AI agent 赛道,**评测严谨性
+   是越来越重要的区分项**——数据胜过感觉。
+
+5. **以学生团队而言成熟的架构。** 混合检索(稠密+BM25)+
+   交叉编码器重排 + 查询改写 + 结构化否定过滤 +
+   检索缓存,正是教科书级的 2025 SOTA 流水线。干净的
+   provider/云端/身份接缝。systemd + 隧道部署。这些都体现
+   工程成熟度。
 
 ---
 
-## 5. The one-line positioning for the defense
+## 4. 我们坦诚落后的地方(主动承认,不要遮掩)
 
-> "**狮选 is a transparent, vertical AI 导购** — it does the thing
-> ByteDance's own 豆包 一句话购物 does (conversational multimodal
-> retrieval + agentic actions on the 方舟-style stack), but adds the two
-> things the whole market is missing: **trustworthy reasoning** (it shows
-> its work and never hides ads) and **social 拼单**. We don't compete on
-> catalog size; we compete on **getting the answer right and proving it**
-> — exactly where the incumbents are documented to fail."
+1. **商品库规模与真实性。** ~145 个演示商品 vs 4B–50B。我们的种子
+   数据是合成的(演示现在已使用真实商品数据,但
+   商品库很小)。*话术框架:* 我们是垂直领域的概念验证,不是
+   电商平台——请评判流水线,而非库存。
+2. **尚无真实支付 / 真实多用户。** 结账是演示路径;
+   拼单是模拟的;账号可用但尚未接入云端用户
+   存储。接缝已经建好——这是接线和范围取舍的问题,不是
+   重写。*而且:* 连 OpenAI 都从代理式结账**收缩**、
+   Klarna **重新雇回人工**——所以一个收敛范围、可靠的演示是*正确的*
+   选择,而不是短板。要主动用上这一点。
+3. **目前没有跑在豆包上。** 我们出于延迟考虑使用 TokenRouter haiku(14 s
+   → 2 s)。在字节跳动的比赛里这是个叙事风险——要准备好
+   解释:这只是一个环境变量背后的 provider 切换,方舟/Doubao
+   路径已经接通。
+4. **英文路径慢**(多语言重排器,30 s+)。演示用
+   中文;这本来就是面向中文市场的产品。
+5. **我们的评测数字来自自建 golden 集,** 不是公开基准
+   (ESCI 等)。不要拿我们的 0.98 和公开的 0.66 比——不是同一个集合。
+   如实表述为"在我们的留出集上"。
+6. **多模态细粒度属性错误。** 朴素 CLIP 对图像做全局
+   处理,会漏掉细粒度属性(SOTA 修法是加一个
+   vision-LLM 描述/属性抽取环节——见提案)。我们的拍照搜索
+   演示效果很好,但会对视觉相似的商品排错序。
 
 ---
 
-## Sources (accessed 2026-05-30)
+## 5. 答辩用的一句话定位
+
+> "**狮选是一个透明的垂直 AI 导购**——它做的事和
+> 字节跳动自家的 豆包 一句话购物 相同(对话式多模态
+> 检索 + 方舟式技术栈上的代理式操作),但补上了
+> 整个市场都缺失的两件事:**可信的推理**(展示
+> 推理过程、绝不暗藏广告)和**社交拼单**。我们不在
+> 商品库规模上竞争;我们竞争的是**把答案做对并证明它**
+> ——恰恰是头部玩家有公开记录的失败之处。"
+
+---
+
+## 来源(访问日期 2026-05-30)
 
 - 千问×淘宝 全面打通 (Sina, 2026-05-11): https://finance.sina.com.cn/roll/2026-05-11/doc-inhxpatp9122789.shtml
 - 豆包"一句话购物"内测 (证券时报, 2026-03-20): https://www.stcn.com/article/detail/3687846.html ; (虎嗅): https://www.huxiu.com/article/4847869.html
 - 两种AI电商路线 千问vs豆包 (钛媒体): https://www.tmtpost.com/7985764.html
 - AI导购"答非所问" 淘天/京东/抖音 (澎湃): https://www.thepaper.cn/newsDetail_forward_29798462
-- 京犀/京东AI购 beta (Sina, 2025-12-26): https://finance.sina.com.cn/tech/roll/2025-12-26/doc-inheayzp2764335.shtml
+- 京犀/京东AI购 内测 (Sina, 2025-12-26): https://finance.sina.com.cn/tech/roll/2025-12-26/doc-inheayzp2764335.shtml
 - 拼多多 AI 现状 (Sina, 2025-02): https://finance.sina.com.cn/stock/relnews/us/2025-02-26/doc-inemuzve7954012.shtml
-- 火山方舟 (RAG/多模态/agent, upd. 2026-05): https://www.volcengine.com/docs/82379/1099455
+- 火山方舟 (RAG/多模态/agent, 更新于 2026-05): https://www.volcengine.com/docs/82379/1099455
 - Amazon Rufus → Alexa for Shopping (CNBC, 2026-05-13): https://www.cnbc.com/2026/05/13/amazon-ditches-rufus-ai-chatbot-in-favor-of-alexa-shopping-agent.html
-- OpenAI retreats from Instant Checkout (CNBC, 2026-03-24): https://www.cnbc.com/2026/03/24/openai-revamps-shopping-experience-in-chatgpt-after-instant-checkout.html
-- Klarna re-hires humans (CX Dive): https://www.customerexperiencedive.com/news/klarna-reinvests-human-talent-customer-service-AI-chatbot/747586/
-- Google AI Mode + agentic checkout (blog.google, 2025-11-13): https://blog.google/products-and-platforms/products/shopping/agentic-checkout-holiday-ai-shopping/
+- OpenAI 从 Instant Checkout 收缩 (CNBC, 2026-03-24): https://www.cnbc.com/2026/03/24/openai-revamps-shopping-experience-in-chatgpt-after-instant-checkout.html
+- Klarna 重新雇回人工 (CX Dive): https://www.customerexperiencedive.com/news/klarna-reinvests-human-talent-customer-service-AI-chatbot/747586/
+- Google AI Mode + 代理式结账 (blog.google, 2025-11-13): https://blog.google/products-and-platforms/products/shopping/agentic-checkout-holiday-ai-shopping/
 - Learning to Rewrite Negation Queries (COLING 2025): https://aclanthology.org/2025.coling-industry.49.pdf
 - bge-reranker-v2-m3 (HF): https://huggingface.co/BAAI/bge-reranker-base
-- VL-CLIP fine-grained attributes (arXiv 2507.17080): https://arxiv.org/pdf/2507.17080
-- ESCI retrieval benchmark numbers (r2decide): https://r2decide.com/blog/evaluating-e-commerce-search-engines
+- VL-CLIP 细粒度属性 (arXiv 2507.17080): https://arxiv.org/pdf/2507.17080
+- ESCI 检索基准数据 (r2decide): https://r2decide.com/blog/evaluating-e-commerce-search-engines

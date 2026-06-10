@@ -1,12 +1,12 @@
-# Implementation Guide — 狮选 LionPick
+# 实现指南 — 狮选 LionPick
 
-> A single-page index for anyone new to the repo (teammates, judges, future-Shufeng). This page **does not duplicate** other docs — it links to them by topic and by intent.
+> 写给所有初次接触本仓库的人(队友、评委、未来的 Shufeng)的单页索引。本页**不重复**其他文档的内容——而是按主题、按意图链接过去。
 
-## What is 狮选 LionPick
+## 狮选 LionPick 是什么
 
-A native iOS shopping-assistant app for ByteDance's 2026 AI 全栈挑战赛. The user describes (or photographs) a product need; the app retrieves real products from a vector index, calls a vision-capable LLM grounded on the retrieved catalog, and streams the recommendation back as text + tappable product cards.
+一款为字节跳动 2026 AI 全栈挑战赛打造的原生 iOS 导购助手应用。用户用文字描述(或拍照)商品需求;应用从向量索引中检索真实商品,调用以检索到的商品目录为事实依据(grounded)、具备视觉能力的 LLM,并将推荐结果以文本 + 可点按商品卡片的形式流式返回。
 
-## Architecture in 60 seconds
+## 60 秒看懂架构
 
 ```
  ┌────────────┐  text+image   ┌──────────┐   text   ┌──────────────┐
@@ -23,32 +23,32 @@ A native iOS shopping-assistant app for ByteDance's 2026 AI 全栈挑战赛. The
                             └─────────────────┘
 ```
 
-Depth in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+深入内容见 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
 
-## Subsystem map
+## 子系统地图
 
-| Subsystem | Owner | Key files | Deep-dive doc |
+| 子系统 | 负责人 | 关键文件 | 深入文档 |
 |---|---|---|---|
-| iOS chat UI | 陈澍枫 | `client/AAALionApp/AAALionApp/Views/ChatView.swift` + `MessageBubbleView.swift` | [`IOS_SETUP.md`](IOS_SETUP.md) |
-| iOS view model + state | 陈澍枫 | `client/.../ViewModels/ChatViewModel.swift` (@Observable) | — |
-| iOS networking (SSE) | 陈澍枫 | `client/.../Services/ChatService.swift` | [`API.md`](API.md) |
-| iOS image input (3 sources) | 陈澍枫 | `Views/CameraPicker.swift` + PhotosPicker + .fileImporter | — |
-| iOS voice (in + out) | 陈澍枫 | `Services/SpeechService.swift` (zh-CN ASR) + `Services/TTSService.swift` | — |
-| iOS settings | 陈澍枫 | `Views/SettingsView.swift` (UserDefaults-persisted backend URL) | — |
-| iOS theme | 陈澍枫 | `Views/Theme.swift` + `client/AAALionApp/design-tokens.json` | — |
-| Backend SSE route | 李雨晟 | `server/app/routes/chat.py` (text + multimodal) | [`API.md`](API.md) |
-| Backend readiness | 管图杰 | `server/app/services/retrieval_readiness.py` + `/ready` + `Dockerfile.rag` | [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md) |
-| LLM provider abstraction | 李雨晟 | `server/app/services/llm_provider.py` (TokenRouter / Anthropic / Doubao / OpenAI / Echo) | [`POLICY.md`](POLICY.md) §"Secrets" |
-| Backend caching | (proposed) | `server/app/services/cache.py` (written; wiring deferred) | [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) |
-| Text RAG | 管图杰 | `rag/retrieve/constraints.py` + `query.py` + `hybrid.py` + `server/app/services/constraint_state.py` (bge-small-zh-v1.5, BM25, stateful constraint filtering) | [`ARCHITECTURE.md`](ARCHITECTURE.md) §"3. RAG" |
-| Image RAG (CLIP) | 管图杰 | `rag/ingest/embed_image.py` (OpenCLIP ViT-B/32) + `rag/ingest/run_image.py` | [`HARDWARE.md`](HARDWARE.md) §"A100" |
-| Prompt | 管图杰 | `rag/prompts/system.md` | — |
-| Eval | 管图杰 | `rag/eval/golden.jsonl` + `rag/eval/report.py` (68-case dashboard) | [`EVAL_RESULTS.md`](EVAL_RESULTS.md) |
-| Seed data (100 products) | 管图杰 | `data/seed/{1..4}_<category>/data/*.json` + `images/*.jpg` | [`DATA.md`](DATA.md) + [`research/`](research/) |
-| Toolchain | 陈澍枫 | `Makefile` + `tools/aaalion` + `tools/check-secrets.sh` | — |
-| A100 SSH workflow | 陈澍枫 | `tools/ssh_a100.sh` | [`HARDWARE.md`](HARDWARE.md) |
+| iOS 聊天界面 | 陈澍枫 | `client/AAALionApp/AAALionApp/Views/ChatView.swift` + `MessageBubbleView.swift` | [`IOS_SETUP.md`](IOS_SETUP.md) |
+| iOS 视图模型 + 状态 | 陈澍枫 | `client/.../ViewModels/ChatViewModel.swift` (@Observable) | — |
+| iOS 网络层(SSE) | 陈澍枫 | `client/.../Services/ChatService.swift` | [`API.md`](API.md) |
+| iOS 图像输入(3 个来源) | 陈澍枫 | `Views/CameraPicker.swift` + PhotosPicker + .fileImporter | — |
+| iOS 语音(输入 + 输出) | 陈澍枫 | `Services/SpeechService.swift`(zh-CN ASR)+ `Services/TTSService.swift` | — |
+| iOS 设置 | 陈澍枫 | `Views/SettingsView.swift`(后端 URL 经 UserDefaults 持久化) | — |
+| iOS 主题 | 陈澍枫 | `Views/Theme.swift` + `client/AAALionApp/design-tokens.json` | — |
+| 后端 SSE 路由 | 李雨晟 | `server/app/routes/chat.py`(文本 + 多模态) | [`API.md`](API.md) |
+| 后端就绪检查 | 管图杰 | `server/app/services/retrieval_readiness.py` + `/ready` + `Dockerfile.rag` | [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md) |
+| LLM 供应商抽象层 | 李雨晟 | `server/app/services/llm_provider.py`(TokenRouter / Anthropic / Doubao / OpenAI / Echo) | [`POLICY.md`](POLICY.md) §"Secrets" |
+| 后端缓存 | (拟议) | `server/app/services/cache.py`(已写好;接线暂缓) | [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) |
+| 文本 RAG | 管图杰 | `rag/retrieve/constraints.py` + `query.py` + `hybrid.py` + `server/app/services/constraint_state.py`(bge-small-zh-v1.5、BM25、有状态约束过滤) | [`ARCHITECTURE.md`](ARCHITECTURE.md) §"3. RAG" |
+| 图像 RAG(CLIP) | 管图杰 | `rag/ingest/embed_image.py`(OpenCLIP ViT-B/32)+ `rag/ingest/run_image.py` | [`HARDWARE.md`](HARDWARE.md) §"A100" |
+| 提示词(Prompt) | 管图杰 | `rag/prompts/system.md` | — |
+| 评测 | 管图杰 | `rag/eval/golden.jsonl` + `rag/eval/report.py`(68 例看板) | [`EVAL_RESULTS.md`](EVAL_RESULTS.md) |
+| 种子数据(100 件商品) | 管图杰 | `data/seed/{1..4}_<category>/data/*.json` + `images/*.jpg` | [`DATA.md`](DATA.md) + [`research/`](research/) |
+| 工具链 | 陈澍枫 | `Makefile` + `tools/aaalion` + `tools/check-secrets.sh` | — |
+| A100 SSH 工作流 | 陈澍枫 | `tools/ssh_a100.sh` | [`HARDWARE.md`](HARDWARE.md) |
 
-## Build & run flow
+## 构建与运行流程
 
 ```bash
 # 5 commands from fresh clone to running app on simulator
@@ -61,9 +61,9 @@ until curl -fsS http://127.0.0.1:8000/ready; do sleep 1; done # wait before chat
 aaalion ios-sim               # builds + installs + launches
 ```
 
-For physical iPhone deploy and the weekly resign cadence: [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md).
+iPhone 真机部署与每周重签节奏:见 [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md)。
 
-For the A100 CLIP image index build (already done; one-time per dataset change):
+A100 上的 CLIP 图像索引构建(已完成;仅在数据集变更时一次性执行):
 ```bash
 ssh uc
 cd ~/shufeng/AAALion-
@@ -72,48 +72,48 @@ CHROMA_TELEMETRY=False python -m rag.ingest.run_image
 # (back on Mac:) rsync -az uc:~/shufeng/AAALion-/data/.chroma/ data/.chroma/
 ```
 
-## Implementation timeline (3 rounds in 3 paragraphs)
+## 实现时间线(3 个回合,3 段讲完)
 
-**Round 1 (2026-05-22 night, [`commits/20260522-001..003`](commits/))**: empty workspace → full repo scaffold. iOS skeleton (SwiftUI, MVVM, hand-rolled SSE), FastAPI scaffold with fixture stream, RAG module with chunker + retrieval stubs, 100-product seed dataset extracted, 9 docs written, tools/screenshot_watcher.py, git remote configured, A100 namespace at `~/shufeng/AAALion-/` (separate from `cuda-fuzzing/`).
+**第 1 轮(2026-05-22 夜间,[`commits/20260522-001..003`](commits/))**:从空白工作区到完整仓库脚手架。iOS 骨架(SwiftUI、MVVM、手写 SSE),带 fixture 流的 FastAPI 脚手架,含分块器与检索桩(stub)的 RAG 模块,提取出 100 件商品的种子数据集,写成 9 篇文档,tools/screenshot_watcher.py,配置好 git 远端,A100 命名空间设在 `~/shufeng/AAALion-/`(与 `cuda-fuzzing/` 分开)。
 
-**Round 2 (2026-05-22 evening through 2026-05-23 dawn, [`commits/20260522-004..009`](commits/))**: real ingest into Chroma with `bge-small-zh-v1.5` embeddings (992 chunks). Multi-provider LLM (TokenRouter / Anthropic / Doubao / OpenAI / Echo). Multimodal payload (Pydantic v2 content union). Verified end-to-end on iPhone 17 Pro simulator. iPhone 13 Pro device deploy (Personal Team signed via `V8KDBHKA3P`). LAN networking bug surfaced and fixed (`Config.swift` LAN URL + uvicorn 0.0.0.0). Six demos recorded with verdicts. Three Perplexity research outputs ingested into `docs/research/`. Honest assessment: no usable real Chinese e-commerce dataset publicly available.
+**第 2 轮(2026-05-22 晚间至 2026-05-23 凌晨,[`commits/20260522-004..009`](commits/))**:使用 `bge-small-zh-v1.5` 向量真正灌入 Chroma(992 个分块)。多供应商 LLM(TokenRouter / Anthropic / Doubao / OpenAI / Echo)。多模态载荷(Pydantic v2 内容联合类型)。在 iPhone 17 Pro 模拟器上完成端到端验证。iPhone 13 Pro 真机部署(Personal Team 经 `V8KDBHKA3P` 签名)。局域网联网 bug 暴露并修复(`Config.swift` 局域网 URL + uvicorn 0.0.0.0)。录制 6 个演示并附结论。3 份 Perplexity 调研产出归入 `docs/research/`。诚实评估:公开渠道没有可用的真实中文电商数据集。
 
-**Round 3 (2026-05-23 morning, [`commits/20260522-010`](commits/) + later)**: UX polish + A100 actually used. Settings screen with `UserDefaults`-persisted backend URL. Edit/Copy/Speak context menu. Camera + Files attachment alongside Photos. Voice input via `Speech.framework`. TTS via `AVSpeechSynthesizer`. Claude-designed warm-ivory + amber-gold theme. App icon generated via TokenRouter `openai/gpt-5.4-image-2`. **A100 CUDA working with cu124 torch (no system driver touched)**; 100 product images embedded with OpenCLIP in <10 seconds; image-first retrieval wired in backend. Three new demo screenshots in `docs/demos/2026-05-23/`. `RUBRIC_MAPPING.md` documents every PDF §4 sub-item.
+**第 3 轮(2026-05-23 上午,[`commits/20260522-010`](commits/) 及之后)**:UX 打磨 + A100 真正用上。设置页通过 `UserDefaults` 持久化后端 URL。编辑/复制/朗读上下文菜单。在相册之外新增相机与文件附件入口。语音输入采用 `Speech.framework`。TTS 采用 `AVSpeechSynthesizer`。Claude 设计的暖象牙白 + 琥珀金主题。应用图标由 TokenRouter `openai/gpt-5.4-image-2` 生成。**A100 CUDA 以 cu124 torch 跑通(未动系统驱动)**;100 张商品图用 OpenCLIP 在 <10 秒内完成嵌入;后端接通图像优先检索。`docs/demos/2026-05-23/` 新增 3 张演示截图。`RUBRIC_MAPPING.md` 逐条记录 PDF §4 的每个子项。
 
-## Where to look next (task-oriented)
+## 下一步看哪里(按任务导向)
 
-| If you want to... | Start here |
+| 如果你想…… | 从这里开始 |
 |---|---|
-| Change the LLM model | `server/app/services/llm_provider.py` + `.env.example` ([`POLICY.md`](POLICY.md) §"Secrets") |
-| Add a new product category | [`DATA.md`](DATA.md) §"Schema" + [`research/`](research/) for what's available |
-| Wire the hot-query cache | `server/app/services/cache.py` (written) + [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) item #3 |
-| Debug an iPhone issue | [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — Untrusted Developer, LAN networking, file picker, cert expiry, etc. |
-| Reproduce the iPhone deploy | [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md) (45 min from fresh clone) |
-| Prepare for defense (6/11) | [`RUBRIC_MAPPING.md`](RUBRIC_MAPPING.md) + [`demos/`](demos/) + [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) |
-| Understand a decision | [`HONEST_ANSWERS.md`](HONEST_ANSWERS.md) + [`commits/`](commits/) record files |
-| Plan the next iteration | [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) — currently awaiting team review |
-| Onboard a new teammate | this file → [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md) → [`PIPELINE.md`](PIPELINE.md) → area-specific README in `client/server/rag/` |
+| 更换 LLM 模型 | `server/app/services/llm_provider.py` + `.env.example`([`POLICY.md`](POLICY.md) §"Secrets") |
+| 新增一个商品类目 | [`DATA.md`](DATA.md) §"Schema" + [`research/`](research/) 了解有哪些可用数据 |
+| 接入热门查询缓存 | `server/app/services/cache.py`(已写好)+ [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) 第 3 项 |
+| 排查 iPhone 问题 | [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) ——未受信任的开发者(Untrusted Developer)、局域网联网、文件选择器、证书过期等 |
+| 复现 iPhone 部署 | [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md)(从全新克隆到完成 45 分钟) |
+| 准备答辩(6/11) | [`RUBRIC_MAPPING.md`](RUBRIC_MAPPING.md) + [`demos/`](demos/) + [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) |
+| 理解某个决策 | [`HONEST_ANSWERS.md`](HONEST_ANSWERS.md) + [`commits/`](commits/) 记录文件 |
+| 规划下一轮迭代 | [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) ——目前等待团队评审 |
+| 新队友上手 | 本文件 → [`DEPLOY_GUIDE.md`](DEPLOY_GUIDE.md) → [`PIPELINE.md`](PIPELINE.md) → `client/server/rag/` 中各领域的 README |
 
-## Conventions
+## 约定
 
-- **Commits**: Conventional Commits (`<type>(<scope>): <summary>`). Rule in [`POLICY.md`](POLICY.md).
-- **Major commits get a record file** under `docs/commits/<YYYYMMDD>-<NNN>-<slug>.md`. Rule in `docs/POLICY_LOCAL.md` (gitignored; the records themselves are committed).
-- **Secrets stay outside the repo**: `~/.config/lionpick/credentials.env` + `server/.env` (both gitignored). Pre-commit `tools/check-secrets.sh` scans for ARK/Anthropic/OpenAI key shapes.
-- **A100 boundaries**: every command runs under `~/shufeng/AAALion-/`. Never `cd` into `~/shufeng/cuda-fuzzing/` (different active project). [`HARDWARE.md`](HARDWARE.md) has the hard rules.
+- **提交**:遵循 Conventional Commits 规范(`<type>(<scope>): <summary>`)。规则见 [`POLICY.md`](POLICY.md)。
+- **重大提交配套一份记录文件**,放在 `docs/commits/<YYYYMMDD>-<NNN>-<slug>.md` 下。规则见 `docs/POLICY_LOCAL.md`(该文件被 gitignore;记录文件本身会提交)。
+- **密钥保持在仓库之外**:`~/.config/lionpick/credentials.env` + `server/.env`(两者均被 gitignore)。预提交钩子 `tools/check-secrets.sh` 扫描 ARK/Anthropic/OpenAI 密钥形态。
+- **A100 边界**:所有命令均在 `~/shufeng/AAALion-/` 下运行。绝不 `cd` 进 `~/shufeng/cuda-fuzzing/`(另一个进行中的项目)。硬性规则见 [`HARDWARE.md`](HARDWARE.md)。
 
-## Defense ready-state checklist
+## 答辩就绪状态清单
 
-- [x] End-to-end loop works (demos in `docs/demos/2026-05-23/`)
-- [x] iPhone deploy verified
-- [x] Anti-hallucination evidence (`02-conditional-filter.md`)
-- [x] Multimodal (vision LLM + CLIP both wired)
-- [x] Voice in + voice out
-- [x] Multi-turn + negation + comparison
-- [x] Rubric mapping documented
-- [ ] Real product data (5-10 hand-curated; [`research/`](research/) explains why none are off-the-shelf)
-- [ ] Cache wired (`services/cache.py` ready)
-- [ ] Demo video recorded (3-5 min)
-- [ ] Defense slide deck
-- [ ] Weekly cert re-sign cadence respected (current cert expires ~2026-05-29)
+- [x] 端到端链路跑通(演示见 `docs/demos/2026-05-23/`)
+- [x] iPhone 部署已验证
+- [x] 抗幻觉证据(`02-conditional-filter.md`)
+- [x] 多模态(视觉 LLM 与 CLIP 均已接入)
+- [x] 语音输入 + 语音输出
+- [x] 多轮对话 + 否定 + 比较
+- [x] 评分细则映射已成文
+- [ ] 真实商品数据(手工精选 5-10 件;[`research/`](research/) 解释了为何没有现成可用的)
+- [ ] 缓存接入(`services/cache.py` 已就绪)
+- [ ] 演示视频录制(3-5 分钟)
+- [ ] 答辩幻灯片
+- [ ] 遵守每周证书重签节奏(当前证书约 2026-05-29 过期)
 
-Outstanding items are the substance of [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) — team please weigh in.
+未完成项正是 [`PROPOSAL_2026-05-24.md`](PROPOSAL_2026-05-24.md) 的核心内容——请团队各位发表意见。

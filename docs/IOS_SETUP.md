@@ -1,20 +1,20 @@
-# iOS Setup — current state and what to do
+# iOS 环境搭建 — 当前状态与待办事项
 
-> Audit refreshed on 2026-05-22 (Shufeng's MacBook): **Xcode 26.5 is installed** at `/Applications/Xcode.app`, license accepted, runFirstLaunch done. iPhone 17 Pro simulator build + install + launch verified. Physical iPhone 13 Pro paired (devicectl sees it `connected`). Apple ID signed in to Xcode → Settings → Accounts. **Remaining one-time step**: assign the Personal Team to the project in Xcode → Signing & Capabilities (see "Deploying to your iPhone 13 Pro" below).
+> 审计更新于 2026-05-22(Shufeng 的 MacBook):**Xcode 26.5 已安装**,位于 `/Applications/Xcode.app`,许可协议已接受,runFirstLaunch 已完成。iPhone 17 Pro 模拟器的构建 + 安装 + 启动已验证。物理 iPhone 13 Pro 已配对(devicectl 显示其为 `connected`)。Apple ID 已在 Xcode → Settings → Accounts 中登录。**剩余的一次性步骤**:在 Xcode → Signing & Capabilities 中为项目指定 Personal Team(见下文"部署到你的 iPhone 13 Pro")。
 
-## What you have (verified)
+## 你已具备的条件(已验证)
 
-- **Xcode 26.5** (Build 17F42) + iOS 26.5 SDK + Predictive Code Completion Model.
-- `swift` / `xcodebuild` / `xcrun simctl` / `xcrun devicectl` all working.
-- `xcodegen` installed.
-- `tools/aaalion` global helper installed at `~/.local/bin/aaalion` — works from any directory.
-- Apple ID `alexcsf01725@gmail.com` signed in to Xcode (per user 2026-05-22 evening).
-- iPhone 13 Pro paired (`Shufeng's iPhone`, UUID `7310469E-E396-5197-9408-FF1AD58D4CF2`).
+- **Xcode 26.5**(Build 17F42)+ iOS 26.5 SDK + 预测式代码补全模型(Predictive Code Completion Model)。
+- `swift` / `xcodebuild` / `xcrun simctl` / `xcrun devicectl` 全部可用。
+- `xcodegen` 已安装。
+- `tools/aaalion` 全局辅助脚本已安装在 `~/.local/bin/aaalion` — 在任意目录下均可使用。
+- Apple ID `alexcsf01725@gmail.com` 已登录 Xcode(据用户 2026-05-22 晚间确认)。
+- iPhone 13 Pro 已配对(`Shufeng's iPhone`,UUID `7310469E-E396-5197-9408-FF1AD58D4CF2`)。
 ```
 
-There is no Apple-supported way to build an iOS app without Xcode. (Yes, some communities maintain `theos` / `cross-compile` setups, but they're brittle and not worth your time for a 20-day sprint.)
+不使用 Xcode 来构建 iOS 应用没有任何 Apple 官方支持的途径。(确实有一些社区维护着 `theos` / `cross-compile` 之类的方案,但它们很脆弱,对一个 20 天的冲刺来说不值得花时间。)
 
-## After Xcode is installed — 30 seconds to a running app
+## Xcode 安装完成后 — 30 秒跑起应用
 
 ```bash
 aaalion ios                                      # xcodegen → AAALionApp.xcodeproj
@@ -22,45 +22,45 @@ open client/AAALionApp/AAALionApp.xcodeproj      # Xcode opens
 # In Xcode: choose iPhone 15 simulator, hit Cmd+R
 ```
 
-The app should launch into an empty chat. Type "推荐一款适合油皮的洗面奶" → it tries to POST to `http://localhost:8000/chat/stream`. With the backend running (`aaalion backend`), you'll see streamed text + product cards.
+应用应当启动并进入一个空白聊天界面。输入"推荐一款适合油皮的洗面奶" → 它会尝试向 `http://localhost:8000/chat/stream` 发起 POST 请求。在后端运行的情况下(`aaalion backend`),你会看到流式输出的文本 + 商品卡片。
 
-## Deploying to your iPhone 13 Pro
+## 部署到你的 iPhone 13 Pro
 
-**Verified on 2026-05-22**: iPhone 13 Pro (`Shufeng's iPhone`, identifier `7310469E-E396-5197-9408-FF1AD58D4CF2`) is paired with this Mac via USB. `xcrun devicectl list devices` finds it as `connected`.
+**2026-05-22 已验证**:iPhone 13 Pro(`Shufeng's iPhone`,标识符 `7310469E-E396-5197-9408-FF1AD58D4CF2`)已通过 USB 与这台 Mac 配对。`xcrun devicectl list devices` 能找到它且状态为 `connected`。
 
-The `xcodebuild ... -destination 'platform=iOS,id=<uuid>'` build itself succeeds. **What's missing is code-signing**: no valid signing identity is in the keychain (`security find-identity -p codesigning -v` → "0 valid identities found"). Without that, `devicectl install` rejects the .app with "No code signature found."
+`xcodebuild ... -destination 'platform=iOS,id=<uuid>'` 这一步构建本身是成功的。**缺的是代码签名**:钥匙串中没有有效的签名身份(`security find-identity -p codesigning -v` → "0 valid identities found")。没有签名,`devicectl install` 会以 "No code signature found" 拒绝该 .app。
 
-**One-time Apple ID setup** (interactive, GUI only):
+**一次性的 Apple ID 配置**(交互式,仅限 GUI 操作):
 
-1. Plug iPhone in via Lightning / USB-C. iPhone may prompt "Trust This Computer?" — tap Trust.
-2. Open Xcode → Settings (`Cmd+,`) → Accounts → click `+` → Apple ID. Sign in with `alexcsf01725@gmail.com`. After sign-in, Xcode generates a "Personal Team" associated with the Apple ID.
-3. Open `client/AAALionApp/AAALionApp.xcodeproj`. Click the `AAALionApp` target → Signing & Capabilities → set Team to "Shufeng Chen (Personal Team)". Xcode will request to download a development cert and provisioning profile; let it.
-4. Top toolbar → device picker → choose `Shufeng's iPhone`. Hit `Cmd+R`. The first install triggers an iPhone prompt: Settings → General → VPN & Device Management → trust the developer cert.
-5. After that, both Xcode GUI Cmd+R AND `aaalion ios-device` (CLI build + install) work.
+1. 通过 Lightning / USB-C 连接 iPhone。iPhone 可能会弹出"信任此电脑?"提示 — 点击信任。
+2. 打开 Xcode → Settings(`Cmd+,`)→ Accounts → 点击 `+` → Apple ID。使用 `alexcsf01725@gmail.com` 登录。登录后,Xcode 会生成一个与该 Apple ID 关联的 "Personal Team"。
+3. 打开 `client/AAALionApp/AAALionApp.xcodeproj`。点击 `AAALionApp` target → Signing & Capabilities → 将 Team 设置为 "Shufeng Chen (Personal Team)"。Xcode 会请求下载开发证书和描述文件(provisioning profile);允许即可。
+4. 顶部工具栏 → 设备选择器 → 选择 `Shufeng's iPhone`。按 `Cmd+R`。首次安装会在 iPhone 上触发提示:设置 → 通用 → VPN 与设备管理 → 信任该开发者证书。
+5. 此后,Xcode GUI 的 Cmd+R 和 `aaalion ios-device`(命令行构建 + 安装)都能正常工作。
 
-> **xcodegen note**: when you reopen the project after step 3, Xcode will have set `DEVELOPMENT_TEAM` and `CODE_SIGN_STYLE = Automatic` in the project file. If you ever re-run `aaalion ios` (which regenerates `.xcodeproj` from `project.yml`), those settings will be wiped. Either (a) commit `project.yml` with your team ID baked in, or (b) re-do the GUI step after each regen. Option (a) is cleaner — `xcodegen` will pick up `DEVELOPMENT_TEAM` if you add it to `targets.AAALionApp.settings.base`.
+> **xcodegen 注意事项**:在完成第 3 步后重新打开项目时,Xcode 会在项目文件中写入 `DEVELOPMENT_TEAM` 和 `CODE_SIGN_STYLE = Automatic`。如果你之后再次运行 `aaalion ios`(它会从 `project.yml` 重新生成 `.xcodeproj`),这些设置会被抹掉。要么 (a) 把你的 team ID 写进 `project.yml` 并提交,要么 (b) 每次重新生成后重做一遍 GUI 步骤。方案 (a) 更干净 — 只要把 `DEVELOPMENT_TEAM` 加到 `targets.AAALionApp.settings.base`,`xcodegen` 就会读取它。
 
-LAN testing: backend on the MacBook (`aaalion backend`), iPhone on the same Wi-Fi. Find MacBook IP with `ipconfig getifaddr en0`. Set `PUBLIC_BACKEND_URL=http://<ip>:8000` in Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables.
+局域网测试:后端跑在 MacBook 上(`aaalion backend`),iPhone 连同一个 Wi-Fi。用 `ipconfig getifaddr en0` 查 MacBook 的 IP。在 Xcode → Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables 中设置 `PUBLIC_BACKEND_URL=http://<ip>:8000`。
 
-## Free-tier signing — what expires when
+## 免费档签名 — 什么时候过期
 
-Personal Teams (free Apple Developer accounts) issue **development certificates and provisioning profiles that expire ~7 days after issue**. The IPA installed on your iPhone stops launching after that.
+Personal Team(免费 Apple Developer 账号)签发的**开发证书和描述文件在签发后约 7 天过期**。过期后,安装在 iPhone 上的 IPA 将无法启动。
 
-Workarounds for this project:
+本项目的应对方案:
 
-| Strategy | When to use | How |
+| 策略 | 适用场景 | 操作方法 |
 |---|---|---|
-| **Re-sign weekly** (recommended) | During dev + defense | `aaalion resign` once a week (or before any demo). Re-signs and re-installs in <60 sec. |
-| **Pay $99/yr Apple Developer Program** | If you want 1-year certs | Requires real-name DUNS + a few business days approval; not worth it for a college competition. |
-| **Demo on simulator** | If the iPhone defense slot is off the table | No signing needed — `aaalion ios-sim` always works. |
+| **每周重签**(推荐) | 开发期间 + 答辩 | 每周(或任何演示前)跑一次 `aaalion resign`。重签 + 重装在 60 秒内完成。 |
+| **付费 $99/yr Apple Developer Program** | 想要 1 年期证书 | 需要实名 DUNS + 几个工作日审批;对一个大学生比赛来说不值得。 |
+| **用模拟器演示** | 如果 iPhone 答辩环节确定不用真机 | 无需签名 — `aaalion ios-sim` 永远可用。 |
 
-A calendar reminder for `next Sunday` and `the morning of 2026-06-11` (defense day) covers it.
+设两个日历提醒即可覆盖:`next Sunday` 和 `the morning of 2026-06-11`(答辩日)。
 
-## Gotcha: Team ID ≠ Certificate ID
+## 坑:Team ID ≠ 证书 ID
 
-The 10-char string Xcode shows in parentheses after the certificate name (e.g. `Apple Development: foo@bar.com (XXXXXXXXXX)`) is a **certificate identifier**, NOT the Team ID. They are typically different for Personal Teams.
+Xcode 在证书名称后括号里显示的 10 位字符串(例如 `Apple Development: foo@bar.com (XXXXXXXXXX)`)是**证书标识符**,而不是 Team ID。对 Personal Team 来说,这两者通常是不同的。
 
-To find the **actual** Team ID to put in `DEVELOPMENT_TEAM`:
+要找到**真正的** Team ID 填入 `DEVELOPMENT_TEAM`:
 
 ```bash
 # After you've done the Xcode GUI Signing step at least once:
@@ -69,9 +69,9 @@ security cms -D -i <profile.mobileprovision> | grep -A1 TeamIdentifier
 # The first <string>...</string> is your Team ID.
 ```
 
-For Shufeng on this Mac (2026-05-22): cert ID `7TQ694CBJV`, Team ID `V8KDBHKA3P`. Project.yml uses the Team ID.
+对这台 Mac 上的 Shufeng(2026-05-22):证书 ID `7TQ694CBJV`,Team ID `V8KDBHKA3P`。Project.yml 使用的是 Team ID。
 
-## Verified working (2026-05-22 05:26)
+## 已验证可用(2026-05-22 05:26)
 
 ```
 $ xcodebuild -project AAALionApp.xcodeproj -scheme AAALionApp \
@@ -82,9 +82,9 @@ $ xcrun devicectl device install app --device 7310469E-... \
     App installed: bundleID: com.aaalion.lionpick ✓
 ```
 
-App **deployed to physical iPhone 13 Pro**. First launch needs the cert to be trusted: iPhone → Settings → General → VPN & Device Management → Apple Development: alexcsf01725@gmail.com → Trust. After that, the app icon (`狮选`) launches normally and connects to the LAN backend.
+应用**已部署到物理 iPhone 13 Pro**。首次启动需要先信任证书:iPhone → 设置 → 通用 → VPN 与设备管理 → Apple Development: alexcsf01725@gmail.com → 信任。之后,应用图标(`狮选`)即可正常启动并连接局域网后端。
 
-## Verified working (2026-05-22 03:50)
+## 已验证可用(2026-05-22 03:50)
 
 ```
 $ aaalion ios                            # generated AAALionApp.xcodeproj
@@ -101,26 +101,26 @@ com.aaalion.lionpick: 65243                # app launched
 $ open -a Simulator                        # → chat UI rendered correctly
 ```
 
-Screenshot of the running simulator app + the backend (`/health` 200, `/chat/stream` SSE emitting deltas + product cards) verified end-to-end.
+已端到端验证:模拟器中运行的应用截图 + 后端(`/health` 200,`/chat/stream` SSE 流式输出 deltas + 商品卡片)。
 
-## "Claude Code Mobile" honestly
+## 关于 "Claude Code Mobile" 的诚实说明
 
-You asked me to set up "Claude Code Mobile" on your iPhone 13 Pro. I want to be honest: **as of my knowledge, there is no Anthropic-published "Claude Code Mobile" product**. What exists:
+你让我在你的 iPhone 13 Pro 上安装 "Claude Code Mobile"。我想坦诚地说:**就我所知,Anthropic 没有发布过名为 "Claude Code Mobile" 的产品**。实际存在的是:
 
-- **Anthropic's Claude iOS app** (https://claude.ai on App Store) — a chat client to claude.ai, not a coding agent. Useful for "ask Claude a question on your phone" but doesn't run repos, doesn't run tools, doesn't edit files.
-- **Claude Code (the CLI)** — runs on macOS/Linux/Windows. There's no iOS version. To use Claude Code from your phone, the standard trick is SSH from the phone into your Mac/Linux server and run Claude Code there:
-  - [Blink Shell](https://apps.apple.com/app/blink-shell-mosh-ssh/id1156707581) (paid, $20) — best in class iOS terminal with mosh + ssh.
-  - [Termius](https://apps.apple.com/app/termius/id549039908) (free with paid tier) — alternative.
-  - On your iPhone, install one of these, set up SSH key auth, ssh into your MacBook (assuming the MacBook is on the same network or Tailscale), launch `claude` from there.
+- **Anthropic 的 Claude iOS 应用**(App Store 上的 https://claude.ai)— 一个连接 claude.ai 的聊天客户端,不是编码 agent。适合"在手机上问 Claude 一个问题",但不能跑仓库、不能跑工具、不能编辑文件。
+- **Claude Code(命令行工具)** — 运行在 macOS/Linux/Windows 上。没有 iOS 版本。要在手机上使用 Claude Code,常规做法是从手机 SSH 到你的 Mac/Linux 服务器,在那边运行 Claude Code:
+  - [Blink Shell](https://apps.apple.com/app/blink-shell-mosh-ssh/id1156707581)(付费,$20)— iOS 上最好的终端,支持 mosh + ssh。
+  - [Termius](https://apps.apple.com/app/termius/id549039908)(免费,有付费档)— 备选方案。
+  - 在你的 iPhone 上安装其中一个,配好 SSH 密钥认证,ssh 到你的 MacBook(假设 MacBook 在同一网络或 Tailscale 上),在那边启动 `claude`。
 
-If you've seen an actual "Claude Code Mobile" product launched recently (post-my-knowledge), tell me what it's called and I'll do my best to set it up. Otherwise I'd recommend skipping this and using the Claude iOS app for casual Q&A + Blink Shell for actual coding work.
+如果你最近看到了一个真实发布的 "Claude Code Mobile" 产品(在我的知识截止之后),告诉我它的名字,我会尽力帮你装上。否则我建议跳过这一项,日常问答用 Claude iOS 应用 + 真正的编码工作用 Blink Shell。
 
-## "openclaw" — best-guess honest answer
+## "openclaw" — 尽我所知的诚实回答
 
-I don't recognize "openclaw" as a tool. My best guess is you mean **OpenCLIP** (https://github.com/mlfoundations/open_clip).
+我不认识 "openclaw" 这个工具。我的最佳猜测是你指的是 **OpenCLIP**(https://github.com/mlfoundations/open_clip)。
 
-- **For 拍照找货 (photo-to-product, bonus 4.2): YES, OpenCLIP is the right tool.** It's the standard open-source CLIP implementation, has pre-trained Chinese-aware models (`ViT-B-32` + `laion2b_s34b_b79k`, plus `wukong` / `taiyi-clip` variants for Chinese), runs on the A100 in seconds for 100 images, and exposes both image and text encoders so you can index product photos and query with either a user photo or text.
-- **For text-only retrieval (the main loop)**: not the right tool. Use a Chinese sentence embedding model (`BAAI/bge-small-zh-v1.5`, which the RAG pipeline already uses) — it's better at Chinese semantics than CLIP's text encoder.
-- **Plan**: index product images with OpenCLIP on the A100 once, store the 512-d vectors in Chroma's `products_image` collection. When the user uploads a photo, embed it with OpenCLIP, query the image collection, return the matching products.
+- **对于拍照找货(photo-to-product,加分项 4.2):是的,OpenCLIP 是正确的工具。** 它是标准的开源 CLIP 实现,有预训练的中文感知模型(`ViT-B-32` + `laion2b_s34b_b79k`,以及面向中文的 `wukong` / `taiyi-clip` 变体),在 A100 上处理 100 张图片只需几秒,并且同时暴露图像和文本编码器,因此你可以对商品图片建索引,然后用用户照片或文本任意一种方式查询。
+- **对于纯文本检索(主流程)**:不是正确的工具。应使用中文句向量模型(`BAAI/bge-small-zh-v1.5`,RAG 管线已经在用)— 它在中文语义上优于 CLIP 的文本编码器。
+- **方案**:在 A100 上用 OpenCLIP 对商品图片一次性建索引,把 512 维向量存入 Chroma 的 `products_image` 集合。当用户上传照片时,用 OpenCLIP 对其编码,查询图像集合,返回匹配的商品。
 
-If you meant something else (OpenClaw the game? Open Clio? a tool I haven't heard of?), tell me and I'll re-assess. The "be honest" framing tells me you wanted a real signal — so: OpenCLIP is real and useful for one specific track. If "openclaw" is a marketing-flavored thing you saw in a tweet, it's probably hype.
+如果你指的是别的东西(游戏 OpenClaw?Open Clio?某个我没听说过的工具?),告诉我,我会重新评估。"要诚实"这个措辞告诉我你想要一个真实的信号 — 所以:OpenCLIP 是真实存在的,并且对一条特定赛道有用。如果 "openclaw" 是你在某条推文里看到的营销味十足的东西,那它大概率是炒作。

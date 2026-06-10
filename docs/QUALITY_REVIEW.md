@@ -1,50 +1,50 @@
-# 狮选 LionPick - Quality Self-Assessment (refreshed 2026-05-25 evening, Round 8)
+# 狮选 LionPick - 质量自评(2026-05-25 晚刷新,第 8 轮 / Round 8)
 
-> An objective, grader-style review by the implementer. R5 → R8 timeline below.
-> No marketing fluff. Each rubric item gets a target weight, achieved score (0-100),
-> evidence link, gap statement, and what would push the score higher.
+> 由实现者本人以评审视角撰写的客观自评。R5 → R8 时间线见下文。
+> 不含营销式吹捧。每个评分项都给出目标权重、实际得分(0-100)、
+> 证据链接、差距说明,以及能进一步提分的事项。
 
-## Total estimated score
+## 总分预估
 
-| Round | Score | Weighted breakdown |
+| 轮次 | 得分 | 加权拆解 |
 |---|---|---|
-| **Round 8 (current — 2026-05-25 evening)** | **91.5 / 100** | 基础 95 · 工程 92 · 效果 88 · 加分 85. **+1.5 over R7.6**: multi-turn negation persistence (B2), iOS cache panel (B1), audited golden expanded to 71 cases. recall@5=0.983, MRR=0.844, negation_accuracy=1.000, median latency 68 ms. |
-| **Round 7.6** | **90.0 / 100** | Docker readiness removes first-user model-load cost; subjective score is intentionally unchanged pending independent label review. |
-| Round 7.5 | 90.0 / 100 | Stateful multi-turn constraints are measured, but subjective score is intentionally unchanged pending independent label review. |
-| Round 7.4 | 90.0 / 100 | Constraint-aware retrieval is measured, but subjective score is intentionally unchanged pending independent label review. |
-| Round 7.3 | 90.0 / 100 | 基础 94 (32.9) · 工程 90 (22.5) · 效果 82 (16.4) · 加分 84 (16.8). +0.65 vs R6.5 from brand-origin neg fix; +0.5 vs R6 from Sam's eval dashboard. |
-| Round 6.5 (2026-05-25 AM) | 89.5 / 100 | 基础 94 · 工程 89 · 效果 80 · 加分 84. Tujie's synonyms + contextual + price intent merged. recall@5 0.684 → 0.816 on 31-case. |
-| Round 6 | 88.0 / 100 | 基础 94 (32.9) · 工程 89 (22.25) · 效果 80 (16.0) · 加分 84 (16.8) |
-| Round 5 | 86.0 / 100 | 基础 94 (32.9) · 工程 88 (22.0) · 效果 82 (16.4) · 加分 73.5 (14.7) |
+| **第 8 轮(当前 — 2026-05-25 晚)** | **91.5 / 100** | 基础 95 · 工程 92 · 效果 88 · 加分 85。**较 R7.6 +1.5**:多轮否定约束持久化(B2)、iOS 缓存面板(B1)、经审计的 golden 集扩充至 71 条用例。recall@5=0.983,MRR=0.844,negation_accuracy=1.000,中位延迟 68 ms。 |
+| **第 7.6 轮** | **90.0 / 100** | Docker 就绪门控消除了首位用户的模型加载开销;在独立标注复核完成前,主观分刻意保持不变。 |
+| 第 7.5 轮 | 90.0 / 100 | 有状态多轮约束已完成测量,但在独立标注复核完成前,主观分刻意保持不变。 |
+| 第 7.4 轮 | 90.0 / 100 | 约束感知检索已完成测量,但在独立标注复核完成前,主观分刻意保持不变。 |
+| 第 7.3 轮 | 90.0 / 100 | 基础 94 (32.9) · 工程 90 (22.5) · 效果 82 (16.4) · 加分 84 (16.8)。较 R6.5 +0.65,来自品牌产地否定修复;较 R6 +0.5,来自 Sam 的评测看板。 |
+| 第 6.5 轮(2026-05-25 上午) | 89.5 / 100 | 基础 94 · 工程 89 · 效果 80 · 加分 84。Tujie 的同义词 + 上下文多轮 + 价格意图已合入。31 条用例集上 recall@5 0.684 → 0.816。 |
+| 第 6 轮 | 88.0 / 100 | 基础 94 (32.9) · 工程 89 (22.25) · 效果 80 (16.0) · 加分 84 (16.8) |
+| 第 5 轮 | 86.0 / 100 | 基础 94 (32.9) · 工程 88 (22.0) · 效果 82 (16.4) · 加分 73.5 (14.7) |
 
-## What Round 8 added (since R7.6 baseline)
+## 第 8 轮新增内容(相对 R7.6 基线)
 
-| Item | Owner | Score impact |
+| 事项 | 负责人 | 得分影响 |
 |---|---|---|
-| Shufeng: **multi-turn negation persistence** (`Filter.exclude_keywords` + carry across turns + apply in top_k even when current turn has no 不要) | Shufeng | **+6 效果**: closes a real bug where "再便宜点的呢" lost prior-turn 不要日系. New golden cases prove the fix. |
-| Shufeng: **iOS cache-stats panel** in Settings sheet (consumes Sam's `/cache/stats` endpoint with 10s auto-poll) | Shufeng + Sam | **+2 工程**: visible observability for defense judges. |
-| Shufeng: **B3 golden audit** — diff of `026f825..2f9b6c4`, every changed case verified against catalog. No silent cherry-pick. | Shufeng | Documented in commit record + Cluely Q. Score doesn't move (audit is meta), but it protects against the "did you tune the dataset?" question. |
-| Shufeng: 3 new golden cases (multi-turn JP, KR, multi-turn KR) | Shufeng | recall@5 0.811 → 0.983 on the 71-case set; neg-acc holds at 1.000 |
+| Shufeng:**多轮否定约束持久化**(`Filter.exclude_keywords` + 跨轮携带 + 即使当前轮没有"不要"也在 top_k 中生效) | Shufeng | **效果 +6**:修复了一个真实 bug——"再便宜点的呢"会丢掉上一轮的"不要日系"。新增 golden 用例验证了该修复。 |
+| Shufeng:设置面板中的 **iOS 缓存统计面板**(消费 Sam 的 `/cache/stats` 接口,10 秒自动轮询) | Shufeng + Sam | **工程 +2**:为答辩评委提供可见的可观测性。 |
+| Shufeng:**B3 golden 集审计** —— 对 `026f825..2f9b6c4` 做 diff,每条变更用例都对照商品目录核验。无静默挑拣(cherry-pick)。 | Shufeng | 已记录在提交记录 + Cluely Q 中。得分不动(审计属于元工作),但能防御"你是不是调过数据集?"这类质疑。 |
+| Shufeng:3 条新 golden 用例(多轮日系 JP、韩系 KR、多轮韩系 KR) | Shufeng | 71 条用例集上 recall@5 0.811 → 0.983;neg-acc 保持 1.000 |
 
-Round 8 net: **+0.5 to +1.0 weighted** (mostly from 效果 jump + 工程 polish).
+第 8 轮净变化:**加权 +0.5 到 +1.0**(主要来自效果项跃升 + 工程项打磨)。
 
-## What Round 7 through R7.6 added (since R6.5 measurement)
+## 第 7 轮至 R7.6 新增内容(相对 R6.5 测量结果)
 
-| Item | Owner | Score impact |
+| 事项 | 负责人 | 得分影响 |
 |---|---|---|
-| Sam: 56-case per-scenario eval dashboard merged (`docs/eval_report.html`, `docs/EVAL_RESULTS.md`, `rag/eval/{core,report}.py`) | Sam | +1.0 工程 (testability + transparency) |
-| Shufeng: brand-origin negation fix (`rag/retrieve/brand_origin.py` + extended `apply_negation`) | Shufeng | +2.0 效果 (closes 安热沙 "不要日系" leak) |
-| Shufeng: re-recorded demos under `docs/demos/2026-05-25/` covering all 6 scenarios | Shufeng | +0.5 加分 (verifiable defense material) |
-| Tujie: catalog-backed audit of 19 golden annotations + regenerated report | Tujie | Measurement validity; no score bump claimed |
-| Tujie: dated latest-reference CNY normalization for foreign catalog prices (`server/app/services/currency.py`) | Tujie | Display/price-intent correctness; MRR 0.771 → 0.778 |
-| Yusheng: negation alias/origin audit merged with the audited golden set | Yusheng | Production negation accuracy now 1.000; combined MRR 0.828 |
-| Tujie: category/brand/RMB retrieval filters shared by dense and BM25, plus five regression cases | Tujie | Same-64-case hard-filter A/B: filter MRR 0.635 → 0.917 |
-| Tujie: multi-turn constraint state for inherit/replace/cancel behavior, plus four regression cases | Tujie | 68-case production MRR 0.856; new `constraint-state` slice MRR 1.000 |
-| Tujie: Docker-baked retrieval models + startup full-query prewarm + `/ready` gate | Tujie | Warm eval latency 6156 ms → 610 ms; first verified chat retrieval 6519 ms → 1264 ms |
+| Sam:56 条用例的分场景评测看板已合入(`docs/eval_report.html`、`docs/EVAL_RESULTS.md`、`rag/eval/{core,report}.py`) | Sam | 工程 +1.0(可测试性 + 透明度) |
+| Shufeng:品牌产地否定修复(`rag/retrieve/brand_origin.py` + 扩展的 `apply_negation`) | Shufeng | 效果 +2.0(堵住安热沙"不要日系"漏出) |
+| Shufeng:在 `docs/demos/2026-05-25/` 下重录覆盖全部 6 个场景的演示 | Shufeng | 加分 +0.5(可验证的答辩材料) |
+| Tujie:基于商品目录对 19 条 golden 标注做审计 + 重新生成报告 | Tujie | 提升测量有效性;不主张加分 |
+| Tujie:对外币商品价格按带日期的最新参考汇率做人民币(CNY)归一化(`server/app/services/currency.py`) | Tujie | 展示/价格意图正确性;MRR 0.771 → 0.778 |
+| Yusheng:否定别名/产地审计与已审计 golden 集合并 | Yusheng | 生产环境否定准确率达 1.000;合并后 MRR 0.828 |
+| Tujie:稠密检索与 BM25 共用的类目/品牌/人民币预算检索过滤器,另加 5 条回归用例 | Tujie | 同一 64 条用例集硬过滤 A/B:过滤 MRR 0.635 → 0.917 |
+| Tujie:支持继承/替换/取消行为的多轮约束状态,另加 4 条回归用例 | Tujie | 68 条用例生产环境 MRR 0.856;新增 `constraint-state` 切片 MRR 1.000 |
+| Tujie:检索模型烘焙进 Docker 镜像 + 启动时全量查询预热 + `/ready` 门控 | Tujie | 预热后评测延迟 6156 ms → 610 ms;首次实测对话检索 6519 ms → 1264 ms |
 
-**Net**: +3.5 dimension points → +0.5 to +1.0 weighted total, **89.5 → 90.0**.
+**净变化**:维度分 +3.5 → 加权总分 +0.5 到 +1.0,**89.5 → 90.0**。
 
-## Live numbers (hybrid+rerank, R7.6 prewarmed Docker, 68-case set)
+## 实测数据(hybrid+rerank,R7.6 预热后的 Docker,68 条用例集)
 
 ```
 recall@5             0.982
@@ -56,198 +56,197 @@ mean latency         610 ms (Docker; startup prewarm excluded from timed cases)
 median latency       68 ms
 ```
 
-Note: the earlier 59-case set includes harder scenarios than the first
-31-case set, and its audit changed 19 incorrect or incomplete labels. R7.4
-adds five targeted constraint-filter regressions. R7.5 adds four multi-turn
-constraint-state regressions; all four reach MRR 1.000. On the same 64-case set,
-turning hard filters on raises filter MRR from 0.635 to 0.917; the production
-68-case report reaches MRR 0.856 with zero measured forbidden-product leakage.
-R7.6 keeps those quality values while moving lazy model/query initialization
-behind `/ready`; an unwarmed run measured 6156 ms average versus 610 ms after
-prewarm.
+注:较早的 59 条用例集比最初的 31 条用例集包含更难的场景,
+其审计修正了 19 条错误或不完整的标注。R7.4 新增 5 条针对性的
+约束过滤回归用例。R7.5 新增 4 条多轮约束状态回归用例,4 条全部
+达到 MRR 1.000。在同一 64 条用例集上,开启硬过滤使过滤 MRR 从
+0.635 升至 0.917;生产环境 68 条用例报告达到 MRR 0.856,实测
+禁选商品零漏出。R7.6 在保持上述质量数值的同时,把惰性的模型/
+查询初始化移到 `/ready` 之后;未预热运行实测平均 6156 ms,预热
+后为 610 ms。
 
-### Round 6 delta — what moved and why
+### 第 6 轮增量 —— 哪些分动了、为什么
 
-| Dimension | R5 → R6 | Why |
+| 维度 | R5 → R6 | 原因 |
 |---|---|---|
-| 基础功能完整性 (35%) | 94 → 94 | Unchanged. New categories (books / sports / maternity / home) close the "推荐一本书" regression, but base score already captured the 4-cat coverage as 94. |
-| 工程质量 (25%) | 88 → 89 | +1. Provenance schema + currency-aware UI + `CLAUDE.md` self-contained bootstrap raise the "engineering discipline" bucket. Real product URLs let judges verify, which feels like a +工程严谨 signal. |
-| 效果与可靠性 (20%) | 82 → 80 | **-2**. Honestly: `recall@5` dropped 0.711 → 0.684 (-3.7%) after the catalog grew 100 → 145. Same eval set, same retrieval stack. Small, explainable, but I'm scoring myself down for the regression rather than hand-waving. Could recover with golden-set expansion (Round 7). |
-| 加分项 (20%) | 73.5 → 84 | **+10.5**. Real Amazon URLs + multi-currency UI + provenance markers + funny loading sentence stack up nicely. 4.1 cart now has inline-add + multi-currency totals (full UX loop). 4.2 multimodal has actual real product images on the platform CDN, not AI-gen placeholders. |
-| **Total** | **86.0 → 88.0** | Net +2 weighted points (+10.5 加分 × 0.2 = +2.1, -2 效果 × 0.2 = -0.4, +1 工程 × 0.25 = +0.25). |
+| 基础功能完整性 (35%) | 94 → 94 | 不变。新增类目(图书 / 运动 / 母婴 / 家居)修复了"推荐一本书"的回归问题,但基础分此前已按 4 类目覆盖给到 94。 |
+| 工程质量 (25%) | 88 → 89 | +1。溯源(provenance)schema + 货币感知 UI + `CLAUDE.md` 自包含引导,抬高了"工程纪律"这一档。真实商品 URL 可供评委核验,这是一个 +工程严谨 的信号。 |
+| 效果与可靠性 (20%) | 82 → 80 | **-2**。如实说:商品目录从 100 扩到 145 后,`recall@5` 从 0.711 降到 0.684(-3.7%)。同一评测集、同一检索栈。降幅小、可解释,但我选择为这次回归如实给自己扣分,而不是含糊带过。可通过扩充 golden 集(第 7 轮)恢复。 |
+| 加分项 (20%) | 73.5 → 84 | **+10.5**。真实 Amazon URL + 多币种 UI + 溯源标记 + 趣味加载文案叠加效果很好。4.1 购物车现已支持行内加购 + 多币种合计(完整 UX 闭环)。4.2 多模态用的是平台 CDN 上的真实商品图,而非 AI 生成的占位图。 |
+| **总分** | **86.0 → 88.0** | 加权净 +2 分(+10.5 加分 × 0.2 = +2.1,-2 效果 × 0.2 = -0.4,+1 工程 × 0.25 = +0.25)。 |
 
-### Round 6 evidence links
+### 第 6 轮证据链接
 
-- Real product catalog: `data/seed/{1..8}_*/data/p_*_{real,intl}_*.json` (45 files).
-- Research methodology + caveats: [`docs/research/2026-05-24-real-products.md`](research/2026-05-24-real-products.md).
-- Provenance schema in iOS: [`client/.../Models/ProductCard.swift`](../client/AAALionApp/AAALionApp/Models/ProductCard.swift) (Provenance struct + flag/currency helpers).
-- Provenance backend wiring: [`server/app/routes/chat.py`](../server/app/routes/chat.py) `_image_url`, `_provenance`.
-- Cart UX: [`CartSheet.swift`](../client/AAALionApp/AAALionApp/Views/CartSheet.swift) (trash + EditMode + CNY-normalized totals with source-price trace).
-- Funny loading: [`LoadingSentence.swift`](../client/AAALionApp/AAALionApp/Views/LoadingSentence.swift).
-- Bootstrap: [`CLAUDE.md`](../CLAUDE.md).
-- Commit record: [`docs/commits/20260524-013-round6-real-data-funny-loading.md`](commits/20260524-013-round6-real-data-funny-loading.md).
+- 真实商品目录:`data/seed/{1..8}_*/data/p_*_{real,intl}_*.json`(45 个文件)。
+- 调研方法 + 注意事项:[`docs/research/2026-05-24-real-products.md`](research/2026-05-24-real-products.md)。
+- iOS 端溯源 schema:[`client/.../Models/ProductCard.swift`](../client/AAALionApp/AAALionApp/Models/ProductCard.swift)(Provenance 结构体 + 旗帜/货币辅助方法)。
+- 溯源后端接线:[`server/app/routes/chat.py`](../server/app/routes/chat.py) 中的 `_image_url`、`_provenance`。
+- 购物车 UX:[`CartSheet.swift`](../client/AAALionApp/AAALionApp/Views/CartSheet.swift)(删除 + EditMode + 人民币归一化合计,并保留原始价格溯源)。
+- 趣味加载:[`LoadingSentence.swift`](../client/AAALionApp/AAALionApp/Views/LoadingSentence.swift)。
+- 引导文档:[`CLAUDE.md`](../CLAUDE.md)。
+- 提交记录:[`docs/commits/20260524-013-round6-real-data-funny-loading.md`](commits/20260524-013-round6-real-data-funny-loading.md)。
 
-### What still pushes the score higher (Round 7+ candidate work)
+### 还能继续提分的事项(第 7+ 轮候选工作)
 
-1. **+2 效果**: expand judged constraint cases beyond the current five filter and four state regressions; `brand-origin` now reaches `recall@5=1.000` on its small 3-case slice.
-2. **+2 基础**: each new category currently has only 5 products; grow to 15-20 each for richer top-5 candidates.
-3. **+1-2 加分**: defense slide deck + demo video — PDF explicitly weights backup video as a 加分 signal.
-4. **+1-2 工程**: stress test, observability dashboard, real Docker compose `up` from a clean clone verified by a teammate.
+1. **效果 +2**:在现有 5 条过滤回归与 4 条状态回归之外,扩充经人工评判的约束用例;`brand-origin` 目前在其仅 3 条用例的小切片上达到 `recall@5=1.000`。
+2. **基础 +2**:每个新类目目前只有 5 件商品;扩充到每类 15-20 件,让 top-5 候选更丰富。
+3. **加分 +1-2**:答辩幻灯片 + 演示视频 —— PDF 明确把备份视频列为加分信号。
+4. **工程 +1-2**:压力测试、可观测性看板、由队友从干净克隆出发实测 Docker compose `up`。
 
-### Score history snapshot
+### 得分历史快照
 
-| Dimension | Weight | R5 | R6 | Weighted R5 | Weighted R6 |
+| 维度 | 权重 | R5 | R6 | R5 加权 | R6 加权 |
 |---|---|---|---|---|---|
 | 基础功能完整性 | 35% | 94 | 94 | 32.9 | 32.9 |
 | 工程质量 | 25% | 88 | 89 | 22.0 | 22.25 |
 | 效果与可靠性 | 20% | 82 | 80 | 16.4 | 16.0 |
 | 加分项 | 20% | 73.5 | 84 | 14.7 | 16.8 |
-| **Total** | 100% | — | — | **86.0** | **88.0** |
+| **总分** | 100% | — | — | **86.0** | **88.0** |
 
-## Methodology
+## 评分方法
 
-- Each item scored 0-100 against the PDF §7.1 rubric criteria.
-- Evidence is a working code/doc/demo link; if I can't link to it, the score reflects that.
-- I am the implementer and grader — there is selection bias. I've tried to be harsher than a friendly reviewer would be on items where the evidence is thin.
-- "What would push it higher" is the actionable backlog if this were a Round 6.
+- 每项对照 PDF §7.1 评分标准打 0-100 分。
+- 证据须是可用的代码/文档/演示链接;给不出链接的,得分会相应体现。
+- 我既是实现者又是打分人 —— 存在选择性偏差。在证据单薄的项上,我尽量比一位友善的评审更严苛。
+- "如何进一步提分"是假如再来一个第 6 轮时可执行的待办清单。
 
 ---
 
-## 基础功能完整性 — 94 / 100 (weight 35%)
+## 基础功能完整性 — 94 / 100(权重 35%)
 
-| Sub-item | Score | Evidence | Gap | Push higher |
+| 子项 | 得分 | 证据 | 差距 | 提分方向 |
 |---|---|---|---|---|
-| iOS native client (no H5) | 100 | SwiftUI 17+, `client/AAALionApp/`; verified on iPhone 13 Pro | none | — |
-| Streaming chat (SSE) | 100 | `server/app/routes/chat.py` + `ChatService.swift`; verified end-to-end | none | — |
-| RAG retrieval | 100 | hybrid dense + BM25 + cross-encoder rerank; `rag/retrieve/` | none | — |
-| Product cards with images | 95 | `ProductCardView.swift`; images load after Round 4 URL fix | placeholder when image 404 | preload sizes |
-| Multi-turn conversation | 95 | iOS sends full history; edit-message UX | rolling-window pruning not implemented (would degrade after ~20 turns) | sliding window + summarization |
-| Catalog grounding (no hallucination) | 90 | Demo 02 shows "no match" honesty; system prompt enforces | rare leakage when LLM paraphrases | LLM-as-judge post-check |
+| iOS 原生客户端(非 H5) | 100 | SwiftUI 17+,`client/AAALionApp/`;已在 iPhone 13 Pro 上验证 | 无 | — |
+| 流式对话(SSE) | 100 | `server/app/routes/chat.py` + `ChatService.swift`;端到端验证通过 | 无 | — |
+| RAG 检索 | 100 | 稠密 + BM25 混合 + cross-encoder 重排;`rag/retrieve/` | 无 | — |
+| 带图商品卡片 | 95 | `ProductCardView.swift`;第 4 轮 URL 修复后图片可正常加载 | 图片 404 时显示占位图 | 预加载尺寸 |
+| 多轮对话 | 95 | iOS 发送完整历史;支持编辑消息的 UX | 未实现滚动窗口裁剪(约 20 轮后会退化) | 滑动窗口 + 摘要 |
+| 商品目录接地(无幻觉) | 90 | 演示 02 展示了"无匹配"时的诚实表现;系统提示词强制约束 | LLM 转述时偶有泄漏 | LLM-as-judge 事后校验 |
 
-**Weakness I'd flag if I were the grader**: the catalog is only 100 products in 4 categories. A vague query that doesn't intersect any of those (e.g. "助孕用品") returns "no match" honestly, but the demo would feel richer with breadth. Round 5 deferred the new-category work.
+**如果我是评审会指出的弱点**:商品目录只有 4 个类目共 100 件商品。与这些类目都不相交的模糊查询(例如"助孕用品")会诚实返回"无匹配",但目录覆盖更广演示会显得更丰满。第 5 轮推迟了新类目的工作。
 
 ---
 
-## 工程质量 — 88 / 100 (weight 25%)
+## 工程质量 — 88 / 100(权重 25%)
 
-| Sub-item | Score | Evidence | Gap | Push higher |
+| 子项 | 得分 | 证据 | 差距 | 提分方向 |
 |---|---|---|---|---|
-| Code structure | 95 | `client/ server/ rag/` separation; `docs/ARCHITECTURE.md` | — | — |
-| API design | 90 | `docs/API.md`; Pydantic v2 content union; SSE event taxonomy | no OpenAPI spec auto-published | FastAPI publishes `/openapi.json` but I don't surface it |
-| Error handling | 88 | SSE error events; iOS error banner; LLM provider retry/backoff (3× exp backoff); `LLM_PROVIDER=echo` graceful fallback | no client retry on network blip | iOS reconnect logic |
-| Private deployment | 90 | `Dockerfile.rag` caches retrieval weights; `server/docker-compose.yml` exposes `/ready` healthcheck; Docker endpoint verified locally | first build is large and slow | publish/pre-pull image before demo |
-| Multi-provider LLM | 100 | TokenRouter / Anthropic / Doubao / OpenAI / Echo via env switch | — | — |
-| Documentation | 95 | 24 docs in `docs/`, `IMPLEMENTATION_GUIDE.md` indexes them, 10 commit records, `RUBRIC_MAPPING.md`, this file | — | — |
-| Repo hygiene | 95 | Conventional Commits; major-commit records; secret scanner; gitignore covers `.chroma/` + `.env` + `xcodeproj` | no pre-commit hook installed yet | wire `tools/check-secrets.sh` as pre-commit |
-| Latency instrumentation | 85 | `server/app/routes/chat.py` `_log_timing`; JSON-per-request with `retrieval_ms` / `first_delta_ms` / `total_ms` / `cache` | no aggregate dashboard | publish Prometheus metrics |
-| Cache layer | 80 | `services/cache.py` in-memory LRU 200-entry × 10-min TTL; wired into chat route; cache hit reduces `first_delta_ms` from ~5000 → ~300 in measurement | no eviction on data change | invalidate cache on `aaalion ingest` |
-| Stress test | 80 | `tools/stress_test.py`; R7 run reports 20 concurrent users x 45 s, 92/92 successful | single workload, no p95/p99 trend dashboard | add repeated load profiles and publish percentiles |
-| Git workflow | 90 | shufeng branch for in-flight; main = stable; merge after self-assessment | no PR template enforcement | wire `.github/pull_request_template.md` more rigorously |
+| 代码结构 | 95 | `client/ server/ rag/` 分层;`docs/ARCHITECTURE.md` | — | — |
+| API 设计 | 90 | `docs/API.md`;Pydantic v2 内容联合类型;SSE 事件分类体系 | 未自动发布 OpenAPI 规范 | FastAPI 会发布 `/openapi.json`,但我没有对外呈现 |
+| 错误处理 | 88 | SSE 错误事件;iOS 错误横幅;LLM 提供方重试/退避(3 次指数退避);`LLM_PROVIDER=echo` 优雅降级 | 网络抖动时客户端不重试 | iOS 重连逻辑 |
+| 私有化部署 | 90 | `Dockerfile.rag` 缓存检索模型权重;`server/docker-compose.yml` 暴露 `/ready` 健康检查;Docker 端点已在本地验证 | 首次构建体积大、速度慢 | 演示前发布/预拉取镜像 |
+| 多提供方 LLM | 100 | 通过环境变量切换 TokenRouter / Anthropic / Doubao / OpenAI / Echo | — | — |
+| 文档 | 95 | `docs/` 下 24 篇文档,由 `IMPLEMENTATION_GUIDE.md` 索引,10 份提交记录,`RUBRIC_MAPPING.md`,以及本文件 | — | — |
+| 仓库卫生 | 95 | Conventional Commits 提交规范;重大提交有记录;密钥扫描器;gitignore 覆盖 `.chroma/` + `.env` + `xcodeproj` | 尚未安装 pre-commit 钩子 | 把 `tools/check-secrets.sh` 接成 pre-commit |
+| 延迟埋点 | 85 | `server/app/routes/chat.py` 中的 `_log_timing`;每请求一条 JSON,含 `retrieval_ms` / `first_delta_ms` / `total_ms` / `cache` | 无聚合看板 | 发布 Prometheus 指标 |
+| 缓存层 | 80 | `services/cache.py` 内存 LRU,200 条 × 10 分钟 TTL;已接入对话路由;实测缓存命中使 `first_delta_ms` 从约 5000 降至约 300 | 数据变更时不做淘汰 | 在 `aaalion ingest` 时使缓存失效 |
+| 压力测试 | 80 | `tools/stress_test.py`;R7 运行报告 20 并发用户 x 45 s,92/92 成功 | 单一负载,无 p95/p99 趋势看板 | 增加多种重复负载画像并发布分位数 |
+| Git 工作流 | 90 | 进行中的工作放 shufeng 分支;main = 稳定;自评后再合并 | 未强制 PR 模板 | 更严格地启用 `.github/pull_request_template.md` |
 
-**Weakness**: first-user cold loading is addressed; full CPU rerank latency on broad queries and broader judged coverage are now the clearest measured gaps.
+**弱点**:首位用户冷加载已解决;宽泛查询下的全量 CPU 重排延迟,以及更广的人工评判覆盖,是目前实测最明确的差距。
 
 ---
 
-## 效果与可靠性 — 82 / 100 (weight 20%)
+## 效果与可靠性 — 82 / 100(权重 20%)
 
-| Sub-item | Score | Evidence | Gap | Push higher |
+| 子项 | 得分 | 证据 | 差距 | 提分方向 |
 |---|---|---|---|---|
-| 检索准确率 (recall@5) | 88 | R7.6 prewarmed Docker 68-case set: dense=0.766, hybrid=0.751, **hybrid+rerank=0.982**; production MRR=0.856 and negation accuracy=1.000. | labels now single-auditor; state/filter rules cover only clear catalog concepts | double-judge labels; add regression cases with each new rule |
-| 无幻觉输出 | 90 | System prompt enforces; demo 02 proves; Round 5 vision-prompt tightening | no automated hallucination check | LLM-as-judge nightly |
-| 复杂场景 (negation, comparison) | 90 | demos 04 + 05; Round 5 added structured negation extraction → filter | rare LLM still hedges | tighten more |
-| First-screen response (<1s target) | 80 | Docker startup prewarm gates traffic via `/ready`; first verified broad-query retrieval after ready was 1264ms, versus 6519ms before full-path prewarm. | broad CPU rerank can still exceed 1s before LLM time | optimize rerank candidate pool or serve on faster compute |
-| Image input pipeline | 85 | Photos + Camera + Files (all 3 sources work); CLIP retrieval on A100 (100 images, 512-d vectors) | A100 not used for live retrieval — Mac runs CLIP on MPS at ~50ms per image | move CLIP serving to A100 over SSH tunnel for true GPU offload |
-| Voice input quality | 80 | Apple Speech.framework zh-CN; works in demos | no continuous listening; no interrupt | streaming partial results during recognition |
-| TTS quality | 75 | AVSpeechSynthesizer zh-CN system voice | flat prosody; no SSML | use a neural TTS if budget allows |
+| 检索准确率 (recall@5) | 88 | R7.6 预热 Docker、68 条用例集:dense=0.766,hybrid=0.751,**hybrid+rerank=0.982**;生产环境 MRR=0.856,否定准确率=1.000。 | 标注目前仅单人审计;状态/过滤规则只覆盖明确的目录概念 | 标注双人评判;每加一条新规则就补回归用例 |
+| 无幻觉输出 | 90 | 系统提示词强制约束;演示 02 佐证;第 5 轮收紧了视觉提示词 | 无自动化幻觉检查 | 每晚跑 LLM-as-judge |
+| 复杂场景(否定、对比) | 90 | 演示 04 + 05;第 5 轮新增结构化否定抽取 → 过滤 | LLM 偶尔仍含糊其辞 | 进一步收紧 |
+| 首屏响应(目标 <1s) | 80 | Docker 启动预热经 `/ready` 门控流量;就绪后首次实测宽泛查询检索为 1264ms,全链路预热前为 6519ms。 | 宽泛查询的 CPU 重排在计入 LLM 耗时之前仍可能超过 1s | 优化重排候选池或换更快的算力 |
+| 图片输入链路 | 85 | 相册 + 相机 + 文件(3 个来源全部可用);A100 上的 CLIP 检索(100 张图,512 维向量) | A100 未用于线上检索 —— Mac 在 MPS 上跑 CLIP,约 50ms/图 | 通过 SSH 隧道把 CLIP 服务迁到 A100,实现真正的 GPU 卸载 |
+| 语音输入质量 | 80 | Apple Speech.framework zh-CN;演示中可用 | 无持续监听;无打断 | 识别过程中流式输出部分结果 |
+| TTS 质量 | 75 | AVSpeechSynthesizer zh-CN 系统音色 | 韵律平淡;不支持 SSML | 预算允许的话换神经 TTS |
 
-**Weakness**: aggregate and constrained recall are now much stronger on this catalog, but the parser intentionally handles only clear category/brand/budget language. Broader rules need new judged cases first.
+**弱点**:在当前目录上,总体召回与带约束召回都已强很多,但解析器刻意只处理明确的类目/品牌/预算表述。更宽的规则需要先有新的人工评判用例。
 
 ---
 
-## 加分项 — 73.5 / 100 (weight 20%)
+## 加分项 — 73.5 / 100(权重 20%)
 
 ### 4.1 业务闭环深度 — 70
 
-| Tier | Score | Evidence |
+| 层级 | 得分 | 证据 |
 |---|---|---|
-| ⭐ 对话式加购 | 100 | Round 5: `_detect_cart_intent` regex in `chat.py` + iOS `ChatView.onChange(cartIntent)` auto-adds last assistant's products |
-| ⭐⭐ 购物车管理 | 90 | `CartSheet.swift` — list, +/− qty, swipe-to-delete, total, persisted via UserDefaults |
-| ⭐⭐⭐ 下单确认流程 | 65 | `CheckoutView.swift` mock flow: review → confirm → success. **Mock only** — no real payment / shipping / inventory. Honest framing in UI ("演示用模拟下单"). |
+| ⭐ 对话式加购 | 100 | 第 5 轮:`chat.py` 中的 `_detect_cart_intent` 正则 + iOS `ChatView.onChange(cartIntent)` 自动加购上一条助手回复中的商品 |
+| ⭐⭐ 购物车管理 | 90 | `CartSheet.swift` —— 列表、数量加减、左滑删除、合计,经 UserDefaults 持久化 |
+| ⭐⭐⭐ 下单确认流程 | 65 | `CheckoutView.swift` 模拟流程:核对 → 确认 → 成功。**仅为模拟** —— 无真实支付 / 物流 / 库存。UI 中如实标注("演示用模拟下单")。 |
 
-**Weakness**: checkout is mock. A real impl needs an order-id-issuing backend route and order history. That's another half-day; out of scope.
+**弱点**:下单是模拟的。真实实现需要一个签发订单号的后端路由和订单历史。还得再花半天;不在本期范围内。
 
 ### 4.2 多模态交互 — 90
 
-| Tier | Score | Evidence |
+| 层级 | 得分 | 证据 |
 |---|---|---|
-| ⭐ 语音输入 | 95 | `SpeechService.swift` with `SFSpeechRecognizer(locale: zh_CN)`; partial-result streaming into draft |
-| ⭐⭐ TTS | 80 | `TTSService.swift` with `AVSpeechSynthesizer`; system Mandarin voice — quality is OK but obviously synthetic |
-| ⭐⭐⭐ 拍照找货 | 95 | **TWO paths**: (a) vision LLM (`claude-haiku-4-5` via TokenRouter), (b) CLIP image embedding on A100 (100-vector `products_image` Chroma collection). `routes/chat.py` prefers CLIP when image is uploaded. Demo `docs/demos/2026-05-23/06-photo-clip.png` |
+| ⭐ 语音输入 | 95 | `SpeechService.swift`,使用 `SFSpeechRecognizer(locale: zh_CN)`;部分识别结果流式写入草稿 |
+| ⭐⭐ TTS | 80 | `TTSService.swift`,使用 `AVSpeechSynthesizer`;系统普通话音色 —— 质量尚可但合成感明显 |
+| ⭐⭐⭐ 拍照找货 | 95 | **两条路径**:(a) 视觉 LLM(经 TokenRouter 调用 `claude-haiku-4-5`),(b) A100 上的 CLIP 图像嵌入(100 向量的 `products_image` Chroma 集合)。上传图片时 `routes/chat.py` 优先走 CLIP。演示见 `docs/demos/2026-05-23/06-photo-clip.png` |
 
-**Weakness**: the A100 indexed the catalog images, but the live retrieval runs on the Mac (MPS backend). Pure A100 serving would be cleaner but adds infra; current path is correct for solo dev.
+**弱点**:目录图片在 A100 上建了索引,但线上检索跑在 Mac 上(MPS 后端)。纯 A100 服务化更干净,但要加基础设施;就单人开发而言,当前路径是正确的。
 
 ### 4.3 对话智能 — 92
 
-| Tier | Score | Evidence |
+| 层级 | 得分 | 证据 |
 |---|---|---|
-| ⭐ 多轮上下文记忆 | 95 | Full history plus `constraint_state.py` inherit/replace/cancel handling; four new state cases reach MRR 1.000 |
-| ⭐⭐ 反选与排除 | 90 | Round 5: `rag/retrieve/negation.py` extracts `exclude_brands/categories/keywords` via LLM, applies as Chroma where + post-filter. Plus the system-prompt rule for belt-and-braces. |
-| ⭐⭐⭐ 多商品对比 | 92 | Demo 05: 雅诗兰黛 vs 兰蔻 returns 4-dim comparison; system prompt forces dimension selection |
+| ⭐ 多轮上下文记忆 | 95 | 完整历史,加上 `constraint_state.py` 的继承/替换/取消处理;4 条新状态用例达到 MRR 1.000 |
+| ⭐⭐ 反选与排除 | 90 | 第 5 轮:`rag/retrieve/negation.py` 用 LLM 抽取 `exclude_brands/categories/keywords`,以 Chroma where 条件 + 后置过滤方式应用。另加系统提示词规则,双保险。 |
+| ⭐⭐⭐ 多商品对比 | 92 | 演示 05:雅诗兰黛 vs 兰蔻 返回 4 个维度的对比;系统提示词强制选择对比维度 |
 
-**Weakness**: comparison is prompt-driven; the model occasionally picks 2 dimensions instead of 3-5. Could deterministically extract entities + dimensions client-side and present as a table.
+**弱点**:对比是提示词驱动的;模型偶尔只选 2 个维度而非 3-5 个。可在客户端确定性地抽取实体 + 维度并以表格呈现。
 
 ### 4.4 工程质量 — 70
 
-| Tier | Score | Evidence |
+| 层级 | 得分 | 证据 |
 |---|---|---|
-| ⭐ 热门查询缓存 | 95 | Round 5: wired `services/cache.py` into chat route; verified cache HIT drops first_delta from 7893ms → 318ms in our test |
-| ⭐⭐ 首屏极速响应 | 70 | Cache hit ≤ 500ms (good); cache miss 3-9s (LLM-side, hard to compress further without a faster model). Typing-dots placeholder gives ≤100ms visible feedback. |
-| ⭐⭐⭐ 端侧体验打磨 | 90 | Claude-designed theme, generated lion icon, empty state, typing dots, skeleton placeholders, context menus, settings sheet — all shipped |
+| ⭐ 热门查询缓存 | 95 | 第 5 轮:把 `services/cache.py` 接入对话路由;实测缓存命中(HIT)使 first_delta 从 7893ms 降至 318ms |
+| ⭐⭐ 首屏极速响应 | 70 | 缓存命中 ≤ 500ms(良好);缓存未命中 3-9s(耗时在 LLM 侧,不换更快的模型很难再压)。输入中动效占位提供 ≤100ms 的可见反馈。 |
+| ⭐⭐⭐ 端侧体验打磨 | 90 | Claude 设计的主题、生成的狮子图标、空状态、输入中动效、骨架屏占位、上下文菜单、设置面板 —— 全部上线 |
 
-**Weakness**: cache miss path can't reach <1s without a fundamentally faster LLM. Acknowledged trade-off.
+**弱点**:不从根本上换更快的 LLM,缓存未命中路径达不到 <1s。这是已认知的取舍。
 
 ---
 
-## 减分项 (PDF §7.3) — self-check
+## 减分项 (PDF §7.3) — 自查
 
-| Risk | Status | Defense |
+| 风险 | 状态 | 防御 |
 |---|---|---|
-| AI 编造不存在的商品 | ✅ avoided | System prompt + demo 02 + 反幻觉 prompt explicit; no observed instance |
-| Web/H5 替代原生 | ✅ avoided | Pure SwiftUI; verified on iPhone 13 Pro device |
-| Demo 无法跑 | ✅ avoided | Reproducibility: `aaalion ios-sim` + `aaalion backend` + 9 demo screenshots committed; weekly cert re-sign cadence documented |
-| 不能解释原理 | ✅ avoided | This file + `docs/RUBRIC_MAPPING.md` + `docs/HONEST_ANSWERS.md` + `docs/IMPLEMENTATION_GUIDE.md` |
+| AI 编造不存在的商品 | ✅ 已规避 | 系统提示词 + 演示 02 + 明确的反幻觉提示词;未观察到任何实例 |
+| Web/H5 替代原生 | ✅ 已规避 | 纯 SwiftUI;已在 iPhone 13 Pro 真机验证 |
+| Demo 无法跑 | ✅ 已规避 | 可复现性:`aaalion ios-sim` + `aaalion backend` + 已提交 9 张演示截图;每周证书重签节奏已写入文档 |
+| 不能解释原理 | ✅ 已规避 | 本文件 + `docs/RUBRIC_MAPPING.md` + `docs/HONEST_ANSWERS.md` + `docs/IMPLEMENTATION_GUIDE.md` |
 
 ---
 
-## What I'd do with another week
+## 如果再有一周,我会做什么
 
-In priority order, if defense were 7 days further out:
+按优先级排序,假设答辩再推后 7 天:
 
-1. **Grow golden eval to 80+ cases**; measure recall vs human-judged relevance, not just expected-id match.
-2. **Real product data**: hand-curate 30 real Tmall/JD entries; index alongside the AI-gen seed. Run side-by-side eval.
-3. **Stress test**: locust 100 RPS × 60s with the cache wired — verify the p95 claim.
-4. **bge-reranker-v2-m3**: ~2x the size, ~5-10% better on Chinese retrieval benchmarks per the model card. ~1 hour.
-5. **Demo video** (Phase explicitly deferred this round per user instruction).
-6. **Defense slide deck** (same).
-7. **Bonjour discovery** of the backend so LAN URL changes are automatic.
+1. **把 golden 评测集扩充到 80+ 条用例**;以人工评判的相关性衡量召回,而不只是预期 id 匹配。
+2. **真实商品数据**:手工精选 30 条真实天猫(Tmall)/京东(JD)条目;与 AI 生成的种子数据一同建索引。做并排对比评测。
+3. **压力测试**:启用缓存后用 locust 跑 100 RPS × 60s —— 验证 p95 的主张。
+4. **bge-reranker-v2-m3**:体积约 2 倍,据模型卡在中文检索基准上好约 5-10%。约 1 小时。
+5. **演示视频**(按用户指示,本轮明确推迟该阶段)。
+6. **答辩幻灯片**(同上)。
+7. 后端的 **Bonjour 发现**,使局域网 URL 变更自动生效。
 
 ---
 
-## What I'm certain of vs uncertain of
+## 我确定的 vs 不确定的
 
-**Certain**:
-- R7.6 prewarmed Docker production recall@5 = 0.982, MRR = 0.856, negation accuracy = 1.000, and mean retrieval latency = 610 ms on 68 audited/regression cases. Reproducible with `python -m rag.eval.report`.
-- Cache hit drops first_delta ≥ 10×. Measured.
-- iPhone 13 Pro deploy works. Hands-on tested.
-- All listed 4.x bonus items have a working code path.
+**确定**:
+- R7.6 预热 Docker 生产环境在 68 条已审计/回归用例上 recall@5 = 0.982,MRR = 0.856,否定准确率 = 1.000,平均检索延迟 = 610 ms。可用 `python -m rag.eval.report` 复现。
+- 缓存命中使 first_delta 下降 ≥ 10 倍。实测。
+- iPhone 13 Pro 部署可用。亲手测过。
+- 列出的所有 4.x 加分项都有可运行的代码路径。
 
-**Uncertain**:
-- Whether 0.982 recall@5 transfers beyond this small 145-product catalog; the current labels still need independent second-pass judging.
-- Whether the cart's regex-based intent detection holds against weird phrasings — robust would be a proper intent classifier.
-- Whether broad-query CPU reranking should be further optimized; it no longer blocks first-user readiness, but several cases still take up to 4.3 seconds.
+**不确定**:
+- 0.982 的 recall@5 能否迁移到这个仅 145 件商品的小目录之外;当前标注仍需独立的二次评判。
+- 购物车基于正则的意图检测能否扛住奇怪的表述 —— 鲁棒的做法是上一个正经的意图分类器。
+- 宽泛查询的 CPU 重排是否需要进一步优化;它不再阻塞首位用户就绪,但仍有若干用例耗时高达 4.3 秒。
 
-## Honest verdict
+## 诚实结论
 
-This is a **defensible AI 全栈** submission. Every PDF rubric item except 4.1 has substantial coverage; 4.1 is at "honest mock" depth. Real weaknesses are: small catalog, no live stress test, mock checkout. Nothing in the build is fake or hand-wavy — every claim in `RUBRIC_MAPPING.md` resolves to code or a measured number.
+这是一份**经得起答辩的 AI 全栈**作品。除 4.1 外,PDF 评分标准的每一项都有扎实覆盖;4.1 处于"诚实模拟"的深度。真实弱点是:商品目录小、没有线上压测、下单是模拟的。整个构建中没有任何造假或含糊之处 —— `RUBRIC_MAPPING.md` 里的每一条主张都能落到代码或实测数字。
 
-If I had to give my own grade: **B+ to A-** on technical execution. The gap to A is the data scale + measured stress test + a polished demo video.
+如果让我给自己打分:技术执行 **B+ 到 A-**。距 A 的差距在于数据规模 + 实测压力测试 + 一段精修的演示视频。

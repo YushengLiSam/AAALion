@@ -1,23 +1,23 @@
-# Deploy Guide — Run 狮选 LionPick on your Mac + iPhone (≥13)
+# 部署指南 — 在你的 Mac + iPhone(≥13)上运行 狮选 LionPick
 
-> Audience: **李雨晟 (Sam) and 管图杰 (Tujie)**. You have your own MacBook + an iPhone 13 or newer. This guide takes you from `git clone` to "app running on your iPhone with real LLM responses" in ~45 min, most of which is Xcode + Python downloads.
+> 适用读者:**李雨晟 (Sam) 和 管图杰 (Tujie)**。你有自己的 MacBook + 一台 iPhone 13 或更新机型。本指南带你从 `git clone` 一路走到"应用在你的 iPhone 上运行并返回真实 LLM 回复",全程约 45 分钟,其中大部分时间花在 Xcode + Python 的下载上。
 
-> See also: [`IOS_SETUP.md`](IOS_SETUP.md) (deep iOS setup), [`HARDWARE.md`](HARDWARE.md) (devices + A100), [`docs/demos/2026-05-22/`](demos/2026-05-22/) (what the running app looks like).
+> 另见:[`IOS_SETUP.md`](IOS_SETUP.md)(iOS 深度配置)、[`HARDWARE.md`](HARDWARE.md)(设备 + A100)、[`docs/demos/2026-05-22/`](demos/2026-05-22/)(应用跑起来的样子)。
 
-## 0. Prerequisites
+## 0. 前置条件
 
-| What | Why | How |
+| 需要什么 | 为什么 | 怎么做 |
 |---|---|---|
-| **macOS 14+** (Sonoma or later) | Needed for Xcode 26 | check `sw_vers` |
-| **Xcode 26.5** (~10 GB) | Build the iOS app, deploy to device | Mac App Store → "Xcode" → Install |
-| **Apple ID** | Sign in to Xcode for free device deploy | use your own |
-| **Homebrew** | install `xcodegen` | https://brew.sh |
-| **Python 3.12** | Backend + RAG | `brew install python@3.12` |
-| **An iPhone ≥13** | Real-device demo | already yours |
-| **A USB cable** | Pair iPhone with Mac for `devicectl` | Lightning or USB-C, whichever your iPhone uses |
-| **A TokenRouter API key** | LLM calls (Doubao is still TBD) | Get one at https://www.tokenrouter.com/console/token. Activation may require email verify. **Or** use `LLM_PROVIDER=echo` for UI-only dev. |
+| **macOS 14+**(Sonoma 或更高) | Xcode 26 需要 | 用 `sw_vers` 检查 |
+| **Xcode 26.5**(约 10 GB) | 构建 iOS 应用、部署到真机 | Mac App Store → "Xcode" → 安装 |
+| **Apple ID** | 登录 Xcode 以免费部署到真机 | 用你自己的 |
+| **Homebrew** | 安装 `xcodegen` | https://brew.sh |
+| **Python 3.12** | 后端 + RAG | `brew install python@3.12` |
+| **一台 iPhone ≥13** | 真机演示 | 你已经有了 |
+| **一根 USB 数据线** | 将 iPhone 与 Mac 配对以使用 `devicectl` | Lightning 或 USB-C,看你的 iPhone 用哪种 |
+| **一个 TokenRouter API key** | LLM 调用(Doubao 仍待定) | 在 https://www.tokenrouter.com/console/token 获取。激活可能需要邮箱验证。**或者**用 `LLM_PROVIDER=echo` 做纯 UI 开发。 |
 
-## 1. Clone + tooling (5 min)
+## 1. 克隆 + 工具链(5 分钟)
 
 ```bash
 git clone https://github.com/YushengLiSam/AAALion-.git
@@ -35,7 +35,7 @@ make install-cli                                            # symlinks into /usr
 aaalion help
 ```
 
-## 2. Backend + RAG (10 min including model download)
+## 2. 后端 + RAG(10 分钟,含模型下载)
 
 ```bash
 # Python venv
@@ -65,9 +65,9 @@ curl -sN -X POST http://127.0.0.1:8000/chat/stream \
 # Expect data: {"type":"delta",...} stream
 ```
 
-If you only want UI dev without LLM cost: `LLM_PROVIDER=echo aaalion backend`. The backend returns a deterministic `[echo]` stream that exercises the SSE path.
+如果你只想做 UI 开发、不产生 LLM 费用:`LLM_PROVIDER=echo aaalion backend`。后端会返回一个确定性的 `[echo]` 流,完整走一遍 SSE 路径。
 
-On Windows or for an isolated reproducible backend, use Docker instead:
+在 Windows 上,或想要一个隔离、可复现的后端时,请改用 Docker:
 
 ```powershell
 if (-not (Test-Path server/.env)) { Copy-Item .env.example server/.env }
@@ -84,14 +84,14 @@ do {
 $ready
 ```
 
-The first Docker build caches both retrieval model weights in the image; later
-container starts only load and warm them before accepting chat requests. The
-ingest step persists the Chroma text index under `data/.chroma/`; run it again
-after catalog data changes. To enable real TokenRouter-generated answers after
-the no-key smoke deployment, use the secure key switch block in
-[`README.md`](../README.md#docker-deployment-on-windows-copy-and-run).
+首次 Docker 构建会把两个检索模型的权重都缓存进镜像;之后的容器启动
+只需加载并预热它们,然后才开始接受聊天请求。ingest 步骤会把 Chroma
+文本索引持久化到 `data/.chroma/` 下;商品目录数据变更后请再跑一次。
+在无 key 冒烟部署之后,若要启用真实的 TokenRouter 生成回答,请使用
+[`README.md`](../README.md#docker-deployment-on-windows-copy-and-run)
+中的安全换 key 代码块。
 
-## 3. iOS Simulator (5 min)
+## 3. iOS 模拟器(5 分钟)
 
 ```bash
 # Open Xcode once interactively to accept the license + run first-launch (one time)
@@ -104,11 +104,11 @@ aaalion ios-sim
 open -a Simulator
 ```
 
-You should see the app launch and the chat UI render. Type a query, hit send, see streaming + product cards (assuming backend is up).
+你应该能看到应用启动并渲染出聊天界面。输入一个查询,点击发送,即可看到流式输出 + 商品卡片(前提是后端已启动)。
 
-## 4. iOS Device (~10 min the first time)
+## 4. iOS 真机(首次约 10 分钟)
 
-This is the part that needs **one interactive Apple ID step**.
+这一部分需要**一步交互式的 Apple ID 操作**。
 
 ```bash
 # Plug iPhone in via USB. iPhone may prompt "Trust This Computer?" → Trust.
@@ -117,26 +117,26 @@ xcrun devicectl list devices
 # Look for your iPhone in the "Available Devices" list. Note the 36-char UUID.
 ```
 
-In Xcode (one-time setup):
+在 Xcode 中(一次性设置):
 
-1. Xcode → Settings (`Cmd+,`) → **Accounts** → click `+` → **Apple ID** → sign in.
-2. `aaalion ios` to regenerate `.xcodeproj`, then `open client/AAALionApp/AAALionApp.xcodeproj`.
-3. Click **AAALionApp** target in the left sidebar → **Signing & Capabilities** tab.
-4. Set **Team** to **"<your name> (Personal Team)"**.
-5. Let Xcode generate the certificate and profile (5-10 sec; the yellow warning disappears).
-6. **Find your real Team ID** (the 10-char string Xcode shows after your email in the cert name is a CERT ID, not the Team ID):
+1. Xcode → Settings(`Cmd+,`)→ **Accounts** → 点击 `+` → **Apple ID** → 登录。
+2. 运行 `aaalion ios` 重新生成 `.xcodeproj`,然后 `open client/AAALionApp/AAALionApp.xcodeproj`。
+3. 在左侧边栏点击 **AAALionApp** target → **Signing & Capabilities** 标签页。
+4. 把 **Team** 设为 **"<your name> (Personal Team)"**。
+5. 让 Xcode 自动生成证书和描述文件(5-10 秒;黄色警告会消失)。
+6. **找到你真正的 Team ID**(Xcode 在证书名里、邮箱之后显示的 10 位字符串是 CERT ID,不是 Team ID):
    ```bash
    ls ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/   # find the new .mobileprovision
    security cms -D -i <profile.mobileprovision> | grep -A1 TeamIdentifier
    # → the <string>...</string> is your 10-char Team ID
    ```
-7. Edit `settings.base.DEVELOPMENT_TEAM` in `client/AAALionApp/project.yml`:
+7. 编辑 `client/AAALionApp/project.yml` 中的 `settings.base.DEVELOPMENT_TEAM`:
    ```yaml
    DEVELOPMENT_TEAM: "ABC123DEF4"   # your 10-char team ID from step 6
    ```
-   This bakes it in so future `aaalion ios` regenerations preserve it. Keep this as a local-only edit if you don't want to push your Team ID; it's not secret but it's identifying.
+   这样就把它固化进配置,之后 `aaalion ios` 重新生成时都会保留。如果你不想把自己的 Team ID 推到远端,请把这处改动只留在本地;它不算机密,但具有身份标识性。
 
-Now you can build and install via CLI:
+现在你可以通过 CLI 构建并安装:
 
 ```bash
 aaalion ios-device
@@ -146,87 +146,87 @@ xcrun devicectl device install app --device <YOUR_DEVICE_UUID> \
   /tmp/lionpick-derived-device/Build/Products/Debug-iphoneos/狮选.app
 ```
 
-First install on the iPhone: tap **Settings → General → VPN & Device Management → Apple Development: <your-apple-id>@... → Trust**. After that, every `aaalion ios-device` works without prompts.
+首次安装后在 iPhone 上:点 **设置 → 通用 → VPN 与设备管理 → Apple Development: <your-apple-id>@... → 信任**。之后每次 `aaalion ios-device` 都不会再弹提示。
 
-> ⚠️ **Free Apple ID certs expire in 7 days.** Run `aaalion resign` once a week (or before any demo) to refresh. Schedule a calendar reminder. There's no way around this on the free tier; the $99/year Apple Developer Program would give 1-year certs but isn't worth it for this competition.
+> ⚠️ **免费 Apple ID 证书 7 天过期。** 每周(或任何演示之前)运行一次 `aaalion resign` 刷新。建议设个日历提醒。免费档没有任何绕过办法;$99/年的 Apple Developer Program 可以拿到 1 年期证书,但对这次比赛不值得。
 
-Connect the iPhone to your Mac's LAN backend. The app defaults to
-`http://localhost:8000` (works on the simulator out of the box). For a real
-iPhone you need your Mac's LAN IP. **Three options, in order of cleanliness:**
+把 iPhone 连到你 Mac 的局域网后端。应用默认指向
+`http://localhost:8000`(在模拟器上开箱即用)。真机 iPhone 则需要
+你 Mac 的局域网 IP。**三种方式,按干净程度排序:**
 
 ```bash
 ipconfig getifaddr en0   # your Mac's LAN IP, e.g. 192.168.1.42
 ```
 
-1. **In-app Settings sheet (recommended for day-to-day):** open the app on the
-   iPhone, tap ⚙ in the top-right, paste `http://192.168.1.42:8000`, hit
-   **Test Connection**, then **Save**. Persists in `UserDefaults`, survives
-   app relaunches, no rebuild. This is what we expect every dev to use.
-2. **Xcode scheme env var (one-off testing):** Xcode → Product → Scheme →
-   Edit Scheme → Run → Arguments → Environment Variables, add
-   `PUBLIC_BACKEND_URL=http://192.168.1.42:8000`. Only applies while you run
-   from Xcode.
-3. **Edit `Config.swift` (NOT recommended):** changing `defaultBackendURL`
-   collides with other devs' commits. Don't push that change.
+1. **应用内 Settings 设置页(日常推荐):**在 iPhone 上打开应用,
+   点右上角 ⚙,粘贴 `http://192.168.1.42:8000`,点
+   **Test Connection**,再点 **Save**。持久化在 `UserDefaults` 中,
+   应用重启后仍然生效,无需重新构建。我们期望每位开发者都用这种方式。
+2. **Xcode scheme 环境变量(一次性测试):**Xcode → Product → Scheme →
+   Edit Scheme → Run → Arguments → Environment Variables,添加
+   `PUBLIC_BACKEND_URL=http://192.168.1.42:8000`。只在从 Xcode 运行时
+   生效。
+3. **改 `Config.swift`(不推荐):**修改 `defaultBackendURL`
+   会和其他开发者的提交冲突。不要把这个改动推上去。
 
-The repo default (`localhost`) is intentional — it means a fresh clone runs on
-anyone's simulator with zero config.
+仓库默认值(`localhost`)是有意为之 —— 这意味着新克隆下来的仓库在
+任何人的模拟器上零配置即可运行。
 
-## 5. Common errors and fixes
+## 5. 常见错误与修复
 
-| Symptom | Cause | Fix |
+| 症状 | 原因 | 修复 |
 |---|---|---|
-| `make: *** No rule to make target 'ios'` | You're not in the repo dir | Use `aaalion ios` (works anywhere). Or `cd AAALion-` first. |
-| `Signing for "AAALionApp" requires a development team` | `DEVELOPMENT_TEAM` is empty | Do §4 step 3-6 above. |
-| `xcrun devicectl ... No code signature found` | Building without signing | Make sure `CODE_SIGN_STYLE: Automatic` is in project.yml (it is, by default). |
-| `No Account for Team "XXXXXXXXXX"` | `DEVELOPMENT_TEAM` is the certificate ID, not the Team ID | Use the gotcha workaround in §4 step 6 to find the real Team ID and put THAT in project.yml |
-| App launched yesterday but won't open today | 7-day Personal Team cert expired | `aaalion resign` |
-| `Internal Server Error` from `/chat/stream` | `server/.env` not loaded | Confirm `server/.env` exists with `LLM_PROVIDER` set. Restart `aaalion backend`. |
-| iOS shows user message but no reply | SSE parser hang | Fixed in commit `6e8d7b9`. If you see this on an old branch, pull main. |
-| `该令牌状态不可用` from TokenRouter | Key inactive | Activate in https://www.tokenrouter.com/console/token. |
-| Slow first ingest | `sentence-transformers` downloading model weights (~30 MB) | One-time. Subsequent ingests reuse the cached model under `~/.cache/torch/sentence_transformers/`. |
+| `make: *** No rule to make target 'ios'` | 你不在仓库目录里 | 用 `aaalion ios`(在任何目录都能用)。或者先 `cd AAALion-`。 |
+| `Signing for "AAALionApp" requires a development team` | `DEVELOPMENT_TEAM` 为空 | 按上文 §4 第 3-6 步操作。 |
+| `xcrun devicectl ... No code signature found` | 构建时没有签名 | 确认 project.yml 里有 `CODE_SIGN_STYLE: Automatic`(默认就有)。 |
+| `No Account for Team "XXXXXXXXXX"` | `DEVELOPMENT_TEAM` 填的是证书 ID,不是 Team ID | 按 §4 第 6 步的坑点解法找到真正的 Team ID,把那个填进 project.yml |
+| 应用昨天还能启动,今天打不开 | 7 天 Personal Team 证书过期 | `aaalion resign` |
+| `/chat/stream` 返回 `Internal Server Error` | `server/.env` 没有被加载 | 确认 `server/.env` 存在且设置了 `LLM_PROVIDER`。重启 `aaalion backend`。 |
+| iOS 显示了用户消息但没有回复 | SSE 解析器挂起 | 已在 commit `6e8d7b9` 修复。如果在旧分支上看到此问题,请拉取 main。 |
+| TokenRouter 返回 `该令牌状态不可用` | Key 未激活 | 在 https://www.tokenrouter.com/console/token 激活。 |
+| 首次 ingest 很慢 | `sentence-transformers` 正在下载模型权重(约 30 MB) | 仅此一次。后续 ingest 会复用 `~/.cache/torch/sentence_transformers/` 下缓存的模型。 |
 
-## 6. What to try once it works
+## 6. 跑通之后可以试什么
 
-Run the 6 scripted demos from [`docs/demos/2026-05-22/README.md`](demos/2026-05-22/README.md) to confirm parity with the reference results. If your screenshots look different, post them — we may have fixed something or regressed.
+运行 [`docs/demos/2026-05-22/README.md`](demos/2026-05-22/README.md) 中的 6 个脚本化演示,确认与参考结果一致。如果你的截图看起来不一样,发出来 —— 可能是我们修了什么,也可能是出现了回归。
 
-After that, you're set up to develop your area. See [`PIPELINE.md`](PIPELINE.md) for the dev SOP.
+之后你就可以开始开发自己负责的部分了。开发 SOP 见 [`PIPELINE.md`](PIPELINE.md)。
 
 ---
 
-## 7. Public backend via Cloudflare Tunnel (R8.D, recommended for any non-LAN testing)
+## 7. 通过 Cloudflare Tunnel 暴露公网后端(R8.D,任何非局域网测试都推荐)
 
-For iPhone testing on a different Wi-Fi, on cellular, or at any venue where LAN-based discovery fails, expose the Mac's `localhost:8000` on a public HTTPS URL via Cloudflare Tunnel. **Free**, no account required for quick tunnels, supports HTTPS.
+当 iPhone 在另一个 Wi-Fi 上、走蜂窝网络,或在任何基于局域网的发现会失效的场地做测试时,可通过 Cloudflare Tunnel 把 Mac 的 `localhost:8000` 暴露到一个公网 HTTPS URL 上。**免费**,快速隧道无需账号,支持 HTTPS。
 
-### One-time install
+### 一次性安装
 
 ```bash
 brew install cloudflared
 ```
 
-### Each session
+### 每次会话
 
 ```bash
 tools/start-tunnel.sh
 # → Tunnel URL:  https://reader-missile-absolute-memphis.trycloudflare.com
 ```
 
-The script captures the URL into `/tmp/cloudflared.log` and prints it. URL changes each restart.
+脚本会把 URL 捕获到 `/tmp/cloudflared.log` 并打印出来。URL 每次重启都会变化。
 
-### Bake into the app
+### 固化进应用
 
-1. Open `client/AAALionApp/AAALionApp/Config.swift`.
-2. Replace `defaultBackendURL` with the captured tunnel URL.
-3. `aaalion ios-device` to rebuild + reinstall on iPhone (Xcode auto-renews the cert via `-allowProvisioningUpdates`).
-4. Force-quit and reopen 狮选 on the iPhone. **No Settings tap needed.**
+1. 打开 `client/AAALionApp/AAALionApp/Config.swift`。
+2. 把 `defaultBackendURL` 替换为捕获到的隧道 URL。
+3. `aaalion ios-device` 重新构建并重装到 iPhone(Xcode 通过 `-allowProvisioningUpdates` 自动续期证书)。
+4. 在 iPhone 上强制退出并重新打开 狮选。**无需再点 Settings。**
 
-### Dev mode override (advanced)
+### 开发者模式覆盖(进阶)
 
-Long-press the **gear icon** on the chat screen for 1.5 s. A toast says "开发者模式已开启 / Dev mode ON" and the icon fills to amber. Now Settings exposes the Backend URL editor — use this when swapping between tunnel / LAN / cloud during testing. Long-press again to hide it.
+在聊天界面长按**齿轮图标** 1.5 秒。会弹出提示"开发者模式已开启 / Dev mode ON",图标填充为琥珀色。此时 Settings 中会出现 Backend URL 编辑器 —— 测试期间在隧道 / 局域网 / 云端之间切换时用它。再次长按即可隐藏。
 
-### Named tunnel for stable URL
+### 命名隧道获得稳定 URL
 
-For longer testing windows where a stable URL matters (e.g. a multi-day defense rehearsal), set up a Cloudflare account once + named tunnel:
+对于需要稳定 URL 的较长测试窗口(例如持续多天的答辩彩排),一次性注册 Cloudflare 账号 + 创建命名隧道:
 
 ```bash
 cloudflared tunnel login                    # one-time browser auth
@@ -235,39 +235,39 @@ cloudflared tunnel route dns lionpick api.<your-domain>
 cloudflared tunnel run lionpick
 ```
 
-URL becomes `https://api.<your-domain>` and stays stable across `cloudflared` restarts.
+URL 变为 `https://api.<your-domain>`,且在 `cloudflared` 重启之间保持稳定。
 
 ---
 
-## 8. Cloud VM (Phase 2, defense-day robust, ≈ ¥35/mo)
+## 8. 云端 VM(Phase 2,答辩日稳健方案,≈ ¥35/月)
 
-Cloudflare Tunnel still requires the Mac to be running. For defense day at the venue (where laptop battery, Wi-Fi switching, hands-free demo all matter), deploy the backend to a real cloud VM so the Mac is irrelevant.
+Cloudflare Tunnel 仍然要求 Mac 处于运行状态。答辩当天在现场(笔记本电量、Wi-Fi 切换、免人值守演示都很关键),应把后端部署到真正的云端 VM,这样 Mac 就无关紧要了。
 
-### Recommended: Hetzner CX22
+### 推荐:Hetzner CX22
 
-- 4 vCPU, 8 GB RAM, 80 GB SSD = comfortable for Chroma + BGE-zh + bge-reranker-base (~2 GB resident).
-- €4.51/month (≈ ¥35) — best price/spec ratio.
-- Regions: Singapore for lowest latency to Mainland China, Frankfurt as backup.
+- 4 vCPU、8 GB 内存、80 GB SSD = 跑 Chroma + BGE-zh + bge-reranker-base(常驻约 2 GB)绰绰有余。
+- €4.51/月(≈ ¥35)—— 价格/规格比最佳。
+- 区域:新加坡到中国大陆延迟最低,法兰克福作备选。
 
-### Alternatives evaluated
+### 已评估的替代方案
 
-| Provider | Plan | Specs | Verdict |
+| 供应商 | 套餐 | 规格 | 结论 |
 |---|---|---|---|
-| Hetzner CX22 | shared | 4 vCPU / 8 GB / 80 GB | **Recommended** — best price |
-| DigitalOcean | basic droplet $6 | 1 vCPU / 1 GB / 25 GB | Tight RAM; reranker may OOM |
-| AWS Lightsail | $5 | 1 vCPU / 0.5 GB | Too small |
-| Vultr | $6 | 1 vCPU / 1 GB | Same as DO |
-| Fly.io | free | 3 × 256 MB | Too small for our model footprint |
-| Render | free | shared, sleeps after 15 min idle | Cold start 30 s = bad demo optics |
+| Hetzner CX22 | 共享型 | 4 vCPU / 8 GB / 80 GB | **推荐** —— 价格最优 |
+| DigitalOcean | 基础 droplet $6 | 1 vCPU / 1 GB / 25 GB | 内存吃紧;reranker 可能 OOM |
+| AWS Lightsail | $5 | 1 vCPU / 0.5 GB | 太小 |
+| Vultr | $6 | 1 vCPU / 1 GB | 与 DO 相同 |
+| Fly.io | 免费 | 3 × 256 MB | 对我们的模型占用来说太小 |
+| Render | 免费 | 共享,闲置 15 分钟后休眠 | 冷启动 30 秒 = 演示观感差 |
 
-### Deploy steps (planned for 2026-06-05 → 06-08)
+### 部署步骤(计划于 2026-06-05 → 06-08)
 
-1. Provision Hetzner CX22 (Singapore).
-2. Push the existing `server/Dockerfile` image to `ghcr.io`.
-3. `docker compose up -d` on the VM with `.env` (mode 0600) containing the TokenRouter key.
-4. DNS via Cloudflare: `api.lionpick.<domain>` → VM public IP.
-5. Update `Config.swift::defaultBackendURL` to the VM's domain.
-6. Rebuild iPhone app. Mac no longer needed.
-7. UptimeRobot free monitor (5-min checks) → Slack alert on downtime.
+1. 开通 Hetzner CX22(新加坡)。
+2. 把现有的 `server/Dockerfile` 镜像推送到 `ghcr.io`。
+3. 在 VM 上 `docker compose up -d`,`.env`(权限 0600)中放入 TokenRouter key。
+4. 通过 Cloudflare 配置 DNS:`api.lionpick.<domain>` → VM 公网 IP。
+5. 把 `Config.swift::defaultBackendURL` 更新为 VM 的域名。
+6. 重新构建 iPhone 应用。不再需要 Mac。
+7. UptimeRobot 免费监控(每 5 分钟检查)→ 宕机时 Slack 告警。
 
-For up-to-the-moment progress on Phase 2, see `docs/PROPOSAL_2026-05-25.md` Tier 2 backlog.
+Phase 2 的最新进展见 `docs/PROPOSAL_2026-05-25.md` Tier 2 backlog。
