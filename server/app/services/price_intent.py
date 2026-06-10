@@ -22,16 +22,35 @@ class PriceIntent:
         return self.direction is not None or self.price_min is not None or self.price_max is not None
 
 
-_CHEAP_RE = re.compile(r"便宜|平价|性价比|低价|划算|预算有限|预算友好")
-_EXPENSIVE_RE = re.compile(r"贵|高端|高价|旗舰|预算充足|好一点")
+# R13 — English direction/bound phrasing too, so "any cheaper ones?" sorts
+# ascending instead of keeping the reranker's (often pricier-first) order.
+_CHEAP_RE = re.compile(
+    r"便宜|平价|性价比|低价|划算|预算有限|预算友好"
+    r"|\bcheap(?:er|est)?\b|\bafford|\bbudget[- ]?friendly|\bless expensive|\blower price",
+    re.IGNORECASE,
+)
+_EXPENSIVE_RE = re.compile(
+    r"贵|高端|高价|旗舰|预算充足|好一点"
+    r"|\bexpensive\b|\bpricier\b|\bpremium\b|\bhigh[- ]?end\b|\bflagship\b",
+    re.IGNORECASE,
+)
 _PRICE_MAX_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以内|以下|内|封顶|不超过|不要超过)")
 _PRICE_MIN_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以上|起|起步)")
+_PRICE_MAX_EN_RE = re.compile(
+    r"(?:under|below|less than|within|up to|no more than|cheaper than|max\.?|≤|<=?)\s*"
+    r"[¥￥$]?\s*(\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+_PRICE_MIN_EN_RE = re.compile(
+    r"(?:over|above|more than|at least|starting (?:at|from)|≥|>=?)\s*[¥￥$]?\s*(\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
 
 
 def parse_price_intent(text: str) -> PriceIntent:
     text = text or ""
-    max_match = _PRICE_MAX_RE.search(text)
-    min_match = _PRICE_MIN_RE.search(text)
+    max_match = _PRICE_MAX_RE.search(text) or _PRICE_MAX_EN_RE.search(text)
+    min_match = _PRICE_MIN_RE.search(text) or _PRICE_MIN_EN_RE.search(text)
     price_max = float(max_match.group(1)) if max_match else None
     price_min = float(min_match.group(1)) if min_match else None
 

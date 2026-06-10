@@ -32,8 +32,11 @@ from app.services.llm_provider import get_provider
 from app.services.rag_client import top_k, top_k_image
 from app.services.cache import cache, make_key, hash_image_bytes_list
 from app.services.constraint_state import build_conversation_filter
-from app.services.contextual_query import build_retrieval_query, _reorder_negation_object
+from app.services.contextual_query import build_retrieval_query, _reorder_negation_object, message_text
 from app.services.currency import normalize_product_prices, pricing_cache_token
+# rag is importable here because the rag_client import above already put the
+# repo root on sys.path.
+from rag.retrieve.english_terms import augment_english_query, looks_english
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 log = logging.getLogger("chat")
@@ -409,6 +412,35 @@ def _detect_cart_intent(text: str) -> dict | None:
         return {"type": "cart_intent", "action": "add"}
     return None
 
+# R13 — 给 LLM 的多轮文本历史。此前 LLM 只看得到最后一条 user 消息,跟进轮
+# (「1000以内」/「any cheaper ones?」)对 LLM 完全没有上下文 → 反问品类、或对着
+# 卡片字面发挥(「所有男装T恤都在1000以内」)。检索层早就用整个 history 了,
+# LLM 也要看到。只取文本(图片只随当前轮走视觉通道),每条截断、限最近几轮,
+# 合并连续同角色消息并保证以 user 开头(Anthropic provider 要求严格交替)。
+def _prior_text_turns(messages, *, limit: int = 8, max_chars: int = 600) -> list[dict]:
+    last_user_index = next(
+        (i for i in range(len(messages) - 1, -1, -1) if messages[i].role == "user"), None
+    )
+    if last_user_index is None:
+        return []
+    turns: list[dict] = []
+    for m in messages[:last_user_index]:
+        if m.role not in ("user", "assistant"):
+            continue
+        text = message_text(m)
+        if not text or text == "(image-only query)":
+            continue
+        text = text[:max_chars]
+        if turns and turns[-1]["role"] == m.role:
+            turns[-1]["content"] += "\n" + text
+        else:
+            turns.append({"role": m.role, "content": text})
+    turns = turns[-limit:]
+    while turns and turns[0]["role"] != "user":
+        turns.pop(0)
+    return turns
+
+
 # 从最后一条 user 消息里抽出纯文本(不含图)。
 # content 可能是字符串(老格式)或 list[ContentPart](多模态新格式),两种都要处理。
 # 用途:(1) 给 _detect_cart_intent 看是不是要加购/下单;(2) 拼日志 query_preview;
@@ -692,7 +724,10 @@ _PRICE_PHRASE_RE = re.compile(
     r"(?:以内|以下|以上|之内|内|封顶|不超过|不要超过|左右|起步|起|上下)"
     r"|预算\s*\d*(?:\s*(?:元|块|万))?"
     r"|\d+\s*(?:到|-|~|至)\s*\d+\s*(?:元|块)?"
-    r"|便宜(?:点|些|一点|实惠)?|平价|实惠|性价比|划算|高端|高档",
+    r"|便宜(?:点|些|一点|实惠)?|平价|实惠|性价比|划算|高端|高档"
+    # R13 — English budget phrasing, so the budget-empty fallback can relax
+    # "headphones under 1000" the same way it relaxes "1000以内的耳机".
+    r"|(?:under|below|within|up to|no more than|less than|cheaper than|max\.?|≤|<=?)\s*[¥￥$]?\s*\d+(?:\.\d+)?",
     re.IGNORECASE,
 )
 
@@ -709,45 +744,11 @@ def _strip_price(text: str) -> str:
 # multilingual reranker which mis-ranks (it buried 防晒 below phones, then the
 # LLM falsely said "没有防晒"). Appending the Chinese category word restores
 # Chinese dense+BM25 recall and anchors the reranker. AUGMENTS, never replaces.
-_EN_CATEGORY_HINTS: tuple[tuple[str, str], ...] = (
-    ("noise cancelling", "降噪耳机"), ("noise-cancelling", "降噪耳机"),
-    ("running shoes", "跑鞋"), ("face wash", "洗面奶"), ("lip gloss", "唇釉"),
-    ("sunscreen", "防晒霜"), ("sunblock", "防晒霜"), ("spf", "防晒霜"),
-    ("lipstick", "口红"), ("moisturizer", "面霜"), ("cleanser", "洁面"),
-    ("serum", "精华"), ("essence", "精华"), ("toner", "化妆水"),
-    ("foundation", "粉底"), ("smartphone", "手机"), ("iphone", "iPhone 手机"),
-    ("laptop", "笔记本电脑"), ("notebook", "笔记本电脑"), ("tablet", "平板"),
-    ("headphones", "耳机"), ("headphone", "耳机"), ("earphones", "耳机"),
-    ("earphone", "耳机"), ("earbuds", "耳机"), ("camera", "相机"),
-    ("keyboard", "键盘"), ("speaker", "音箱"), ("sneakers", "运动鞋"),
-    ("backpack", "双肩包"), ("snacks", "零食"), ("snack", "零食"),
-    ("coffee", "咖啡"), ("diaper", "纸尿裤"), ("toothpaste", "牙膏"),
-    ("phone", "手机"),
-)
-
-
-def _augment_english(query: str, user_text: str) -> str:
-    """Append Chinese category words for any English shopping term present.
-
-    Match with a LEADING word boundary so 'phone' doesn't fire inside
-    'headphones'/'earphones'/'iphone' (only the longer term does), while
-    'spf50' still triggers 'spf'. Fires ONLY on queries with NO Chinese
-    characters — a mixed query like 'iPhone和小米' already retrieves fine in
-    Chinese, and augmenting it would skew the candidate pool."""
-    if any("一" <= c <= "鿿" for c in query):
-        return query
-    if not any("a" <= c <= "z" for c in query.lower()):
-        return query
-    src = f"{query} {user_text}".lower()
-    seen: set[str] = set()
-    hits: list[str] = []
-    for en, zh in _EN_CATEGORY_HINTS:
-        if zh in query or zh in seen:
-            continue
-        if re.search(r"\b" + re.escape(en), src):
-            seen.add(zh)
-            hits.append(zh)
-    return f"{query} {' '.join(hits)}".strip() if hits else query
+# R13 — the table + augmenter moved to rag/retrieve/english_terms.py so the
+# HARD-FILTER inference (constraints.py) shares the same mapping: an English
+# query now extracts the same category/sub_category WHERE as its Chinese
+# equivalent, instead of a price-only filter that returned unrelated cards.
+_augment_english = augment_english_query
 
 
 # 主路由:POST /chat/stream → SSE 流式响应。**整个后端最重要的函数**。
@@ -798,7 +799,10 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     t_received = time.perf_counter()
     user_text = _extract_user_text(req.messages)
     # R12 — UI language drives the assistant's reply language (zh default).
-    lang = "en" if (req.language or "zh").lower().startswith("en") else "zh"
+    # R13 — the MESSAGE language wins when the user plainly typed English:
+    # an English question answered in Chinese reads broken regardless of the
+    # UI toggle (and API probes rarely send `language` at all).
+    lang = "en" if ((req.language or "").lower().startswith("en") or looks_english(user_text)) else "zh"
     retrieval_query = _augment_english(build_retrieval_query(req.messages), user_text)
     # R11.fix — empty/whitespace input with no image: skip retrieval AND the
     # LLM. An empty user message makes the provider 400 (and leaks the raw
@@ -975,6 +979,9 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         system = _PROMPT.format(catalog=_build_catalog(products)) + addendum
     if lang == "en":
         system += _EN_REPLY_ADDENDUM
+    # R13 — include prior text turns so the LLM has the conversation context
+    # the retrieval layer already uses (see _prior_text_turns).
+    prior_turns = _prior_text_turns(req.messages)
     if _has_image(req.messages):
         last_user = next((m for m in reversed(req.messages) if m.role == "user"), None)
         user_content = last_user.model_dump()["content"] if last_user else user_text
@@ -984,11 +991,13 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         user_content = _downscale_message_content(user_content, max_edge=1024)
         history = [
             {"role": "system", "content": system},
+            *prior_turns,
             {"role": "user", "content": user_content},
         ]
     else:
         history = [
             {"role": "system", "content": system},
+            *prior_turns,
             {"role": "user", "content": user_text},
         ]
     provider = get_provider()

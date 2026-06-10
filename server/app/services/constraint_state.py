@@ -74,6 +74,21 @@ def _merge_turn(state: Filter, text: str) -> None:
         if category_changed and not turn.sub_category and not turn.sub_categories:
             state.sub_category = None
             state.sub_categories = None
+        # R13 — a category switch also drops inherited brands with no products
+        # in the new aisle: iPad turns pin brand=Apple, and a later "护肤品"
+        # turn otherwise keeps AND-ing brand=Apple onto 美妆护肤 → 0 results.
+        if category_changed and state.brand_include and not turn.brand_include:
+            try:
+                from rag.retrieve.constraints import _catalog_brand_cats
+
+                bcats = _catalog_brand_cats()
+                kept = [
+                    b for b in state.brand_include
+                    if turn.category in bcats.get(b.casefold(), frozenset())
+                ]
+            except Exception:
+                kept = []
+            state.brand_include = kept or None
     if not clear_category and (turn.sub_category or turn.sub_categories):
         state.sub_category = turn.sub_category
         state.sub_categories = list(turn.sub_categories) if turn.sub_categories else None

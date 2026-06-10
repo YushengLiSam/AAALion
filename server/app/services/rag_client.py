@@ -342,9 +342,17 @@ def _is_specific_query(text: str) -> bool:
     try:
         from rag.retrieve.brand_origin import BRAND_ORIGIN
         text_lower = text.lower()
-        # Direct brand mentions — strong signal.
+        # Direct brand mentions — strong signal. ASCII names need letter
+        # boundaries so short aliases ("mi"/"hp"/"nb") can't fire inside
+        # ordinary English words ("programming" is not a 小米 mention).
         for brand in BRAND_ORIGIN:
-            if len(brand) >= 2 and brand.lower() in text_lower:
+            b = brand.lower()
+            if len(b) < 2:
+                continue
+            if b.isascii():
+                if re.search(rf"(?<![a-z]){re.escape(b)}(?![a-z])", text_lower):
+                    return True
+            elif b in text_lower:
                 return True
     except Exception:
         return False
@@ -703,11 +711,32 @@ def top_k(
             if raw_sub_cats:
                 # Case (a): both have sub_cats — conflict if no overlap.
                 sub_conflict = not (set(raw_sub_cats) & set(inh_sub_cats))
-            elif not text_mentions_inherited and (raw_cat or raw_brands):
+            elif not text_mentions_inherited and raw_cat:
                 # Case (b): inherited has stale sub_cats, current turn
-                # has a fresh topical signal but doesn't reference any
+                # has a fresh CATEGORY signal but doesn't reference any
                 # inherited sub_cat → topic switch.
                 sub_conflict = True
+            elif not text_mentions_inherited and raw_brands:
+                # Case (c) — R13 fix: a BRAND-only turn ("苹果的呢" after
+                # 推荐笔记本) is a refinement of the same shopping need when
+                # that brand sells products in the inherited aisle; treating
+                # it as a switch dropped the whole conversation filter and
+                # lost the category. Only switch when the named brand has NO
+                # products in the inherited category (e.g. OPPO after 洁面).
+                inh_cat_for_brands = conversation_filter.category
+                if inh_cat_for_brands:
+                    try:
+                        from rag.retrieve.constraints import _catalog_brand_cats
+
+                        bcats = _catalog_brand_cats()
+                        sub_conflict = not any(
+                            inh_cat_for_brands in bcats.get(str(b).casefold(), frozenset())
+                            for b in raw_brands
+                        )
+                    except Exception:
+                        sub_conflict = True
+                else:
+                    sub_conflict = True
 
         if cat_conflict or brand_conflict or category_vs_brand_conflict or sub_conflict:
             topic_switch = True
@@ -715,6 +744,14 @@ def top_k(
     if topic_switch:
         conversation_filter = None
         text = raw_message_for_anchor  # bypass the contextual-query rewriter
+        # The raw message lost chat.py's English augmentation — re-apply so an
+        # English topic switch still carries its Chinese category hints.
+        try:
+            from rag.retrieve.english_terms import augment_english_query
+
+            text = augment_english_query(text)
+        except Exception:
+            pass
 
     if hard_filters_on and isinstance(conversation_filter, Filter):
         # Conversation state is authoritative, including an empty Filter after

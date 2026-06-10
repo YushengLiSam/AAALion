@@ -115,10 +115,26 @@ def detect_topic_switch_category(text: str) -> str | None:
     """
     if not text:
         return None
+    text = _with_english_hints(text)
     for cat, words in TOPIC_SWITCH_HINTS.items():
         if any(w in text for w in words):
             return cat
     return None
+
+
+def _with_english_hints(text: str) -> str:
+    """Append Chinese category words for English shopping terms, so the
+    Chinese keyword tables in this module fire on English queries too
+    ("noise cancelling headphones" used to extract NO category — the
+    price-only WHERE then returned cheap unrelated products). No-op on
+    any text that already contains Chinese. Fail-soft."""
+    try:
+        from rag.retrieve.english_terms import english_to_chinese_hints
+
+        hints = english_to_chinese_hints(text)
+    except Exception:
+        return text
+    return f"{text} {' '.join(hints)}" if hints else text
 
 # A user concept may span several source sub-categories.
 # Ordered specific → generic: _sub_categories returns the FIRST rule with any
@@ -163,6 +179,10 @@ _SUB_CATEGORY_RULES: tuple[tuple[tuple[str, ...], list[str]], ...] = (
     (("跑步鞋", "跑鞋", "马拉松鞋"), ["跑步鞋"]),
     (("板鞋", "休闲鞋", "复古鞋"), ["运动休闲鞋"]),
     (("登山鞋", "徒步鞋", "登山徒步鞋"), ["徒步鞋", "登山徒步鞋"]),
+    # Generic sneaker words ("挑双球鞋" / "运动鞋" / "鞋子") — AFTER the specific
+    # shoe rules so 篮球鞋/跑鞋/板鞋 still win. Spans all shoe sub-categories;
+    # no category pin (跑步鞋 lives in both 服饰运动 and 户外运动).
+    (("球鞋", "运动鞋", "鞋子"), ["篮球鞋", "跑步鞋", "运动休闲鞋", "徒步鞋", "登山徒步鞋"]),
     (("帐篷", "露营"), ["帐篷"]),
     (("双肩包", "背包", "登山包", "书包"), ["背包"]),
     (("智能手表", "运动手表", "手表"), ["运动手表"]),
@@ -271,7 +291,7 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
 def _category(text: str) -> str | None:
     # casefold so English/brand keywords ("iphone", "switch", "T恤") match
     # regardless of the casing the user typed ("iPhone", "Switch", "iPHONE").
-    low = (text or "").casefold()
+    low = _with_english_hints(text or "").casefold()
     for category, terms in _DIRECT_CATEGORIES:
         if any(term.casefold() in low for term in terms):
             return category
@@ -282,7 +302,7 @@ def _category(text: str) -> str | None:
 
 
 def _sub_categories(text: str) -> list[str] | None:
-    low = (text or "").casefold()
+    low = _with_english_hints(text or "").casefold()
     for terms, values in _SUB_CATEGORY_RULES:
         if any(term.casefold() in low for term in terms):
             return list(values)
@@ -351,15 +371,27 @@ def _brand_terms(catalog_brand: str) -> set[str]:
     return {term for term in terms if len(term) >= 2}
 
 
+def _find_brand_term(lowered: str, term: str) -> int:
+    """Position of a brand alias in the text, or -1. ASCII aliases must sit on
+    letter boundaries: short aliases matched as bare substrings pinned junk
+    brands onto English queries ("progra-mi-ng" → brand_include=['小米'], which
+    then AND-filtered "laptop ... programming" down to 0 results). Digits stay
+    allowed as neighbours so "iphone13" still matches "iphone"."""
+    if term.isascii():
+        m = re.search(rf"(?<![a-z]){re.escape(term)}(?![a-z])", lowered)
+        return m.start() if m else -1
+    return lowered.find(term)
+
+
 def _brands(text: str) -> tuple[list[str], list[str]]:
     lowered = (text or "").casefold()
     included: list[str] = []
     excluded: list[str] = []
     for catalog_brand in _catalog_brands():
         hits = [
-            (lowered.find(term), len(term))
+            (pos, len(term))
             for term in _brand_terms(catalog_brand)
-            if lowered.find(term) >= 0
+            if (pos := _find_brand_term(lowered, term)) >= 0
         ]
         if not hits:
             continue
