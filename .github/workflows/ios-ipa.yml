@@ -7,8 +7,8 @@
 # 2-minute sideload locally. Free-Apple-ID signing lasts 7 days, then re-run.
 #
 # Manual only (you ask for a build when you want to install).
-# (rebuild bump — v0.2.0 (build 7): JWT session auth wiring + reply-language
-#  field; AuthService.swift/ChatService.swift changed since build 6)
+# (rebuild bump — v0.2.0 (build 8): clear-conversation button (top-left,
+#  confirmed) + the 鞋子→化妆品 multi-turn category fix lands server-side)
 
 name: iOS Unsigned IPA
 
