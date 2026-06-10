@@ -204,8 +204,6 @@ final class ChatViewModel {
     func clearConversation() {
         streamTask?.cancel()
         streamTask = nil
-        SpeechService.shared.stop()
-        TTSService.shared.stop()
         messages.removeAll()
         draft = ""
         pendingAttachments.removeAll()
@@ -217,6 +215,12 @@ final class ChatViewModel {
         isStreaming = false
         isRecording = false
         autoTTSSpokenMessageIDs.removeAll()
+        // Speech / TTS shutdown hops to the main actor (mirrors stopListening),
+        // since SpeechService.stop() is main-actor-isolated.
+        Task { @MainActor in
+            SpeechService.shared.stop()
+            TTSService.shared.stop()
+        }
     }
 
     // MARK: - TTS.
