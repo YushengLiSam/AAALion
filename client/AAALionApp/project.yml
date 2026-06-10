@@ -10,7 +10,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "0.2.0"
-    CURRENT_PROJECT_VERSION: "6"
+    CURRENT_PROJECT_VERSION: "7"
     SWIFT_VERSION: "5.9"
     # Apple Developer Team ID. Defaults to Shufeng's Personal Team so
     # `aaalion ios-device` builds out of the box on his Mac. Teammates
