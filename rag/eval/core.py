@@ -351,7 +351,7 @@ class CaseRecord:
     error: str | None = None
 
 
-def evaluate(modes: list[str] | None = None, k: int = 10) -> dict[str, Any]:
+def evaluate(modes: list[str] | None = None, k: int = 10, golden_path: Path | None = None) -> dict[str, Any]:
     """Run every case through every mode; return structured results.
 
     The returned dict can be JSON-serialized and consumed by the report
@@ -369,7 +369,7 @@ def evaluate(modes: list[str] | None = None, k: int = 10) -> dict[str, Any]:
         }
     """
     modes = list(modes or MODES)
-    cases = load_cases()
+    cases = load_cases(golden_path)
     n_scored = sum(1 for c in cases if c.get("expected_product_ids") is not None)
 
     result: dict[str, Any] = {
