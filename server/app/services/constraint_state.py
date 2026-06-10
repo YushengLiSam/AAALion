@@ -82,9 +82,17 @@ def _merge_turn(state: Filter, text: str) -> None:
         return
 
     if not clear_category and turn.category:
-        category_changed = bool(state.category and state.category != turn.category)
+        prev_category = state.category
+        category_changed = bool(prev_category and prev_category != turn.category)
         state.category = turn.category
-        if category_changed and not turn.sub_category and not turn.sub_categories:
+        # Drop sub-categories inherited from a DIFFERENT product domain when the
+        # new turn names a category but no sub of its own. Covers an explicit
+        # category change AND the case where the prior turn pinned only
+        # sub-categories with category=None — the generic 鞋子 rule sets shoe subs
+        # with no category, so a later "化妆品" turn must still drop the stale
+        # shoe subs (else the filter ANDs 美妆护肤 with 篮球鞋… → wrong/zero cards).
+        if (prev_category != turn.category
+                and not turn.sub_category and not turn.sub_categories):
             state.sub_category = None
             state.sub_categories = None
         # R13 — a category switch also drops inherited brands with no products

@@ -64,7 +64,7 @@ def _is_suffix_negated(text: str, end: int) -> bool:
     return bool(_SUFFIX_DISMISS_RE.match(window) or _SUFFIX_BUYAO_RE.match(window))
 
 _DIRECT_CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("美妆护肤", ("美妆护肤", "护肤品", "护肤")),
+    ("美妆护肤", ("美妆护肤", "护肤品", "护肤", "化妆品", "美妆")),
     ("数码电子", ("数码电子", "数码产品")),
     ("服饰运动", ("服饰运动", "运动服饰")),
     ("食品饮料", ("食品饮料",)),

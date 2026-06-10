@@ -68,6 +68,26 @@ class ConversationConstraintStateTests(unittest.TestCase):
         self.assertIsNone(result.brand_include)
         self.assertEqual(result.brand_exclude, ["Sony"])
 
+    def test_topic_switch_to_cosmetics_drops_inherited_shoe_subcategories(self) -> None:
+        # Regression: 鞋子 → 化妆品 mid-conversation. The generic 鞋子 rule pins
+        # shoe sub_categories with category=None; a later "化妆品" turn must be
+        # recognized as 美妆护肤 AND drop the stale shoe subs — else retrieval is
+        # hard-filtered to shoes while the LLM correctly talks about cosmetics
+        # (the reported "文字对、卡片是鞋" bug).
+        result = build_conversation_filter(
+            _turns(
+                "推荐鞋子",
+                "有没有贵一些的",
+                "我只想看1000元以上的",
+                "推荐一些化妆品",
+                "这都是什么低端货，给我一点贵的",
+            )
+        )
+
+        self.assertEqual(result.category, "美妆护肤")
+        self.assertIsNone(result.sub_category)
+        self.assertIsNone(result.sub_categories)
+
     @patch("rag.retrieve.hybrid.hybrid_topk")
     def test_empty_authoritative_state_does_not_reinfer_cancelled_anchor(self, hybrid_topk) -> None:
         hybrid_topk.return_value = []
