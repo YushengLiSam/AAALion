@@ -61,7 +61,17 @@ def parse_price_intent(text: str) -> PriceIntent:
     direction: PriceDirection | None = None
     cheap = bool(_CHEAP_RE.search(text))
     expensive = bool(_EXPENSIVE_RE.search(text))
-    if cheap and not expensive:
+    # A complaint that the CURRENT results are too cheap / too expensive flips
+    # the intent and takes precedence: "太便宜了 / 嫌便宜 / 不够贵" rejects cheap →
+    # wants expensive (mirror for 太贵). Without this, "这些太便宜了，推荐一些贵的"
+    # carries both 便宜+贵 and cancels to no direction → expensive never sorts.
+    too_cheap = bool(re.search(r"太便宜|嫌便宜|不够贵|不够高端", text))
+    too_pricey = bool(re.search(r"太贵|嫌贵|不够便宜", text))
+    if too_cheap and not too_pricey:
+        direction = "expensive"
+    elif too_pricey and not too_cheap:
+        direction = "cheap"
+    elif cheap and not expensive:
         direction = "cheap"
     elif expensive and not cheap:
         direction = "expensive"

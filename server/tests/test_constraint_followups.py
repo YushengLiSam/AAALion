@@ -189,6 +189,35 @@ class BrandRefinementFollowup(unittest.TestCase):
         )
 
 
+class ExpensiveComplaintFollowup(unittest.TestCase):
+    # 推荐化妆品 → "这些太便宜了，推荐一些贵的". The complaint names no category of
+    # its own and carries BOTH 便宜+贵, so it used to (a) embed context-free →
+    # relevance gate returned 0 cards ("推荐不出来"), and (b) cancel to no price
+    # direction. It must inherit 化妆品 AND resolve to an EXPENSIVE intent.
+    HISTORY = _history(
+        ("user", "推荐一些化妆品"),
+        ("assistant", "..."),
+        ("user", "这些太便宜了，推荐一些贵的"),
+    )
+
+    def test_rewrite_inherits_cosmetics_anchor(self) -> None:
+        q = build_retrieval_query(self.HISTORY)
+        self.assertIn("化妆品", q)
+
+    def test_state_keeps_category(self) -> None:
+        inh = build_conversation_filter(self.HISTORY, None)
+        self.assertEqual(inh.category, "美妆护肤")
+
+    def test_complaint_flips_intent(self) -> None:
+        # "too cheap" rejects cheap → wants expensive, despite 便宜 being present.
+        self.assertEqual(parse_price_intent("这些太便宜了，推荐一些贵的").direction, "expensive")
+        # Mirror: "too expensive" wants cheap.
+        self.assertEqual(parse_price_intent("太贵了，来点便宜的").direction, "cheap")
+        # Plain refinements unchanged.
+        self.assertEqual(parse_price_intent("便宜点的").direction, "cheap")
+        self.assertEqual(parse_price_intent("贵一点的").direction, "expensive")
+
+
 # ---------------------------------------------------------------------------
 # Layer 2 — end-to-end retrieval (env-gated, mirrors the live probes)
 # ---------------------------------------------------------------------------

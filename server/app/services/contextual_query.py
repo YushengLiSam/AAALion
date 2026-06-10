@@ -146,6 +146,15 @@ def _looks_like_followup(text: str) -> bool:
         return True
     if len(compact) <= 12 and any(p in compact for p in ("这个", "那个", "它", "再", "换一个")):
         return True
+    # R13 — price-DIRECTION complaint / refinement follow-ups ("这些太便宜了，
+    # 推荐一些贵的" / "有没有更高端的") that name no category of their own must
+    # inherit the prior category. Otherwise the bare price complaint embeds as a
+    # context-free query and the relevance gate returns NOTHING ("推荐不出来").
+    if (len(compact) <= 20
+            and any(d in compact for d in _CHEAP + _EXPENSIVE)
+            and not any(t in compact for t in _ANCHOR_TERMS)
+            and not _carries_category_signal(text)):
+        return True
     # R13 — pure-constraint turns. Each branch requires the turn to carry NO
     # category of its own ("1000以内的耳机" stays self-contained; "1000以内",
     # "休闲款1000以内", "要降噪的", "苹果的呢" inherit).
