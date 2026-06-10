@@ -1,6 +1,5 @@
-<!-- Header laid out as a table so the icon and the title/subtitle sit in
-     separate cells and never overlap. (A right-floated <img> used to let
-     the subtitle's blockquote bar render across the icon on GitHub.) -->
+<!-- 头部使用表格布局，让图标与标题/副标题各占一格、互不重叠。
+     （此前用右浮动 <img> 时，副标题的引用竖条会在 GitHub 上压到图标。） -->
 <table border="0">
   <tr>
     <td width="150" valign="middle" align="center">
@@ -8,161 +7,159 @@
     </td>
     <td valign="middle">
       <h1>狮选 LionPick</h1>
-      <b>基于 RAG 的多模态电商智能导购 AI Agent</b> · <i>A RAG-powered multimodal e-commerce shopping agent</i>
+      <b>基于 RAG 的多模态电商智能导购 AI Agent</b>
       <br/><br/>
-      团队 / Team: <b>AAALion</b> · 比赛 / Competition: ByteDance 2026 AI 全栈挑战赛
+      团队：<b>AAALion</b> · 比赛：ByteDance 2026 AI 全栈挑战赛
       <br/>
-      代码冻结 / Code freeze: 2026-06-10 · 答辩 / Defense: 2026-06-11 → 2026-06-19
+      代码冻结：2026-06-10 · 答辩：2026-06-11 → 2026-06-19
     </td>
   </tr>
 </table>
 
 狮选 LionPick 是一款移动端的智能导购 Agent：iOS 原生客户端 + FastAPI 流式后端 + 向量检索 + 多模态大模型。用户可以用文字、语音、相机或图片描述需求，Agent 基于真实商品库进行多轮对话推荐，杜绝幻觉。
 
-LionPick is a native iOS shopping assistant. The FastAPI backend — **deployed to a GCP cloud VM with push-to-`main` continuous deploy** — streams responses over SSE, retrieves real products from a vector index (Chroma + `bge-small-zh-v1.5` + OpenCLIP ViT-B/32), and uses a vision-capable LLM via TokenRouter for grounded generation. Multi-turn dialogue, negation/exclusion, comparison, photo-to-product search, proactive clarification, conversational cart, voice input, TTS playback.
+LionPick 是一款原生 iOS 购物助手。FastAPI 后端**已部署至 GCP 云端虚拟机，并配有推送到 `main` 即触发的持续部署**——通过 SSE 流式返回回复，从向量索引（Chroma + `bge-small-zh-v1.5` + OpenCLIP ViT-B/32）中检索真实商品，并经由 TokenRouter 调用具备视觉能力的大模型，做有据可依的生成。支持多轮对话、否定/排除（反选）、商品对比、拍照找货、主动澄清反问、对话式购物车、语音输入与 TTS 播报。
 
-> **New to the project, or not an engineer?** Start with the plain-English
-> tour at [`docs/explainers/README.md`](docs/explainers/README.md) —
-> 15 short topic explainers written for anyone with introductory CS, no
-> ML background required.
+> **初次接触本项目，或者不是工程背景？** 建议从通俗导览
+> [`docs/explainers/README.md`](docs/explainers/README.md) 开始 ——
+> 共 15 篇短篇专题讲解，面向只有计算机入门基础的读者，无需机器学习背景。
 
-## Live status (Round 10 — cloud deploy + cart depth + latency/UX polish)
+## 当前进展（Round 10 —— 云端部署 + 购物车深化 + 延迟/UX 打磨）
 
-**The backend now runs in the cloud** (GCP VM, `systemd`-managed, public HTTPS via Cloudflare tunnel) with **continuous deploy**: a push to `main` auto-deploys in ~2 min with a `/ready` health-check and automatic rollback (`tools/cloud-autodeploy.sh`). The iOS app points at the cloud by default, so **a demo no longer depends on anyone's Mac being on**.
+**后端现已运行在云端**（GCP 虚拟机，由 `systemd` 托管，经 Cloudflare tunnel 提供公网 HTTPS），并具备**持续部署**能力：推送到 `main` 后约 2 分钟自动完成部署，带 `/ready` 健康检查与失败自动回滚（`tools/cloud-autodeploy.sh`）。iOS App 默认指向云端，因此**演示不再依赖任何人的 Mac 处于开机状态**。
 
-**Retrieval headline (92-case golden, production Hybrid+Rerank path): recall@5 0.939, MRR 0.818, negation/反选 accuracy 0.971, no-match 0.952.** Numbers from [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) (R11 retest 2026-06-03) — they predate the `7c6c455` + R13 negation fixes, so regenerate before final defense claims. Run `python -m rag.eval.run` for the live number.
+**检索核心指标（92 例 golden 测试集，生产 Hybrid+Rerank 链路）：recall@5 0.939，MRR 0.818，否定/反选准确率 0.971，无匹配正确率 0.952。** 数据来自 [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)（R11 复测，2026-06-03）——该结果早于 `7c6c455` 与 R13 的否定修复，最终答辩引用前需重新生成。运行 `python -m rag.eval.run` 可获得实时数据。
 
-**R10 — what landed (all live-verified on the cloud + iPhone 12 Pro Max / iPad Air):**
-- **4.1 cart depth (full)** — conversational add, **quantity change** ("把数量改成2" / "第二个改成3个"), **delete** ("删掉第二个"), swipe-to-delete, and checkout (address + summary + mock complete).
-- **4.4 latency** — **首屏极速**: product cards stream *before* the LLM text (pure reorder, recall unchanged) → cards in **~0.3s on cache-hit**; **two-layer cache** (response + retrieval memo, 8s→0.3s on repeats) surfaced at `GET /cache/stats`; cached LLM provider connection; env-tunable rerank cost knobs.
-- **4.4 端侧打磨** — **骨架屏** shimmer placeholders, **收藏 ❤️** with spring bounce + haptic, **滑动** cart swipe-actions; plus proper **Markdown rendering** of replies (real tables/headings/bold instead of raw syntax).
-- **#5 主动反问** — when a request is too vague to recommend ("推荐个礼物" / "随便看看"), the agent **asks a clarifying question** instead of guessing, with **tappable quick-reply chips** above the composer.
-- **拍照找货 on the cloud** — OpenCLIP image→image retrieval (145 product-image vectors) now runs on the prod VM, not the A100.
+**R10 已交付内容（全部在云端 + iPhone 12 Pro Max / iPad Air 上实机验证）：**
+- **4.1 购物车深化（完整）** —— 对话式加购、**修改数量**（"把数量改成2" / "第二个改成3个"）、**删除**（"删掉第二个"）、左滑删除，以及结算流程（地址 + 订单摘要 + 模拟下单完成）。
+- **4.4 延迟优化** —— **首屏极速**：商品卡片在 LLM 文本*之前*先行流式返回（纯顺序调整，召回不变）→ 缓存命中时卡片约 **0.3s** 出现；**两层缓存**（响应缓存 + 检索记忆，重复请求 8s→0.3s），指标暴露在 `GET /cache/stats`；LLM provider 连接复用；重排（rerank）开销可通过环境变量调节。
+- **4.4 端侧打磨** —— **骨架屏** shimmer 占位、带弹簧动效与触感反馈的**收藏 ❤️**、购物车**滑动**操作；此外回复支持真正的 **Markdown 渲染**（渲染出真实的表格/标题/加粗，而非裸语法）。
+- **#5 主动反问** —— 当需求过于模糊、无法推荐时（"推荐个礼物" / "随便看看"），Agent 会**主动追问澄清**而不是瞎猜，并在输入框上方提供**可点选的快捷回复 chips**。
+- **拍照找货上云** —— OpenCLIP 图到图检索（145 条商品图向量）现已运行在生产 VM 上，而非 A100。
 
-Self-assessed score: **~93–94 / 100**. See [`docs/RUBRIC_MAPPING.md`](docs/RUBRIC_MAPPING.md) for the per-item map and [`docs/DEV_LOG.md`](docs/DEV_LOG.md) for the round narrative.
+自评得分：**约 93–94 / 100**。逐项评分映射见 [`docs/RUBRIC_MAPPING.md`](docs/RUBRIC_MAPPING.md)，各轮次开发叙述见 [`docs/DEV_LOG.md`](docs/DEV_LOG.md)。
 
-### Round-by-round delta
+### 逐轮进展
 
-| Round | What landed | recall@5 | MRR |
+| 轮次 | 交付内容 | recall@5 | MRR |
 |---|---|---:|---:|
-| R3 (2026-05-23) | Theme + icon + voice/TTS + settings + camera + A100 CLIP | — | — |
-| R4 (2026-05-23) | Files importer fix, README polish, IMPLEMENTATION_GUIDE | — | — |
-| R5 (2026-05-24 AM) | Hybrid+rerank + cart+checkout + grader self-assessment | 0.711 | 0.695 |
-| R6 (2026-05-24 PM) | 45 real products + provenance UI + funny loading + CLAUDE.md | 0.684 | 0.647 |
-| R6.5 (2026-05-25 AM) | Tujie: synonyms + contextual + price intent merged | 0.816 (31-case) | 0.705 |
-| R7 (2026-05-25 PM) | Sam's eval dashboard merged + brand-origin negation fix + re-recorded demos | 0.746 (59-case, pre-audit) | 0.674 |
-| **R7 + golden audit (2026-05-25, Tujie)** | **Correct wrong labels against catalog; regenerate dashboard** | **0.830 (59-case / 49 positive)** | **0.771** |
-| R7.2 (2026-05-25, Tujie branch) | Live reference-rate CNY display for foreign products + CNY-aware budgets | 0.830 | 0.778 |
-| **R7.3 (2026-05-25, merged main, now)** | **R7.2 + teammate negation/brand-origin audit combined** | **0.880** | **0.828** |
-| **R7.4 (2026-05-25, Tujie)** | **Category / brand / RMB-budget filters applied during dense + BM25 retrieval** | **0.981 (64-case)** | **0.846** |
-| **R7.5 (2026-05-25, Tujie)** | **Multi-turn constraint state: inherit / replace / cancel budget and brand filters** | **0.982 (68-case)** | **0.856** |
-| **R7.6 (2026-05-25, Tujie)** | **Docker model bake + startup retrieval prewarm + `/ready` gate** | **0.982 (68-case)** | **0.856** |
-| R8 (2026-05-25 eve, Shufeng) | Cache hit-rate panel, multi-turn negation persistence, brand-origin KR/DE/GB, Cloudflare Tunnel, dev-mode gate, voice idle-stop, multi-attachment (≤10) | 0.880 → 0.982 (carried) | 0.856 |
-| **R9.A (2026-05-28, Shufeng)** | **Agentic/trust layer: topic-switch reset · provenance tags · "why recommended" card · voice-to-cart · price-watch · comparison/scene · cross-lang brand alias** | *UX layer — retrieval flat* | — |
-| **R10 (2026-06-01, Yusheng)** | **Cloud deploy + CD (autodeploy/rollback) · 4.1 conversational quantity/delete · 4.4 首屏 cards-first + two-layer cache + `/cache/stats` · 端侧打磨 (skeleton/❤️/swipe) · Markdown rendering · #5 主动反问 + chips · CLIP on cloud · image-path fix** | 0.93–0.96 (82-case) | — |
+| R3（2026-05-23） | 主题 + 图标 + 语音/TTS + 设置 + 相机 + A100 CLIP | — | — |
+| R4（2026-05-23） | Files 导入器修复、README 打磨、IMPLEMENTATION_GUIDE | — | — |
+| R5（2026-05-24 上午） | Hybrid+rerank + 购物车+结算 + 评审视角自评 | 0.711 | 0.695 |
+| R6（2026-05-24 下午） | 45 个真实商品 + 溯源 UI + 趣味加载文案 + CLAUDE.md | 0.684 | 0.647 |
+| R6.5（2026-05-25 上午） | Tujie：同义词 + 上下文多轮 + 价格意图合并入主线 | 0.816（31 例） | 0.705 |
+| R7（2026-05-25 下午） | Sam 的评测看板合并 + 品牌产地否定修复 + 重录演示 | 0.746（59 例，审计前） | 0.674 |
+| **R7 + golden 审计（2026-05-25，Tujie）** | **对照商品目录修正错误标注；重新生成看板** | **0.830（59 例 / 49 正例）** | **0.771** |
+| R7.2（2026-05-25，Tujie 分支） | 海外商品按实时参考汇率展示 CNY + 感知 CNY 的预算过滤 | 0.830 | 0.778 |
+| **R7.3（2026-05-25，已合并 main，当前）** | **R7.2 + 队友的否定/品牌产地审计合并** | **0.880** | **0.828** |
+| **R7.4（2026-05-25，Tujie）** | **类目 / 品牌 / 人民币预算过滤在 dense 与 BM25 检索阶段生效** | **0.981（64 例）** | **0.846** |
+| **R7.5（2026-05-25，Tujie）** | **多轮约束状态：预算与品牌过滤的继承 / 替换 / 取消** | **0.982（68 例）** | **0.856** |
+| **R7.6（2026-05-25，Tujie）** | **Docker 模型预置（model bake）+ 启动检索预热 + `/ready` 就绪门控** | **0.982（68 例）** | **0.856** |
+| R8（2026-05-25 晚，Shufeng） | 缓存命中率面板、多轮否定持久化、品牌产地 KR/DE/GB、Cloudflare Tunnel、开发者模式门控、语音静默自动停止、多附件（≤10） | 0.880 → 0.982（沿用） | 0.856 |
+| **R9.A（2026-05-28，Shufeng）** | **Agent 化/可信层：话题切换重置 · 溯源标签 · "为什么推荐"卡片 · 语音加购 · 降价监控 · 对比/场景 · 跨语言品牌别名** | *UX 层 —— 检索持平* | — |
+| **R10（2026-06-01，Yusheng）** | **云端部署 + CD（自动部署/回滚）· 4.1 对话式改数量/删除 · 4.4 首屏卡片先行 + 两层缓存 + `/cache/stats` · 端侧打磨（骨架屏/❤️/滑动）· Markdown 渲染 · #5 主动反问 + chips · CLIP 上云 · 图片路径修复** | 0.93–0.96（82 例） | — |
 
-### Capability matrix
+### 能力矩阵
 
-| Capability | Status | Owner | Proof |
+| 能力 | 状态 | 负责人 | 佐证 |
 |---|---|---|---|
-| iOS chat UI + streaming SSE | ✅ | Shufeng | [`docs/demos/`](docs/demos/) |
-| Real LLM via TokenRouter (claude-haiku-4-5) | ✅ | Shufeng | all demos |
-| Hybrid retrieval (dense + BM25 + cross-encoder rerank) | ✅ | Shufeng (R5) | [`rag/retrieve/`](rag/retrieve/) |
-| **Curated synonym expansion** | ✅ NEW | **Tujie (R6.5)** | [`rag/retrieve/synonyms.py`](rag/retrieve/synonyms.py) |
-| **Multi-turn query + constraint state** (inherit / replace / cancel filters) | ✅ NEW | **Tujie (R7.5)** | [`server/app/services/contextual_query.py`](server/app/services/contextual_query.py) + [`constraint_state.py`](server/app/services/constraint_state.py) |
-| **Price intent parsing + sort** ("200元以下", "便宜") | ✅ NEW | **Tujie (R6.5)** | [`server/app/services/price_intent.py`](server/app/services/price_intent.py) |
-| **Foreign-price CNY normalization** (latest reference FX + original-price trace) | ✅ NEW | **Tujie (R7.2)** | [`server/app/services/currency.py`](server/app/services/currency.py) |
-| **Constraint-aware retrieval** (category / subcategory / brand / RMB budget) | ✅ NEW | **Tujie (R7.4)** | [`rag/retrieve/constraints.py`](rag/retrieve/constraints.py) + [`query.py`](rag/retrieve/query.py) |
-| **Docker readiness prewarm** (no first-user model download) | ✅ NEW | **Tujie (R7.6)** | [`Dockerfile.rag`](Dockerfile.rag) + [`retrieval_readiness.py`](server/app/services/retrieval_readiness.py) + [`/ready`](docs/API.md) |
-| Negation / exclusion (4.3 ⭐⭐) | ✅ **audited: accuracy 1.000** | Shufeng + Yusheng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
-| Multi-product comparison (4.3 ⭐⭐⭐) | ✅ | Shufeng | [`docs/demos/2026-05-25/05-compare.png`](docs/demos/2026-05-25/05-compare.png) |
-| OpenCLIP image→image retrieval (4.2 ⭐⭐⭐) | ✅ **on cloud VM** | Shufeng + Yusheng | 145 image vectors; `rag/retrieve/query.py:query_image` |
-| Voice input + TTS (4.2 ⭐ + ⭐⭐) | ✅ | Shufeng (R3) | Speech / AVSpeechSynthesizer |
-| **4.1 Cart — full** (add · conversational **quantity** · **delete** · swipe · checkout) | ✅ **R10** | Shufeng + Yusheng | `_detect_cart_intent` + `CartStore` + `CheckoutView` |
-| **4.4 首屏极速 + two-layer cache + `/cache/stats`** | ✅ **R10** | Yusheng | cards-first reorder + `rag_client` retrieval memo |
-| **4.4 端侧打磨** (skeleton · ❤️ favorite · swipe · Markdown render) | ✅ **R10** | Yusheng | `SkeletonCardView` · `FavoritesStore` · `MarkdownMessageView` |
-| **#5 主动反问** (vague query → clarify + tappable chips) | ✅ **R10** | Yusheng | `_needs_clarification` + `clarify` SSE event |
-| **Cloud deploy + CD** (autodeploy + rollback) | ✅ **R10** | Yusheng | `tools/cloud-autodeploy.sh` |
-| **Funny loading sentence** (5-10s wait UX) | ✅ NEW | Shufeng (R6) | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
-| **45 real products + provenance UI** (CN + Amazon US/JP) | ✅ NEW | Shufeng (R6) | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
-| **Latency + cache instrumentation** | ✅ | Shufeng (R5) | [`server/app/services/cache.py`](server/app/services/cache.py) |
-| **Eval dashboard (68-case audited/regression golden, per-scenario, HTML)** | ✅ refreshed after multi-turn state | Sam + Tujie | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
-| Physical iPhone 13 Pro deploy | ✅ | Shufeng | weekly `aaalion resign` |
-| **Multi-turn topic-switch reset** (sub_categories contamination fix) | ✅ NEW | Shufeng (R9.A) | [`server/app/services/rag_client.py`](server/app/services/rag_client.py) Path C + [`test_context_contamination.py`](server/tests/test_context_contamination.py) |
-| **Per-claim provenance tags** `[目录✓]` / `[推断?]` + per-message tally | ✅ NEW | Shufeng (R9.A) | [`server/app/routes/chat.py`](server/app/routes/chat.py) prompt + [`MessageBubbleView.swift`](client/AAALionApp/AAALionApp/Views/MessageBubbleView.swift) |
-| **"Why this is recommended" card** (dense / BM25 / RRF / rerank scores + source citation) | ✅ NEW | Shufeng (R9.A) | [`ProductDetailView.swift`](client/AAALionApp/AAALionApp/Views/ProductDetailView.swift) |
-| **Voice-to-cart** ("加入购物车 / 结算" fires the cart action) | ✅ NEW | Shufeng (R9.A) | [`ChatViewModel.swift`](client/AAALionApp/AAALionApp/ViewModels/ChatViewModel.swift) |
-| **Price-drop watch** ("提醒我降价" → SQLite watch + alert) | ✅ NEW | Shufeng (R9.A) | [`price_watch_db.py`](server/app/services/price_watch_db.py) + [`price_watch.py`](server/app/routes/price_watch.py) |
-| **Comparison tables · scene/outfit sets · cross-language brand aliasing** | ✅ NEW | Shufeng (R9.A) | [`chat.py`](server/app/routes/chat.py) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
+| iOS 聊天界面 + SSE 流式输出 | ✅ | Shufeng | [`docs/demos/`](docs/demos/) |
+| 经 TokenRouter 接入真实 LLM（claude-haiku-4-5） | ✅ | Shufeng | 全部演示 |
+| 混合检索（dense + BM25 + 交叉编码器(cross-encoder)重排） | ✅ | Shufeng（R5） | [`rag/retrieve/`](rag/retrieve/) |
+| **精选同义词扩展** | ✅ NEW | **Tujie（R6.5）** | [`rag/retrieve/synonyms.py`](rag/retrieve/synonyms.py) |
+| **多轮查询 + 约束状态**（过滤条件的继承 / 替换 / 取消） | ✅ NEW | **Tujie（R7.5）** | [`server/app/services/contextual_query.py`](server/app/services/contextual_query.py) + [`constraint_state.py`](server/app/services/constraint_state.py) |
+| **价格意图解析 + 排序**（"200元以下"、"便宜"） | ✅ NEW | **Tujie（R6.5）** | [`server/app/services/price_intent.py`](server/app/services/price_intent.py) |
+| **海外价格 CNY 归一化**（最新参考汇率 + 保留原币价格可溯源） | ✅ NEW | **Tujie（R7.2）** | [`server/app/services/currency.py`](server/app/services/currency.py) |
+| **约束感知检索**（类目 / 子类目 / 品牌 / 人民币预算） | ✅ NEW | **Tujie（R7.4）** | [`rag/retrieve/constraints.py`](rag/retrieve/constraints.py) + [`query.py`](rag/retrieve/query.py) |
+| **Docker 就绪预热**（首位用户无需等待模型下载） | ✅ NEW | **Tujie（R7.6）** | [`Dockerfile.rag`](Dockerfile.rag) + [`retrieval_readiness.py`](server/app/services/retrieval_readiness.py) + [`/ready`](docs/API.md) |
+| 否定 / 排除（4.3 ⭐⭐） | ✅ **已审计：准确率 1.000** | Shufeng + Yusheng | [`docs/demos/2026-05-25/03-negation.png`](docs/demos/2026-05-25/03-negation.png) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
+| 多商品对比（4.3 ⭐⭐⭐） | ✅ | Shufeng | [`docs/demos/2026-05-25/05-compare.png`](docs/demos/2026-05-25/05-compare.png) |
+| OpenCLIP 图到图检索（4.2 ⭐⭐⭐） | ✅ **已上云 VM** | Shufeng + Yusheng | 145 条图向量；`rag/retrieve/query.py:query_image` |
+| 语音输入 + TTS（4.2 ⭐ + ⭐⭐） | ✅ | Shufeng（R3） | Speech / AVSpeechSynthesizer |
+| **4.1 购物车 —— 完整**（加购 · 对话式**改数量** · **删除** · 滑动 · 结算） | ✅ **R10** | Shufeng + Yusheng | `_detect_cart_intent` + `CartStore` + `CheckoutView` |
+| **4.4 首屏极速 + 两层缓存 + `/cache/stats`** | ✅ **R10** | Yusheng | 卡片先行重排 + `rag_client` 检索记忆 |
+| **4.4 端侧打磨**（骨架屏 · ❤️ 收藏 · 滑动 · Markdown 渲染） | ✅ **R10** | Yusheng | `SkeletonCardView` · `FavoritesStore` · `MarkdownMessageView` |
+| **#5 主动反问**（模糊查询 → 澄清 + 可点选 chips） | ✅ **R10** | Yusheng | `_needs_clarification` + `clarify` SSE 事件 |
+| **云端部署 + CD**（自动部署 + 回滚） | ✅ **R10** | Yusheng | `tools/cloud-autodeploy.sh` |
+| **趣味加载文案**（5-10s 等待体验） | ✅ NEW | Shufeng（R6） | [`client/.../Views/LoadingSentence.swift`](client/AAALionApp/AAALionApp/Views/LoadingSentence.swift) |
+| **45 个真实商品 + 溯源 UI**（国内 + Amazon 美/日） | ✅ NEW | Shufeng（R6） | [`docs/research/2026-05-24-real-products.md`](docs/research/2026-05-24-real-products.md) |
+| **延迟与缓存埋点** | ✅ | Shufeng（R5） | [`server/app/services/cache.py`](server/app/services/cache.py) |
+| **评测看板（68 例审计/回归 golden 集，分场景，HTML）** | ✅ 多轮状态合入后已刷新 | Sam + Tujie | [`docs/eval_report.html`](docs/eval_report.html) + [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) |
+| iPhone 13 Pro 实机部署 | ✅ | Shufeng | 每周执行 `aaalion resign` |
+| **多轮话题切换重置**（修复 sub_categories 污染） | ✅ NEW | Shufeng（R9.A） | [`server/app/services/rag_client.py`](server/app/services/rag_client.py) Path C + [`test_context_contamination.py`](server/tests/test_context_contamination.py) |
+| **逐条断言溯源标签** `[目录✓]` / `[推断?]` + 单条消息计数 | ✅ NEW | Shufeng（R9.A） | [`server/app/routes/chat.py`](server/app/routes/chat.py) 提示词 + [`MessageBubbleView.swift`](client/AAALionApp/AAALionApp/Views/MessageBubbleView.swift) |
+| **"为什么推荐这个"卡片**（dense / BM25 / RRF / rerank 分数 + 来源引用） | ✅ NEW | Shufeng（R9.A） | [`ProductDetailView.swift`](client/AAALionApp/AAALionApp/Views/ProductDetailView.swift) |
+| **语音加购**（"加入购物车 / 结算" 直接触发购物车动作） | ✅ NEW | Shufeng（R9.A） | [`ChatViewModel.swift`](client/AAALionApp/AAALionApp/ViewModels/ChatViewModel.swift) |
+| **降价监控**（"提醒我降价" → SQLite 监控 + 提醒） | ✅ NEW | Shufeng（R9.A） | [`price_watch_db.py`](server/app/services/price_watch_db.py) + [`price_watch.py`](server/app/routes/price_watch.py) |
+| **对比表格 · 场景/搭配组合 · 跨语言品牌别名** | ✅ NEW | Shufeng（R9.A） | [`chat.py`](server/app/routes/chat.py) + [`brand_origin.py`](rag/retrieve/brand_origin.py) |
 
-> **R7.6 measured**: multi-turn retrieval persists or cancels filters correctly; Docker builds cache the text/reranker model weights, and FastAPI completes an end-to-end retrieval warmup before `/ready` succeeds. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md).
+> **R7.6 实测**：多轮检索可正确地持久化或取消过滤条件；Docker 构建已缓存文本/重排模型权重，FastAPI 在 `/ready` 返回成功前会完成一次端到端检索预热。详见 [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)。
 
 ---
 
-## Team / 团队
+## 团队
 
-| 中文名 | 英文名 | 角色 / Role | 模块 / Module |
+| 中文名 | 英文名 | 角色 | 模块 |
 |---|---|---|---|
-| 陈澍枫 | Shufeng Chen | 客户端 / iOS lead · 项目兜底 / project fallback | `client/` |
-| 李雨晟 | Yusheng Li | 后端 / Backend | `server/` |
+| 陈澍枫 | Shufeng Chen | 客户端 / iOS 负责人 · 项目兜底 | `client/` |
+| 李雨晟 | Yusheng Li | 后端 | `server/` |
 | 管图杰 | Tujie Guan | 检索 / RAG | `rag/` |
 
-> Shufeng is the project lead and fallback owner.
+> 陈澍枫是项目负责人，也是项目兜底人。
 
-## Tech stack / 技术栈
+## 技术栈
 
-- **客户端 / Client**: Swift 5.9, SwiftUI, iOS 17+. Speech.framework + AVSpeechSynthesizer + PhotosPicker + UIImagePickerController + .fileImporter.
-- **后端 / Backend**: Python 3.12, FastAPI, SSE, Pydantic v2 multimodal content union.
-- **汇率 / FX display**: Frankfurter v2 latest reference rates (keyless; cached server-side; original source price retained).
-- **向量库 / Vector DB**: Chroma in-process. Two collections: `products_text` (1082 chunks via `BAAI/bge-small-zh-v1.5`) + `products_image` (145 vectors via OpenCLIP ViT-B/32) — both served from the cloud VM.
-- **LLM**: `claude-haiku-4-5` (vision-capable) via TokenRouter. Swappable to Doubao, OpenAI, Anthropic, or local echo via `LLM_PROVIDER` env.
-- **部署 / Deploy**: GCP VM + `systemd` (`lionpick`, `lionpick-tunnel`, `lionpick-autodeploy.timer`) + Cloudflare tunnel for public HTTPS. Push to `main` → auto-deploy in ~2 min with `/ready` check + rollback (`tools/cloud-autodeploy.sh`).
-- **Design tokens**: Claude-designed warm-ivory + amber-gold + deep-espresso palette (see [`client/AAALionApp/design-tokens.json`](client/AAALionApp/design-tokens.json)).
+- **客户端**：Swift 5.9、SwiftUI、iOS 17+。Speech.framework + AVSpeechSynthesizer + PhotosPicker + UIImagePickerController + .fileImporter。
+- **后端**：Python 3.12、FastAPI、SSE、Pydantic v2 多模态 content union。
+- **汇率展示**：Frankfurter v2 最新参考汇率（免密钥；服务端缓存；保留原始来源价格）。
+- **向量库**：Chroma 进程内运行。两个 collection：`products_text`（1082 个分块，经 `BAAI/bge-small-zh-v1.5` 嵌入）+ `products_image`（145 条向量，经 OpenCLIP ViT-B/32 嵌入）—— 均由云端 VM 提供服务。
+- **LLM**：`claude-haiku-4-5`（具备视觉能力），经 TokenRouter 接入。通过 `LLM_PROVIDER` 环境变量可切换为 Doubao、OpenAI、Anthropic 或本地 echo。
+- **部署**：GCP VM + `systemd`（`lionpick`、`lionpick-tunnel`、`lionpick-autodeploy.timer`）+ Cloudflare tunnel 提供公网 HTTPS。推送到 `main` → 约 2 分钟自动部署，带 `/ready` 检查 + 回滚（`tools/cloud-autodeploy.sh`）。
+- **设计令牌（Design tokens）**：Claude 设计的暖象牙白 + 琥珀金 + 深咖啡配色（见 [`client/AAALionApp/design-tokens.json`](client/AAALionApp/design-tokens.json)）。
 
-## Quickstart / 快速开始
+## 快速开始
 
 ```bash
-# 1. Install aaalion helper (works from anywhere)
+# 1. 安装 aaalion 辅助命令(任意目录可用)
 ln -sf "$(pwd)/tools/aaalion" "$HOME/.local/bin/aaalion"
 
-# 2. Configure (key from https://www.tokenrouter.com/console/token)
+# 2. 配置(密钥从 https://www.tokenrouter.com/console/token 获取)
 cp .env.example server/.env
-$EDITOR server/.env   # set TOKENROUTER_API_KEY
+$EDITOR server/.env   # 设置 TOKENROUTER_API_KEY
 
-# 3. Backend + Chroma text index
+# 3. 后端 + Chroma 文本索引
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r server/requirements.txt
-aaalion ingest                       # 1082 text chunks; rerun after metadata changes
-aaalion backend                      # uvicorn on 0.0.0.0:8000
+aaalion ingest                       # 1082 个文本分块;元数据变更后需重跑
+aaalion backend                      # uvicorn 监听 0.0.0.0:8000
 
-# 4. iOS simulator
-aaalion ios-sim                      # regen .xcodeproj, build, install, launch
+# 4. iOS 模拟器
+aaalion ios-sim                      # 重新生成 .xcodeproj、构建、安装、启动
 
-# 5. (optional) RAG retrieval quality eval
-python -m rag.eval.run               # CLI: 7 metrics × 3 retrieval strategies
-python -m rag.eval.report            # HTML dashboard → docs/eval_report.html
+# 5. (可选) RAG 检索质量评测
+python -m rag.eval.run               # 命令行: 7 项指标 × 3 种检索策略
+python -m rag.eval.report            # HTML 看板 → docs/eval_report.html
 ```
 
-### Docker deployment on Windows (copy and run)
+### Windows 下的 Docker 部署（复制即用）
 
-Run the following PowerShell block from the repository root. It deploys a
-fully functional local RAG backend without an API key: retrieval, filters,
-currency conversion and product cards are real; only answer generation uses
-the deterministic `echo` provider.
+在仓库根目录运行下面这段 PowerShell。它会部署一个无需 API key、功能完整的
+本地 RAG 后端：检索、过滤、汇率换算与商品卡片均为真实功能；只有回答生成
+使用确定性的 `echo` provider。
 
 ```powershell
-# Create local config once, then explicitly choose the free smoke-test provider.
+# 首次创建本地配置,然后显式选择免费的冒烟测试 provider。
 if (-not (Test-Path server/.env)) { Copy-Item .env.example server/.env }
 (Get-Content server/.env -Raw) -replace '(?m)^LLM_PROVIDER=.*$', 'LLM_PROVIDER=echo' |
   Set-Content server/.env -Encoding UTF8
 
-# Build the model-cached image, persist the Chroma text index, and start services.
+# 构建带模型缓存的镜像,持久化 Chroma 文本索引,并启动服务。
 docker compose -f server/docker-compose.yml down
 docker compose -f server/docker-compose.yml build backend
 docker compose -f server/docker-compose.yml run --rm --no-deps backend python -m rag.ingest.run
 docker compose -f server/docker-compose.yml up -d
 
-# Wait until model and full retrieval-path prewarm has completed.
+# 等待模型与完整检索链路预热完成。
 do {
   Start-Sleep -Seconds 1
   try { $ready = Invoke-RestMethod http://127.0.0.1:8000/ready } catch { $ready = $null }
@@ -170,10 +167,9 @@ do {
 $ready
 ```
 
-Open `http://127.0.0.1:8000/docs` to test the API. To switch the running
-deployment to real TokenRouter-generated answers, paste and run this block;
-it prompts for the key without printing it and keeps the key only in the
-gitignored `server/.env` file.
+打开 `http://127.0.0.1:8000/docs` 即可测试 API。若要把正在运行的部署切换为
+由 TokenRouter 生成真实回答，粘贴并运行下面这段；它会以不回显的方式提示
+输入密钥，且密钥只保存在已被 gitignore 忽略的 `server/.env` 文件中。
 
 ```powershell
 $secureKey = Read-Host "TOKENROUTER_API_KEY" -AsSecureString
@@ -195,69 +191,66 @@ do {
 $ready
 ```
 
-The first build downloads and stores the embedding and reranker weights in
-the Docker image. The ingest command writes the Chroma index into `data/.chroma/`
-on the host, so it survives container replacement. Run the ingest command
-again after changing product data. The backend accepts chat traffic only after
-`/ready` confirms embedding, BM25, reranking and one complete retrieval path
-are warmed.
+首次构建会下载 embedding 与重排（reranker）模型权重并固化到 Docker 镜像中。
+ingest 命令将 Chroma 索引写入宿主机的 `data/.chroma/`，因此容器替换后索引
+依然保留。商品数据变更后请重新运行 ingest 命令。后端只有在 `/ready` 确认
+embedding、BM25、重排以及一条完整检索链路均已预热后，才会接受聊天流量。
 
-### Backend URL: where the app points
+### 后端地址：App 指向哪里
 
-`Config.swift`'s `defaultBackendURL` is the **live cloud tunnel** (Cloudflare),
-so a freshly-installed app works on **any network — Wi-Fi or cellular — with no
-setup**, and a demo doesn't depend on a Mac being on. `Config.swift` resolves in
-this order:
+`Config.swift` 中的 `defaultBackendURL` 是**线上云端隧道**（Cloudflare），
+因此新安装的 App 在**任何网络（Wi-Fi 或蜂窝数据）下都可直接使用、无需任何
+配置**，演示也不依赖某台 Mac 开机。`Config.swift` 按以下顺序解析：
 
-| Scenario | What to do | Persistence |
+| 场景 | 操作 | 持久化方式 |
 |---|---|---|
-| **Cloud (default)** | Nothing. The baked-in tunnel URL just works on the device/simulator. | Compile-time default |
-| **Local backend (dev)** | Open the app → ⚙ Settings → enter `http://localhost:8000` (sim) or `http://<your-mac-LAN-IP>:8000` (device) → Test → Save | UserDefaults, survives relaunch |
-| **One-off testing** | Xcode → Edit Scheme → Run → Environment Variables → `PUBLIC_BACKEND_URL=http://…:8000` | Only while debugging through Xcode |
+| **云端（默认）** | 无需操作。内置的隧道 URL 在真机/模拟器上直接可用。 | 编译期默认值 |
+| **本地后端（开发）** | 打开 App → ⚙ 设置 → 输入 `http://localhost:8000`（模拟器）或 `http://<你的 Mac 局域网 IP>:8000`（真机）→ 测试 → 保存 | UserDefaults，重启后仍生效 |
+| **一次性测试** | Xcode → Edit Scheme → Run → Environment Variables → `PUBLIC_BACKEND_URL=http://…:8000` | 仅在通过 Xcode 调试时生效 |
 
-> The Cloudflare **quick-tunnel** URL is stable while the tunnel process runs but
-> can change if it restarts; Yusheng re-bakes/re-broadcasts it when it does.
-> A named-tunnel (permanent domain) upgrade is the one open ops item. For a
-> local backend, run `aaalion backend` (binds `0.0.0.0`, not `127.0.0.1`); find
-> your Mac's LAN IP with `ipconfig getifaddr en0`.
+> Cloudflare **quick-tunnel** 的 URL 在隧道进程运行期间保持稳定，但进程
+> 重启后可能变化；变化时由 Yusheng 重新固化并广播。升级为 named-tunnel
+> （永久域名）是目前唯一未关闭的运维事项。若使用本地后端，运行
+> `aaalion backend`（绑定 `0.0.0.0` 而非 `127.0.0.1`）；Mac 的局域网 IP
+> 用 `ipconfig getifaddr en0` 查询。
 
-Foreign-source products retain their original amount (for example `$398.00 USD`) and are displayed/totaled in RMB using the latest available reference rate fetched by the backend. This is a shopping-display conversion, not a payment settlement quote; the card detail exposes the rate date and provider.
+海外来源的商品保留其原始金额（例如 `$398.00 USD`），并按后端获取的最新可用参考汇率以人民币展示与合计。这只是购物展示层的换算，不是支付结算报价；商品卡详情中会展示汇率日期与数据提供方。
 
-Text retrieval now extracts category, subcategory, named-brand and RMB-budget constraints before candidate recall. During multi-turn chat, those constraints form an authoritative conversation state: subsequent turns can inherit, replace or cancel a brand/budget restriction without stale anchor text restoring it. The same filter is used by dense and BM25 retrieval; foreign-priced products pass the first price gate and are tested strictly only after current CNY conversion. Set `RAG_HARD_FILTERS=0` to run an A/B baseline for inferred constraints.
+文本检索现在会在候选召回之前抽取类目、子类目、具名品牌与人民币预算约束。在多轮对话中，这些约束构成权威的会话状态：后续轮次可以继承、替换或取消品牌/预算限制，且不会被过期的锚定文本恢复。dense 与 BM25 检索使用同一套过滤；海外定价的商品先通过第一道价格闸门，换算为当前 CNY 后再做严格校验。设置 `RAG_HARD_FILTERS=0` 可对推断出的约束运行 A/B 基线对照。
 
-The eval dashboard ([`docs/eval_report.html`](docs/eval_report.html)) breaks retrieval quality down by scenario (basic / filter / negation / multiturn / compare / no-match) and reports recall@5/10, MRR, precision@5, **反选准确率** (negation accuracy), 无匹配正确率, and latency. The current production-path result is **recall@5 0.982 / MRR 0.856 / negation accuracy 1.000** on 68 cases; the nine-case `multiturn` slice reaches **recall@5 1.000 / MRR 0.889**, and the four new `constraint-state` regressions reach **MRR 1.000**. With Docker prewarm outside timed cases, mean retrieval latency is **610 ms**; an earlier unwarmed run was **6156 ms** because it included a one-time model-load outlier. See [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md) for methodology and measured details.
+评测看板（[`docs/eval_report.html`](docs/eval_report.html)）按场景（basic / filter / negation / multiturn / compare / no-match）拆解检索质量，报告 recall@5/10、MRR、precision@5、**反选准确率**（negation accuracy）、无匹配正确率与延迟。当前生产链路结果为 68 例上 **recall@5 0.982 / MRR 0.856 / 反选准确率 1.000**；9 例 `multiturn` 切片达到 **recall@5 1.000 / MRR 0.889**，4 例新增的 `constraint-state` 回归用例达到 **MRR 1.000**。在 Docker 预热不计入计时用例的前提下，平均检索延迟为 **610 ms**；此前一次未预热的运行为 **6156 ms**，原因是包含了一次性的模型加载离群值。方法论与实测细节见 [`docs/EVAL_RESULTS.md`](docs/EVAL_RESULTS.md)。
 
-For iPhone device deploy, see [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md). For the A100 CLIP image index, see [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md).
+iPhone 实机部署见 [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md)；A100 上的 CLIP 图像索引见 [`docs/IMPLEMENTATION_GUIDE.md`](docs/IMPLEMENTATION_GUIDE.md)。
 
-## Project layout / 项目结构
+## 项目结构
 
 ```
 client/    iOS 客户端 (SwiftUI, Speech, AVFoundation)  ← 陈澍枫
-server/    FastAPI 后端 (SSE, multimodal, cache)        ← 李雨晟
-rag/       Ingest / retrieve / prompts / eval / CLIP    ← 管图杰
-data/      seed/ (committed) + .chroma/ (gitignored)
+server/    FastAPI 后端 (SSE、多模态、缓存)             ← 李雨晟
+rag/       数据入库 / 检索 / 提示词 / 评测 / CLIP       ← 管图杰
+data/      seed/ (已提交) + .chroma/ (gitignore 忽略)
 docs/      架构、流水线、政策、demos、research、proposals
 meetings/  会议记录
 tools/     aaalion + screenshot + check-secrets
 ```
 
-## Read these next / 接下来该读这些
+## 接下来该读这些
 
-| Document | Purpose |
+| 文档 | 用途 |
 |---|---|
-| ⭐ [docs/README.md](docs/README.md) | **Docs index — start here** |
-| [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) | Single-page implementation walkthrough |
-| 📓 [docs/DEV_LOG.md](docs/DEV_LOG.md) | Rolling dev log — newest shipping moments at the top |
-| 📋 [docs/ROADMAP.md](docs/ROADMAP.md) | Current forward plan (to code-freeze) |
-| [docs/COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) | 狮选 vs the market (web-researched) |
-| 📊 [docs/QUALITY_REVIEW.md](docs/QUALITY_REVIEW.md) · [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md) | Grader-style self-assessment · RAG metrics |
-| [docs/RUBRIC_MAPPING.md](docs/RUBRIC_MAPPING.md) | PDF §4 → code/artifact mapping for defense |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/API.md](docs/API.md) · [docs/PIPELINE.md](docs/PIPELINE.md) | Design · endpoints · dev SOP |
-| [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) · [docs/IOS_SETUP.md](docs/IOS_SETUP.md) | Teammate setup · Xcode/signing |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [docs/HARDWARE.md](docs/HARDWARE.md) · [docs/POLICY.md](docs/POLICY.md) | Gotchas · devices/SSH · team rules |
-| [docs/DEFENSE_DECK_PROMPT.md](docs/DEFENSE_DECK_PROMPT.md) · [docs/explainers/](docs/explainers/) | Defense deck prompt · plain-language explainers |
-| [docs/demos/](docs/demos/) · [docs/research/](docs/research/) · [docs/commits/](docs/commits/) | Demo screenshots · market research · change records |
+| ⭐ [docs/README.md](docs/README.md) | **文档索引 —— 从这里开始** |
+| [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) | 单页实现讲解 |
+| 📓 [docs/DEV_LOG.md](docs/DEV_LOG.md) | 滚动开发日志 —— 最新交付在最上方 |
+| 📋 [docs/ROADMAP.md](docs/ROADMAP.md) | 当前前瞻计划（直至代码冻结） |
+| [docs/COMPETITIVE_ANALYSIS.md](docs/COMPETITIVE_ANALYSIS.md) | 狮选 vs 市场同类产品（基于网络调研） |
+| 📊 [docs/QUALITY_REVIEW.md](docs/QUALITY_REVIEW.md) · [docs/EVAL_RESULTS.md](docs/EVAL_RESULTS.md) | 评审视角自评 · RAG 指标 |
+| [docs/RUBRIC_MAPPING.md](docs/RUBRIC_MAPPING.md) | PDF §4 → 代码/产物映射（供答辩用） |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/API.md](docs/API.md) · [docs/PIPELINE.md](docs/PIPELINE.md) | 设计 · 接口 · 开发 SOP |
+| [docs/DEPLOY_GUIDE.md](docs/DEPLOY_GUIDE.md) · [docs/IOS_SETUP.md](docs/IOS_SETUP.md) | 队友环境搭建 · Xcode/签名 |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [docs/HARDWARE.md](docs/HARDWARE.md) · [docs/POLICY.md](docs/POLICY.md) | 踩坑记录 · 设备/SSH · 团队规则 |
+| [docs/DEFENSE_DECK_PROMPT.md](docs/DEFENSE_DECK_PROMPT.md) · [docs/explainers/](docs/explainers/) | 答辩幻灯片提示词 · 通俗讲解系列 |
+| [docs/demos/](docs/demos/) · [docs/research/](docs/research/) · [docs/commits/](docs/commits/) | 演示截图 · 市场调研 · 变更记录 |
 
-## License
+## 许可证
 
-MIT — see [LICENSE](LICENSE).
+MIT —— 见 [LICENSE](LICENSE)。

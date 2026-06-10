@@ -1,8 +1,8 @@
-"""Curated ecommerce synonym expansion for retrieval queries.
+"""检索查询用的人工精选电商同义词扩展。
 
-Keep this runtime dictionary small and high precision. Broad synonym tools can
-be used offline with ``tools/build_synonym_candidates.py`` to propose new
-entries, but production retrieval should only use terms we have reviewed.
+这个运行时词典要保持小而精(高准确率)。粗放的同义词工具可以离线配合
+``tools/build_synonym_candidates.py`` 来产出候选词条,但生产检索只允许
+使用我们人工审核过的词条。
 """
 
 from __future__ import annotations
@@ -26,12 +26,12 @@ PRICE_INTENT_SIGNALS = (
 )
 
 SYNONYM_TERMS: dict[str, tuple[str, ...]] = {
-    # Digital products.
+    # 数码产品。
     "无线耳机": ("蓝牙耳机", "真无线耳机", "TWS", "头戴耳机", "降噪耳机"),
     "蓝牙耳机": ("无线耳机", "真无线耳机", "TWS", "入耳式耳机", "头戴耳机"),
     "耳机": ("蓝牙耳机", "无线耳机", "真无线耳机", "头戴耳机"),
     "降噪": ("主动降噪", "ANC", "noise cancelling", "降噪耳机"),
-    # Beauty and skincare.
+    # 美妆与护肤。
     "洁面": ("洗面奶", "洁面乳", "洁面产品", "清洁"),
     "洗面奶": ("洁面", "洁面乳", "洁面产品", "清洁"),
     "舒敏": ("敏感肌", "舒缓", "修护", "屏障修护"),
@@ -42,14 +42,14 @@ SYNONYM_TERMS: dict[str, tuple[str, ...]] = {
     "熬夜": ("暗沉", "修护", "抗氧化", "提亮"),
     "防晒": ("防晒霜", "防晒乳", "SPF", "清爽防晒"),
     "保湿": ("补水", "滋润", "修护屏障", "面霜"),
-    # Gift intent. Price words stay in app.services.price_intent; using them as
-    # retrieval synonyms can swamp precise product-type matches.
+    # 送礼意图。价格词统一留在 app.services.price_intent 处理;若把它们当作
+    # 检索同义词,会淹没精确的品类匹配结果。
     "送礼": ("礼物", "礼盒", "体面", "高端"),
 }
 
 
 def expansion_terms(text: str, *, max_terms: int = MAX_EXTRA_TERMS) -> list[str]:
-    """Return reviewed expansion terms whose keys appear in ``text``."""
+    """返回触发词命中 ``text`` 的已审核扩展词列表。"""
     base = (text or "").strip()
     if not base:
         return []
@@ -74,11 +74,10 @@ def expansion_terms(text: str, *, max_terms: int = MAX_EXTRA_TERMS) -> list[str]
 
 
 def expand_query(text: str, *, max_terms: int = MAX_EXTRA_TERMS) -> list[str]:
-    """Return query variants for multi-query retrieval.
+    """返回用于多查询(multi-query)检索的查询变体。
 
-    The first item is always the original query. The second item, when present,
-    is a compact expanded query that helps sparse/dense recall without flooding
-    retrieval with broad generic words.
+    第一项始终是原始查询。第二项(如果存在)是一条紧凑的扩展查询,
+    用来提升稀疏/稠密召回,同时避免宽泛的通用词涌入检索结果。
     """
     base = (text or "").strip()
     if not base:

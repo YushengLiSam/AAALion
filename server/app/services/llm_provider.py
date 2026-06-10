@@ -1,13 +1,13 @@
-"""Pluggable LLM provider abstraction.
+"""可插拔的 LLM provider 抽象层。
 
-Picks one of:
-  - ``anthropic`` — Claude API (default while Doubao key is being re-issued).
-  - ``doubao``    — ARK / Volcengine, OpenAI-compatible.
-  - ``openai``    — OpenAI API.
-  - ``echo``      — no-network deterministic provider for tests.
+从以下几种实现中选其一:
+  - ``anthropic`` — Claude API(豆包 key 补办期间的默认选项)。
+  - ``doubao``    — ARK / 火山引擎(Volcengine),兼容 OpenAI 接口。
+  - ``openai``    — OpenAI API。
+  - ``echo``      — 无网络依赖的确定性 provider,供测试使用。
 
-Selection via ``LLM_PROVIDER`` env (default: anthropic if ANTHROPIC_API_KEY
-is set, else echo).
+通过环境变量 ``LLM_PROVIDER`` 选择(默认:设置了 ANTHROPIC_API_KEY
+则用 anthropic,否则回落到 echo)。
 """
 
 from __future__ import annotations
@@ -20,19 +20,19 @@ class LLMProvider(Protocol):
     name: str
 
     async def stream_chat(self, messages: list[dict]) -> AsyncIterator[str]:  # noqa: D401
-        """Yield response text chunks."""
+        """以流式方式逐块产出(yield)回复文本。"""
         ...
 
 
 # --------------------------------------------------------------------------- #
-#  Anthropic Claude (default during Doubao outage)
+#  Anthropic Claude(豆包 key 不可用期间的默认 provider)
 # --------------------------------------------------------------------------- #
 
 class AnthropicProvider:
     name = "anthropic"
 
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
-        from anthropic import AsyncAnthropic  # local import: keep optional
+        from anthropic import AsyncAnthropic  # 局部 import:让该依赖保持可选
         key = api_key or os.getenv("ANTHROPIC_API_KEY") or ""
         if not key.strip():
             raise RuntimeError("ANTHROPIC_API_KEY is empty")
@@ -40,7 +40,7 @@ class AnthropicProvider:
         self._model = model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
     async def stream_chat(self, messages: list[dict]) -> AsyncIterator[str]:
-        # Anthropic wants system separated from the messages list.
+        # Anthropic 接口要求 system 提示词单独传参,不能混在 messages 列表里。
         system_chunks = [m["content"] for m in messages if m["role"] == "system"]
         user_assistant = [m for m in messages if m["role"] in ("user", "assistant")]
         system = "\n\n".join(system_chunks) if system_chunks else None
@@ -57,11 +57,11 @@ class AnthropicProvider:
 
 
 # --------------------------------------------------------------------------- #
-#  Doubao / OpenAI (both via openai SDK — ARK is OpenAI-compatible)
+#  豆包 / OpenAI(都走 openai SDK — ARK 兼容 OpenAI 接口)
 # --------------------------------------------------------------------------- #
 
 class OpenAICompatibleProvider:
-    """Generic OpenAI-compatible provider; ARK Doubao fits this shape."""
+    """通用的 OpenAI 兼容 provider;ARK 豆包正好符合这套接口形态。"""
 
     def __init__(self, name: str, api_key: str, base_url: str, model: str) -> None:
         from openai import AsyncOpenAI
@@ -85,7 +85,7 @@ class OpenAICompatibleProvider:
 
 
 # --------------------------------------------------------------------------- #
-#  Echo — deterministic, no-network, for tests
+#  Echo — 确定性、无网络依赖,供测试使用
 # --------------------------------------------------------------------------- #
 
 class EchoProvider:
@@ -99,15 +99,14 @@ class EchoProvider:
 
 
 # --------------------------------------------------------------------------- #
-#  Factory
+#  工厂函数(Factory)
 # --------------------------------------------------------------------------- #
 
-# R10 #4.4⭐⭐ — cache the provider (and therefore its AsyncOpenAI httpx
-# connection pool) for the process lifetime. Previously get_provider() built
-# a NEW client on every request, so every first-token paid a fresh TLS
-# handshake to the upstream. Reusing one client keeps connections alive →
-# lower, more consistent time-to-first-token. Env is stable within a process,
-# so a single instance is safe.
+# R10 #4.4⭐⭐ — 在进程生命周期内缓存 provider(连带缓存其 AsyncOpenAI 的
+# httpx 连接池)。此前 get_provider() 每个请求都新建一个 client,导致每次
+# 首 token 都要对上游重新做一次 TLS 握手。复用同一个 client 可保持连接
+# 存活 → 首 token 延迟(time-to-first-token)更低也更稳定。环境变量在
+# 进程内不会变化,所以单例是安全的。
 _provider_singleton: "LLMProvider | None" = None
 
 

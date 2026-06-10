@@ -1,24 +1,24 @@
-"""English shopping-term → Chinese category hints, shared by retrieval layers.
+"""英文购物词 → 中文品类提示词的映射, 供各检索层共用。
 
-The catalog (and every keyword table derived from it) is Chinese. An English
-query used to get Chinese hints only inside chat.py's query augmenter, so the
-HARD-FILTER inference (rag.retrieve.constraints) saw the raw English text,
-extracted no category/sub_category, and the price-only WHERE returned cheap
-unrelated products ("noise cancelling headphones under 1000" → yogurt cards).
+商品目录(及由它派生的所有关键词表)都是中文。此前英文查询只在 chat.py 的
+查询增强器(query augmenter)里才能拿到中文提示词, 导致硬过滤(HARD-FILTER)推断
+(rag.retrieve.constraints)看到的是原始英文文本: 提取不出 category/sub_category,
+只剩价格条件的 WHERE 就返回了便宜但毫不相关的商品
+("noise cancelling headphones under 1000" → 酸奶卡片)。
 
-Single source of truth for the mapping lives here so the query augmenter
-(server/app/routes/chat.py) and the constraint parser (constraints.py) can't
-drift apart again.
+把映射的唯一权威来源(single source of truth)放在这里, 这样查询增强器
+(server/app/routes/chat.py)和约束解析器(constraints.py)就不会再各自漂移、
+出现不一致。
 """
 
 from __future__ import annotations
 
 import re
 
-# English term → Chinese category word. Matched with a LEADING word boundary
-# so 'phone' doesn't fire inside 'headphones'/'earphones'/'iphone' (only the
-# longer term does), while 'spf50' still triggers 'spf'. Longer/more specific
-# terms should precede generic ones so the specific Chinese hint lands first.
+# 英文词 → 中文品类词。匹配时只加「前导」词边界(LEADING word boundary):
+# 这样 'phone' 不会在 'headphones'/'earphones'/'iphone' 内部误触发(只让更长的词命中),
+# 而 'spf50' 仍能触发 'spf'。更长/更具体的词要排在泛化词之前,
+# 保证更具体的中文提示词先落位。
 EN_CATEGORY_HINTS: tuple[tuple[str, str], ...] = (
     ("noise cancelling", "降噪耳机"), ("noise-cancelling", "降噪耳机"),
     ("running shoes", "跑鞋"), ("basketball shoes", "篮球鞋"),
@@ -41,9 +41,8 @@ _CJK_RE = re.compile(r"[一-鿿]")
 
 
 def looks_english(text: str) -> bool:
-    """True when the text is unambiguously English: no CJK characters and at
-    least a few ASCII letters. Used to pick the reply language and to gate the
-    English-only matching below."""
+    """文本明确是英文时返回 True: 不含 CJK 字符, 且至少有几个 ASCII 字母。
+    用于选择回复语言, 以及作为下方「仅限英文」匹配逻辑的开关。"""
     if not text or _CJK_RE.search(text):
         return False
     return len(re.findall(r"[A-Za-z]", text)) >= 3
@@ -62,10 +61,10 @@ def _term_hits(low: str) -> list[str]:
 
 
 def english_to_chinese_hints(text: str) -> list[str]:
-    """Chinese category hint words for the English shopping terms in ``text``.
+    """针对 ``text`` 中出现的英文购物词, 返回对应的中文品类提示词列表。
 
-    Empty when the text already contains Chinese — a mixed query carries its
-    own Chinese signals and augmenting it would skew the candidate pool.
+    若文本本身已含中文则返回空列表——中英混排的查询自带中文信号,
+    再做增强反而会让候选池产生偏差。
     """
     if not text or _CJK_RE.search(text):
         return []
@@ -76,11 +75,11 @@ def english_to_chinese_hints(text: str) -> list[str]:
 
 
 def augment_english_query(query: str, extra_text: str = "") -> str:
-    """Append Chinese category words for any English shopping term present.
+    """为查询中出现的英文购物词追加对应的中文品类词。
 
-    Terms are looked up in both ``query`` and ``extra_text`` (the raw user
-    message — the rewritten retrieval query may have dropped a term), but only
-    a no-Chinese ``query`` is augmented. AUGMENTS, never replaces.
+    会同时在 ``query`` 和 ``extra_text``(原始用户消息——改写后的检索查询可能
+    丢掉了某个词)里查找命中词, 但只有不含中文的 ``query`` 才会被增强。
+    只做「追加」(AUGMENTS), 绝不替换原查询。
     """
     if not query or _CJK_RE.search(query):
         return query

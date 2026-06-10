@@ -1,17 +1,17 @@
-"""Backend's view of the RAG layer. Combines hybrid retrieval (dense + BM25),
-optional query rewriting, negation filtering, and cross-encoder reranking.
+"""后端视角的 RAG 层。组合了混合检索(稠密向量 + BM25)、可选的查询改写、
+否定过滤,以及交叉编码器(cross-encoder)重排序。
 
-The default path is:
-  user_text → parse hard constraints → curated synonyms → (optional) rewrite
-            → filtered hybrid retrieve top-20 → apply negation → rerank
-            → enforce converted-CNY budget / price preference → top-k products.
+默认链路为:
+  user_text → 解析硬约束 → 人工维护的同义词扩展 → (可选)改写
+            → 带过滤的混合检索 top-20 → 应用否定过滤 → 重排序
+            → 强制执行折算为人民币的预算/价格偏好 → top-k 商品。
 
-Toggle via env vars:
-  RAG_SYNONYMS=1 enable curated local query expansion (default on)
-  RAG_REWRITE=1   enable LLM query expansion (default off — costs API calls)
-  RAG_NEGATION=1  enable LLM negation extraction (auto-on when 不要/除了/不含 in query)
-  RAG_RERANK=1    enable cross-encoder rerank (default on)
-  RAG_HARD_FILTERS=1 enable inferred category/brand/CNY-budget retrieval filters (default on)
+通过环境变量开关:
+  RAG_SYNONYMS=1 启用人工维护的本地查询扩展(默认开)
+  RAG_REWRITE=1   启用 LLM 查询扩展(默认关——会消耗 API 调用)
+  RAG_NEGATION=1  启用 LLM 否定提取(查询中含 不要/除了/不含 时自动开启)
+  RAG_RERANK=1    启用交叉编码器重排序(默认开)
+  RAG_HARD_FILTERS=1 启用推断出的类目/品牌/人民币预算检索过滤(默认开)
 """
 
 from __future__ import annotations
@@ -30,39 +30,38 @@ if str(REPO_ROOT) not in sys.path:
 
 
 # ---------------------------------------------------------------------------
-# Retrieval-result cache (R10 — "Option A").
+# 检索结果缓存(R10 ——「方案 A」)。
 #
-# Problem it solves: the response cache in chat.py only short-circuits the
-# LLM generation, AND it runs *after* retrieval. So even a repeat query
-# pays the full hybrid + cross-encoder rerank cost every time — and the
-# English path's v2-m3 reranker (568M params on a CPU VM) is the dominant
-# latency. The chat response cache also keys on the whole conversation
-# (messages_json), so it basically never hits in real multi-turn use.
+# 它解决的问题:chat.py 里的响应缓存只能短路 LLM 生成,而且是在检索
+# *之后*才生效。因此即使是重复查询,每次也要付出完整的混合检索 +
+# 交叉编码器重排序的成本——而英文链路用的 v2-m3 重排模型(568M 参数,
+# 跑在 CPU VM 上)正是延迟的大头。聊天响应缓存还以整段对话
+# (messages_json)作为键,在真实多轮使用中基本永远命中不了。
 #
-# This cache memoizes the EXPENSIVE, preference-INDEPENDENT part of top_k
-# (query expansion → hybrid → negation → rerank → anchor filter → hard
-# constraints → price intent). The cheap, user-specific preference reorder
-# (step 7) stays OUTSIDE the cache so 👍/👎 still re-orders live.
+# 这个缓存把 top_k 中昂贵且与偏好无关的部分(查询扩展 → 混合检索 →
+# 否定过滤 → 重排序 → 锚点过滤 → 硬约束 → 价格意图)做了 memoize。
+# 廉价、用户相关的偏好重排(第 7 步)留在缓存之外,
+# 这样 👍/👎 仍能实时调整顺序。
 #
-# Key = (resolved retrieval text, k, retrieval_filter repr, preference text).
-# Deliberately NO user_id — preference is applied after the cache.
-# TTL is short (default 300s) so FX-normalized prices in price-filtered
-# results can't go stale beyond the FX layer's own 1h cache.
+# 键 = (解析后的检索文本, k, retrieval_filter 的 repr, 偏好文本)。
+# 有意不包含 user_id——偏好是在缓存之后才应用的。
+# TTL 设得很短(默认 300s),保证价格过滤结果中按汇率折算的价格
+# 不会比 FX 层自身的 1 小时缓存更陈旧。
 # ---------------------------------------------------------------------------
 
 _RETRIEVAL_CACHE_TTL = float(os.getenv("RAG_RETRIEVAL_CACHE_TTL", "300"))
 _RETRIEVAL_CACHE_MAX = int(os.getenv("RAG_RETRIEVAL_CACHE_MAX", "256"))
 _RETRIEVAL_CACHE_ON = os.getenv("RAG_RETRIEVAL_CACHE", "1") == "1"
-# product_id-keyed value list is cheap to copy; we store the raw dicts and
-# hand back shallow copies so downstream preference reorder / truncation
-# never mutates the cached entry.
+# 以 product_id 为键的值列表拷贝成本很低;我们存的是原始 dict,
+# 取出时交回浅拷贝,这样下游的偏好重排/截断
+# 永远不会改动缓存中的条目。
 _retrieval_cache: "dict[str, tuple[float, list[dict]]]" = {}
 _retrieval_cache_lock = threading.Lock()
 _retrieval_cache_stats = {"hits": 0, "misses": 0}
 
 
 def _retrieval_cache_key(text: str, k: int, retrieval_filter, preference_text: str) -> str:
-    # repr(Filter) is stable for a frozen-ish dataclass; None → "None".
+    # 对近似 frozen 的 dataclass 来说 repr(Filter) 是稳定的;None → "None"。
     payload = f"{text}{k}{retrieval_filter!r}{preference_text}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -82,9 +81,9 @@ def _retrieval_cache_get(key: str) -> list[dict] | None:
             _retrieval_cache_stats["misses"] += 1
             return None
         _retrieval_cache_stats["hits"] += 1
-        # Hand back shallow copies of each product dict so downstream
-        # mutation (preference reorder truncates; nobody should mutate the
-        # dicts, but be defensive) can't corrupt the cached list.
+        # 交回每个商品 dict 的浅拷贝,这样下游的修改(偏好重排会截断;
+        # 按理没人该改这些 dict,但出于防御性考虑)
+        # 不会污染缓存中的列表。
         return [dict(p) for p in value]
 
 
@@ -92,9 +91,9 @@ def _retrieval_cache_put(key: str, value: list[dict]) -> None:
     if not _RETRIEVAL_CACHE_ON:
         return
     with _retrieval_cache_lock:
-        # Simple bound: clear oldest-ish by dropping arbitrary entries when full.
+        # 简单的容量上限:满了就丢条目腾位。
         if len(_retrieval_cache) >= _RETRIEVAL_CACHE_MAX:
-            # Drop the chronologically oldest entry.
+            # 丢弃时间上最老的那一条。
             oldest = min(_retrieval_cache.items(), key=lambda kv: kv[1][0], default=None)
             if oldest is not None:
                 _retrieval_cache.pop(oldest[0], None)
@@ -115,7 +114,7 @@ def retrieval_cache_stats() -> dict:
         }
 
 
-# Function words that must not count as "the query overlaps this product".
+# 不能被算作「查询与该商品有词面重叠」的虚词。
 _OVERLAP_EN_STOP = frozenset({
     "the", "for", "and", "with", "under", "below", "over", "than", "less",
     "more", "best", "cheap", "cheaper", "recommend", "want", "need", "buy",
@@ -124,11 +123,11 @@ _OVERLAP_EN_STOP = frozenset({
 
 
 def _lexical_overlap(query: str, candidates: list[dict], top_n: int = 5) -> bool:
-    """True when any top candidate's title/brand shares a content token with
-    the query (CJK bigram, or an ASCII word ≥3 chars that isn't a function
-    word). Used as a no-match VETO: lexical grounding means the pool is not
-    junk even when the cross-encoder runs cold on terse phrasing ("要折叠屏").
-    Returns True (no veto) when the query has no content tokens at all."""
+    """当任一靠前候选的标题/品牌与查询共享实义 token(CJK 二元组,或长度
+    ≥3 且非虚词的 ASCII 单词)时返回 True。用作「无匹配」判定的一票否决
+    (VETO):只要有词面依据,就说明候选池不是垃圾,即便交叉编码器
+    对简短措辞("要折叠屏")打分偏冷。
+    查询完全没有实义 token 时返回 True(不否决)。"""
     q = query or ""
     grams: set[str] = set()
     for m in re.finditer(r"[一-鿿]{2,}", q):
@@ -155,13 +154,12 @@ def _negation_signals(text: str) -> bool:
 
 
 def _brand_match_terms(brand) -> set[str]:
-    """Casefolded brand + alias terms, used to compare include vs exclude.
+    """casefold 后的品牌名 + 别名词集合,用于比较 include 与 exclude。
 
-    Also expands the brand's individual whitespace/paren-split tokens: the
-    catalog stores some brands as combined strings ("Apple 苹果", "华为（HUAWEI）")
-    that have no alias cluster of their own, so without splitting they wouldn't
-    merge with their own aliases ("Apple"/"苹果") and a single brand would look
-    like several."""
+    同时会对品牌按空格/括号拆出的各个 token 做扩展:目录里有些品牌
+    存成了组合字符串("Apple 苹果"、"华为（HUAWEI）"),本身没有对应的
+    别名簇,不拆分的话它们就无法与自己的别名("Apple"/"苹果")归并,
+    导致同一个品牌看起来像好几个。"""
     terms = {str(brand).casefold()}
     try:
         from rag.retrieve.brand_origin import expand_brand_aliases
@@ -174,12 +172,12 @@ def _brand_match_terms(brand) -> set[str]:
 
 
 def _reconcile_negation_with_includes(neg: dict, retrieval_filter) -> dict:
-    """Drop from the negation set anything the user POSITIVELY asked for.
+    """把用户明确正向要求的东西从否定集合里剔除。
 
-    "有没有华为手机,不要太贵的" puts 华为 in BOTH brand_include (the WHERE keeps
-    only 华为) and — if the extractor over-reaches — exclude_brands (apply_negation
-    then drops every 华为) → 0 results. A brand the user named, or the category
-    they're shopping in, must never be excluded. Mutates and returns `neg`.
+    "有没有华为手机,不要太贵的" 会让 华为 同时进入 brand_include(WHERE 只保留
+    华为)和——如果提取器越界的话——exclude_brands(apply_negation 随后把所有
+    华为 全部丢掉)→ 0 条结果。用户点名的品牌、或正在选购的类目,绝不能被
+    排除。原地修改并返回 `neg`。
     """
     inc = getattr(retrieval_filter, "brand_include", None) or []
     if inc and neg.get("exclude_brands"):
@@ -196,11 +194,10 @@ def _reconcile_negation_with_includes(neg: dict, retrieval_filter) -> dict:
 
 
 def _distinct_brand_count(brand_include) -> int:
-    """Count DISTINCT real brands, grouping aliases. The catalog stores some
-    brands under several strings ("Apple 苹果" / "Apple" / "苹果"), so a plain
-    len() over-counts and mis-classifies a single-brand query ("推荐iphone") as
-    multi-brand — which then wrongly skips the product-line anchor filter and
-    returns the whole Apple line instead of just iPhone."""
+    """统计去重后的真实品牌数,把别名归为一组。目录里有些品牌以多个字符串
+    形式存在("Apple 苹果" / "Apple" / "苹果"),直接 len() 会数多,把单品牌
+    查询("推荐iphone")误判成多品牌——进而错误地跳过产品线锚点过滤,
+    返回整个 Apple 产品线而不是只返回 iPhone。"""
     groups: list[set[str]] = []
     for b in (brand_include or []):
         terms = _brand_match_terms(b)
@@ -218,8 +215,8 @@ _CATALOG_LOCK = threading.Lock()
 
 
 def _catalog_index() -> list[dict]:
-    """All catalog products (full dicts), loaded once. Used as a fallback source
-    so a NAMED brand/line missing from the retrieved pool can still be shown."""
+    """全部目录商品(完整 dict),只加载一次。用作兜底数据源,
+    保证被点名却没出现在检索池中的品牌/产品线仍然能展示出来。"""
     global _CATALOG_CACHE
     if _CATALOG_CACHE is None:
         with _CATALOG_LOCK:
@@ -249,9 +246,9 @@ def _entity_match(prod: dict, kind: str, m: set[str]) -> bool:
 
 
 def _catalog_fallback(kind: str, m: set[str], exclude_ids: set, prefer_subcats: set) -> dict | None:
-    """Best catalog product for a named entity not present in the result pool.
-    Prefers a product whose sub_category matches what's dominant in the result
-    (so an iPhone — not a MacBook — fills the Apple slot in a phone list)."""
+    """为没出现在结果池中的被点名实体挑选目录里最合适的商品。
+    优先选 sub_category 与结果中主流子类一致的商品
+    (这样手机列表里 Apple 的位置由 iPhone——而不是 MacBook——来补)。"""
     cands = [p for p in _catalog_index()
              if p.get("product_id") not in exclude_ids and _entity_match(p, kind, m)]
     if not cands:
@@ -262,23 +259,23 @@ def _catalog_fallback(kind: str, m: set[str], exclude_ids: set, prefer_subcats: 
 
 def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str],
                            anchors: tuple[str, ...] = (), top: int = 5) -> list[dict]:
-    """Comparison coverage: keep each NAMED entity in the top `top`, so a reranker
-    that doubles up on one doesn't drop another (a 4-brand compare losing 华为).
-    Product-line-aware: when a line anchor is named ("iphone"), that entity is
-    matched by TITLE token, not by brand — so "iphone华为小米" fills the Apple slot
-    with an iPhone, not an iPad. Promotes a missing entity's best candidate into
-    the top window, demoting the lowest slot of an over-represented brand."""
+    """对比场景的覆盖保障:让每个被点名的实体都留在前 `top` 名里,避免重排器
+    在某一个上重复下注而挤掉另一个(四品牌对比时丢掉 华为)。
+    具备产品线感知:点名了产品线锚点("iphone")时,该实体按标题 token 匹配
+    而不是按品牌——这样 "iphone华为小米" 里 Apple 的位置由 iPhone 补上,而不是
+    iPad。把缺席实体的最佳候选提升进头部窗口,
+    同时把占位过多品牌的最低名次降下去。"""
     anchor_set = {a.casefold() for a in anchors}
-    # Build coverage entities: (kind, matcher). Line anchors match by title; a
-    # brand that OWNS a present anchor (Apple owns iphone) is skipped — the
-    # precise anchor entity covers it.
+    # 构建覆盖实体:(kind, matcher)。产品线锚点按标题匹配;拥有在场锚点的
+    # 品牌(Apple 拥有 iphone)会被跳过——
+    # 更精确的锚点实体已经覆盖了它。
     entities: list[tuple[str, set[str]]] = [("title", {a}) for a in anchor_set]
     for nb in named_brands or []:
         terms = _brand_match_terms(nb)
         if anchor_set and (anchor_set & terms):
             continue
         entities.append(("brand", terms))
-    # dedupe entities
+    # 实体去重
     seen: list[set[str]] = []
     uniq = []
     for kind, m in entities:
@@ -300,9 +297,9 @@ def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str],
         if idx is not None:
             promote = tail.pop(idx)
         else:
-            # (b) catalog fallback: the named entity is nowhere in the retrieved
-            # pool — pull its best product from the full catalog so a named
-            # brand/line is NEVER answered with "目录里没有X".
+            # (b) 目录兜底:被点名的实体在检索池里完全找不到——
+            # 那就从全量目录里取它最合适的商品,保证点名的品牌/产品线
+            # 永远不会被回答成"目录里没有X"。
             existing = {p.get("product_id") for p in head + tail}
             promote = _catalog_fallback(kind, m, existing, prefer_subcats)
             if promote is None:
@@ -316,35 +313,33 @@ def _ensure_brand_coverage(candidates: list[dict], named_brands: list[str],
     return head + tail
 
 
-# R8.F.6: well-known Apple product-line tokens the user might type. When
-# any of these shows up in the query, the result list is filtered to only
-# products whose title contains the same token (case-insensitive). This
-# fixes the "iPhone13" → iPad Pro 13英寸 cross-confusion where the digit
-# "13" matched screen size everywhere.
+# R8.F.6:用户可能输入的知名 Apple 产品线 token。只要其中任何一个出现在
+# 查询里,结果列表就会被过滤为标题包含同一 token 的商品(不区分大小写)。
+# 这修复了 "iPhone13" → iPad Pro 13英寸 的交叉混淆:
+# 数字 "13" 在哪里都能匹配到屏幕尺寸。
 #
-# Conservative list — only product LINES with one-token names that
-# unambiguously identify the line. "Apple" / "苹果" alone are too broad
-# (the user could mean any Apple product). Galaxy / Pixel etc. can be
-# added when the catalog grows to include them.
+# 这是一份保守的列表——只收录单个 token 就能无歧义识别的产品线(LINE)。
+# 单独的 "Apple" / "苹果" 太宽泛(用户可能指任何 Apple 产品)。
+# Galaxy / Pixel 等可以等目录扩充收录后再加进来。
 _PRODUCT_LINE_ANCHORS: tuple[str, ...] = (
     "iphone", "ipad", "macbook", "airpods", "homepod",
     "imac", "mac mini", "mac studio", "mac pro", "vision pro",
     "apple watch",
 )
 
-# Comparison-intent markers. In a comparison the user wants to see ACROSS
-# product lines / brands, so the single-line anchor filter must not narrow to
-# one. Catches "对比X和Y", "X和Y哪个好", "X vs Y", "和华为比呢".
+# 对比意图标记。对比时用户想跨产品线/品牌看结果,
+# 所以单产品线锚点过滤不能把范围收窄到一条线。
+# 能捕获 "对比X和Y"、"X和Y哪个好"、"X vs Y"、"和华为比呢"。
 _COMPARISON_RE = re.compile(
     r"对比|对照|哪个|哪款|哪几款|vs\.?|相比|比一比|比较|[和跟与][^，。,；;]{1,16}比"
 )
 
 
 def _filter_by_product_line(text: str, candidates: list[dict]) -> list[dict]:
-    """If the user typed a known product-line anchor (e.g. "iPhone"),
-    drop candidates whose title doesn't contain that token. Fail-soft:
-    if filtering leaves nothing, return the original list unchanged so
-    the user always gets something on screen.
+    """如果用户输入了已知的产品线锚点(如 "iPhone"),
+    就丢弃标题中不含该 token 的候选。软失败(fail-soft):
+    若过滤后一个不剩,则原样返回原始列表,
+    保证用户屏幕上总有东西可看。
     """
     if not text or not candidates:
         return candidates
@@ -361,22 +356,21 @@ def _filter_by_product_line(text: str, candidates: list[dict]) -> list[dict]:
 
 
 def _is_specific_query(text: str) -> bool:
-    """Fast-path detector: when the query mentions a known catalog brand,
-    dense + BM25 hybrid already converges strongly enough that the
-    cross-encoder rerank rarely changes the top-k. Skipping rerank for
-    these queries cuts median latency from ~2s to ~300ms with no measurable
-    recall regression on Sam's 56-case eval.
+    """快速路径检测器:当查询提到了目录中的已知品牌时,稠密向量 + BM25
+    的混合检索已经收敛得足够好,交叉编码器重排序很少会改变 top-k。
+    对这类查询跳过重排序,可把中位延迟从约 2s 降到约 300ms,
+    且在 Sam 的 56 例评测集上没有可测出的召回回退。
 
-    Falls back to "not specific" on any error so the rerank still runs.
+    出现任何报错都回退为「非特定查询」,保证重排序照常运行。
     """
     if not text:
         return False
     try:
         from rag.retrieve.brand_origin import BRAND_ORIGIN
         text_lower = text.lower()
-        # Direct brand mentions — strong signal. ASCII names need letter
-        # boundaries so short aliases ("mi"/"hp"/"nb") can't fire inside
-        # ordinary English words ("programming" is not a 小米 mention).
+        # 直接提到品牌——强信号。ASCII 品牌名需要字母边界,
+        # 防止短别名("mi"/"hp"/"nb")在普通英文单词内部误触发
+        # ("programming" 并不是在提 小米)。
         for brand in BRAND_ORIGIN:
             b = brand.lower()
             if len(b) < 2:
@@ -404,17 +398,17 @@ def _heavy_retrieve(
     price_on: bool,
     relevance_gate: bool = True,
 ) -> list[dict]:
-    """The expensive, preference-INDEPENDENT retrieval pipeline (steps 1-6).
+    """昂贵且与偏好无关的检索流水线(第 1-6 步)。
 
-    Extracted from top_k (R10 Option A) so the result can be memoized in
-    the retrieval cache. Inputs fully determine the output, EXCEPT the
-    per-user 👍/👎 preference reorder which top_k applies afterward.
-    Hybrid retrieve + the cross-encoder rerank live here — they're what
-    the cache is built to skip on repeat queries.
+    从 top_k 中抽取出来(R10 方案 A),以便结果能被检索缓存 memoize。
+    输出完全由输入决定,唯一例外是按用户 👍/👎 历史做的偏好重排——
+    那一步由 top_k 在之后施加。
+    混合检索 + 交叉编码器重排序都在这里——
+    它们正是这个缓存在重复查询时要跳过的部分。
     """
     from rag.retrieve.query import Filter
 
-    # 1) Curated local expansion, then optional LLM rewrite to multi-query.
+    # 1) 人工维护的本地扩展,然后可选地用 LLM 改写成多查询(multi-query)。
     queries: list[str] = [text]
     if synonyms_on:
         try:
@@ -431,21 +425,20 @@ def _heavy_retrieve(
         except Exception:
             queries = _dedupe_queries(queries) or [text]
 
-    # 2) Hybrid retrieve top-20 across all queries, dedupe by product_id.
+    # 2) 对所有查询做混合检索 top-20,按 product_id 去重。
     try:
         from rag.retrieve.hybrid import hybrid_topk
         seen: dict[str, dict] = {}
         for q in queries:
             for h in hybrid_topk(q, k=20, f=retrieval_filter):
                 if h.product_id not in seen:
-                    # R9.A.2 — attach retrieval signals (rrf_score,
-                    # dense_rank, bm25_rank) onto the product dict so
-                    # chat.py can surface them in the "why this is
-                    # recommended" debug card. Stored in a private
-                    # "_retrieval" key that chat.py strips before the
-                    # client payload (only the cleaned subset goes to
-                    # iOS). Copy the dict to avoid polluting the shared
-                    # catalog stored in Chroma's row cache.
+                    # R9.A.2 —— 把检索信号(rrf_score、dense_rank、
+                    # bm25_rank)挂到商品 dict 上,让 chat.py 能在
+                    # 「为什么推荐这个」调试卡片里展示出来。存放在私有的
+                    # "_retrieval" 键里,chat.py 会在组装客户端 payload 前
+                    # 把它剥掉(只有清理后的子集会发到 iOS)。
+                    # 复制 dict,避免污染 Chroma 行缓存中
+                    # 共享的目录数据。
                     p = dict(h.product)
                     sig = p.setdefault("_retrieval", {})
                     sig["rrf_score"] = round(float(h.rrf_score), 4) if h.rrf_score else None
@@ -463,11 +456,11 @@ def _heavy_retrieve(
 
             candidates = [h.product for h in _keyword_fallback(text, k=20, f=retrieval_filter)]
 
-    # 3) Negation filter (drops violating candidates).
-    # R8: if the current turn has 不要, run the LLM-or-local negation extractor.
-    # Otherwise, if conversation_filter carries `exclude_keywords` from prior
-    # turns (e.g. "不要日系" said in turn 1, current turn is "再便宜点的呢"),
-    # still apply those keyword exclusions so country bans persist.
+    # 3) 否定过滤(丢弃违反约束的候选)。
+    # R8:当前轮里出现 不要 时,运行 LLM 或本地的否定提取器。
+    # 否则,如果 conversation_filter 携带了之前轮次的 `exclude_keywords`
+    # (例如第 1 轮说了"不要日系",当前轮是"再便宜点的呢"),
+    # 仍要应用这些关键词排除,让产地禁令在多轮间持续生效。
     inherited_keywords: list[str] = []
     if isinstance(retrieval_filter, Filter) and retrieval_filter.exclude_keywords:
         inherited_keywords = list(retrieval_filter.exclude_keywords)
@@ -476,7 +469,7 @@ def _heavy_retrieve(
             from rag.retrieve.negation import apply_negation, extract_negation
             if negation_on:
                 neg = extract_negation(text)
-                # Union the inherited keywords so prior-turn negations still apply.
+                # 把继承的关键词并进来,使之前轮次的否定仍然生效。
                 if inherited_keywords:
                     existing = set(neg.get("exclude_keywords", []) or [])
                     for kw in inherited_keywords:
@@ -488,18 +481,18 @@ def _heavy_retrieve(
                     "exclude_categories": [],
                     "exclude_keywords": inherited_keywords,
                 }
-            # Conflict guard: never exclude something the user EXPLICITLY asked
-            # for (positive intent wins). See _reconcile_negation_with_includes.
+            # 冲突保护:绝不排除用户明确要求的东西
+            # (正向意图优先)。见 _reconcile_negation_with_includes。
             if isinstance(retrieval_filter, Filter):
                 neg = _reconcile_negation_with_includes(neg, retrieval_filter)
             candidates = apply_negation(candidates, neg)
         except Exception:
             pass
 
-    # 3.5) R11.fix — POSITIVE origin constraint ("要国产 / 国货"). The negation
-    # extractor only handles 不要X / 除了X, so an implicit "国产" requirement
-    # never dropped foreign brands (golden case 84 leaked HOKA/adidas/迪卡侬).
-    # Standalone filter, applied before rerank so the CN-only set is reranked.
+    # 3.5) R11.fix —— 正向产地约束("要国产 / 国货")。否定提取器只处理
+    # 不要X / 除了X,所以隐式的"国产"要求从来没把外国品牌过滤掉
+    # (golden 案例 84 泄漏了 HOKA/adidas/迪卡侬)。
+    # 这是独立的过滤器,在重排序前应用,这样被重排的就是只含国产品牌的集合。
     try:
         from rag.retrieve.negation import requires_domestic, apply_domestic_filter
         if requires_domestic(text):
@@ -507,10 +500,10 @@ def _heavy_retrieve(
     except Exception:
         pass
 
-    # 3.6) R11.fix — "X以外 / X之外" excludes brand X (e.g. the multi-turn
-    # follow-up "华为以外还有吗"). Scan the RAW current-turn message
-    # (preference_text) AND the retrieval text, since the contextual rewrite
-    # may drop the 以外 clause. Fail-soft (never strand the user).
+    # 3.6) R11.fix —— "X以外 / X之外" 表示排除品牌 X(例如多轮追问
+    # "华为以外还有吗")。要同时扫描当前轮的原始消息(preference_text)
+    # 和检索文本,因为上下文改写可能会把 以外 从句丢掉。
+    # 软失败(绝不让用户两手空空)。
     try:
         from rag.retrieve.negation import except_brands
         from rag.retrieve.brand_origin import expand_brand_aliases
@@ -525,31 +518,30 @@ def _heavy_retrieve(
     except Exception:
         pass
 
-    # 4) Rerank with cross-encoder. Keep a slightly larger pool when price
-    # intent may reorder candidates into the final top-k.
-    # Fast-path (env-toggleable via RAG_FAST_PATH, default ON): skip rerank
-    # for brand-specific queries — dense+BM25 already nails those.
-    # IMPORTANT: never skip rerank when the query is a negation. Negation
-    # cases mention brands to EXCLUDE, and rerank is what pushes the right
-    # alternatives to the top (eval shows neg-acc 0.733 → 0.667 if we skip).
+    # 4) 用交叉编码器重排序。当价格意图可能把候选重新排进最终 top-k 时,
+    # 保留一个略大的候选池。
+    # 快速路径(由环境变量 RAG_FAST_PATH 开关,默认开):品牌特定的查询
+    # 跳过重排序——dense+BM25 已经足以搞定它们。
+    # 重要:查询带否定时绝不能跳过重排序。否定场景提到的品牌是要排除的,
+    # 而正是重排序把正确的替代品推到前面
+    # (评测显示一旦跳过,否定准确率从 0.733 掉到 0.667)。
     has_price_filter = bool(retrieval_filter and retrieval_filter.has_price_constraint)
     rerank_limit = max(k, 20) if has_price_filter else (max(k, 10) if price_on else k)
     fast_path_on = os.getenv("RAG_FAST_PATH", "1") == "1"
     skip_rerank = fast_path_on and _is_specific_query(text) and not negation_on
-    # R10.perf — cap how many candidates the cross-encoder scores. The
-    # cross-encoder cost is ~linear in candidate count, and the hybrid
-    # pool is already RRF-ordered, so the relevant items sit near the top.
-    # Capping the rerank INPUT (not the output) trades a little tail recall
-    # for a big CPU-latency cut on the VM. Env-tunable; 0 = no cap = the
-    # original "rerank all ~20" behaviour.
+    # R10.perf —— 限制交叉编码器要打分的候选数量。交叉编码器的开销与候选数
+    # 大致呈线性,而混合检索池已经按 RRF 排好序,相关条目就在前部。
+    # 限制重排序的输入(而不是输出),用一点尾部召回换 VM 上一大截
+    # CPU 延迟。可用环境变量调节;0 = 不限制 = 原本的
+    # 「全部 ~20 条都重排」行为。
     rerank_input_cap = int(os.getenv("RERANK_INPUT_CAP", "0"))
     if rerank_input_cap > 0 and len(candidates) > rerank_input_cap:
         candidates = candidates[:rerank_input_cap]
-    # R13 — was `len(candidates) > k` ("nothing to cut, skip the cost"), but
-    # the relevance gate below needs the cross-encoder SCORES even when the
-    # pool is small: a hard filter can narrow to ≤k junk items ("家居香薰" →
-    # 5 家居家具 products, none of them 香薰) and ungated small pools streamed
-    # straight to the client. Scoring ≤k pairs is microseconds-cheap.
+    # R13 —— 原本的条件是 `len(candidates) > k`(「没东西可砍,省掉这笔开销」),
+    # 但下面的相关性闸门即使候选池很小也需要交叉编码器的分数:硬过滤
+    # 可能把池子收窄到 ≤k 个垃圾条目("家居香薰" → 5 个家居家具商品,
+    # 没有一个是香薰),没过闸门的小池子曾被直接流式发给客户端。
+    # 给 ≤k 个文本对打分只有微秒级开销。
     did_rerank = rerank_on and len(candidates) > 1 and not skip_rerank
     if did_rerank:
         try:
@@ -561,47 +553,44 @@ def _heavy_retrieve(
     else:
         candidates = candidates[:rerank_limit]
 
-    # 4.2) R13 cluster-C fix — relevance gate on the reranked pool. top_k used
-    # to return k cards no matter how irrelevant: "医用制氧机" streamed the one
-    # real match plus 4 random skincare cards; "电饭煲" (not in catalog at all)
-    # streamed 5 noodle/soy-sauce cards while the LLM text said "没有".
+    # 4.2) R13 C 类问题修复 —— 给重排后的候选池加相关性闸门。top_k 过去
+    # 无论多不相关都返回 k 张卡片:"医用制氧机" 流出了 1 个真匹配外加
+    # 4 张随机护肤卡;"电饭煲"(目录里根本没有)流出了 5 张面条/酱油卡,
+    # 而 LLM 文本却说"没有"。
     #
-    # Absolute scores do NOT separate cleanly across query shapes (golden
-    # regression: "要折叠屏" relevant top 0.04 vs 电饭煲 junk top 0.04), so the
-    # gate is layered:
-    #   * NO-MATCH floor — returns [] — fires only when ALL THREE hold:
-    #     (a) no SPECIFIC hard-filter signal shaped the pool (sub-category /
-    #         brand / price / exclusions from the query or conversation mean
-    #         terse constraint turns like "品牌不限,预算加到3500" are matched
-    #         BY THE FILTER, whatever their text-vs-doc score). A bare
-    #         CATEGORY pin does NOT exempt: "家居香薰" pins 家居家具 via the
-    #         家居 prefix, yet the aisle has no 香薰 — that's exactly a
-    #         no-match;
-    #     (b) no lexical overlap — no query CJK-bigram / ASCII word appears in
-    #         any top candidate's title+brand ("要折叠屏" overlaps 折叠屏手机
-    #         titles and is saved; 电饭煲 overlaps nothing);
-    #     (c) top sigmoid score below the per-model junk floor (ZH base:
-    #         junk ≤0.16; v2-m3 runs colder, all-junk ≤0.02).
-    #   * TAIL trim — only when the TOP card is itself confidently relevant
-    #     (top ≥ ceiling; otherwise the whole pool is cold — negation phrasing
-    #     chills the cross-encoder, e.g. "化妆水不要韩系" tops at 0.08 with the
-    #     true answer at 0.009 — and relative ratios are noise). With a hot
-    #     top, drop a card only if BOTH far below the top (score < top×ratio)
-    #     AND absolutely junk-low (< ceiling) — the 制氧机 skincare riders
-    #     (0.107 vs top 0.855) die, same-aisle runners-up survive.
-    # Skipped when rerank didn't run (brand fast-path — hard filters already
-    # imply relevance) and for scene queries (`relevance_gate=False` from
-    # chat.py: "三亚度假要准备什么" legitimately scores 0.046 and WANTS
-    # cross-category diversity).
+    # 绝对分数在不同查询形态之间分不干净(golden 回归:"要折叠屏" 的相关项
+    # top 是 0.04,电饭煲 的垃圾项 top 也是 0.04),所以闸门做了分层:
+    #   * 无匹配下限(NO-MATCH floor)—— 返回 [] —— 仅当三个条件全部成立:
+    #     (a) 没有具体的硬过滤信号塑造过候选池(来自查询或对话的子类/
+    #         品牌/价格/排除条件,意味着像 "品牌不限,预算加到3500" 这种
+    #         简短约束轮是被过滤器匹配上的,其文本-文档分数高低无所谓)。
+    #         单独钉住一个大类目不算豁免:"家居香薰" 通过 家居 前缀钉住了
+    #         家居家具,但这个货架上根本没有 香薰——这恰恰就是无匹配;
+    #     (b) 没有词面重叠——查询的任何 CJK 二元组 / ASCII 单词都没出现在
+    #         任何靠前候选的标题+品牌里("要折叠屏" 与 折叠屏手机 的标题
+    #         有重叠,所以保住;电饭煲 与谁都不重叠);
+    #     (c) 最高 sigmoid 分数低于按模型设定的垃圾下限(ZH base 模型:
+    #         垃圾 ≤0.16;v2-m3 打分更冷,全垃圾时 ≤0.02)。
+    #   * 尾部裁剪(TAIL trim)—— 仅当第一张卡本身已确信相关时才裁
+    #     (top ≥ ceiling;否则整池都是冷分——否定措辞会让交叉编码器打分
+    #     变冷,例如 "化妆水不要韩系" 最高分 0.08 而真答案只有 0.009——
+    #     这时相对比值全是噪声)。top 分够热时,只有同时满足「远低于 top
+    #     (score < top×ratio)」且「绝对值低到垃圾级(< ceiling)」才丢卡
+    #     —— 制氧机 结果里搭车的护肤品(0.107 对 top 0.855)被裁掉,
+    #     同货架的第二名得以幸存。
+    # 重排序没运行时跳过(品牌快速路径——硬过滤本身已蕴含相关性);
+    # 场景类查询也跳过(chat.py 传入 `relevance_gate=False`:
+    # "三亚度假要准备什么" 合理地只拿 0.046 分,而且它就是想要
+    # 跨类目的多样性)。
     if relevance_gate and did_rerank and candidates and os.getenv("RAG_RELEVANCE_GATE", "1") == "1":
         _sig0 = candidates[0].get("_retrieval") or {}
         _top_score = _sig0.get("rerank_score")
         if _top_score is not None:
             _multi = "v2-m3" in str(_sig0.get("rerank_model") or "")
-            # ZH floor 0.10: nonexistent products top out ≤0.08 even with a
-            # warm "推荐个X" phrasing (香薰 0.060 / 电动牙刷 0.076 / 扫地机器人
-            # 0.039), while legit category browses both carry a filter (exempt)
-            # AND score ≥0.85. The colder multilingual model keeps 0.025.
+            # ZH 下限取 0.10:目录里不存在的商品即便用偏热的 "推荐个X" 措辞,
+            # 最高也只到 ≤0.08(香薰 0.060 / 电动牙刷 0.076 / 扫地机器人
+            # 0.039);而正经的类目浏览既带过滤器(豁免)、分数又 ≥0.85。
+            # 打分更冷的多语模型沿用 0.025。
             _floor = (float(os.getenv("RAG_NOMATCH_FLOOR_MULTI", "0.025")) if _multi
                       else float(os.getenv("RAG_NOMATCH_FLOOR_ZH", "0.10")))
             _filter_specific = bool(retrieval_filter is not None and (
@@ -627,29 +616,28 @@ def _heavy_retrieve(
                     )
                 ]
 
-    # 4.5) Product-line anchor filter (R8.F.6).
+    # 4.5) 产品线锚点过滤(R8.F.6)。
     #
-    # User typed "iPhone13" / "iPhone 13" and got iPad Pro 13英寸. Root cause:
-    # the digit "13" tokenizes the same as "13英寸" (screen size), so iPad
-    # Pro / MacBook 13 inch products scored high on BM25 *and* the
-    # cross-encoder couldn't separate "iPhone 13 model" from "iPad 13 inch"
-    # semantically — both look like "Apple device, 13".
+    # 用户输入 "iPhone13" / "iPhone 13" 却拿到 iPad Pro 13英寸。根因:
+    # 数字 "13" 的分词结果与 "13英寸"(屏幕尺寸)一样,于是 iPad Pro /
+    # MacBook 13 英寸的商品在 BM25 上得分很高,*而且*交叉编码器在语义上
+    # 也分不开 "iPhone 13 机型" 和 "iPad 13 英寸"——
+    # 两者看起来都是「Apple 设备,13」。
     #
-    # Fix is product-line aware: if the user explicitly named a product line
-    # (iPhone / iPad / MacBook / AirPods / Watch), require that token to
-    # appear in the result title. Fail-soft: if the filter would empty the
-    # list, keep the original rerank result (we never strand the user).
-    # The product-line anchor filter is for SINGLE-line lookups ("iPhone13" →
-    # not iPad). In a comparison ("iPhone和小米哪个好") or any query naming ≥2
-    # brands it wrongly strips the OTHER brand → "目录里没有小米". Skip it there;
-    # the reranker already surfaces both (verified live on the 145-item index).
+    # 修复方案具备产品线感知:如果用户明确点名了产品线(iPhone / iPad /
+    # MacBook / AirPods / Watch),就要求该 token 出现在结果标题里。
+    # 软失败:若过滤会清空列表,则保留原始重排结果(绝不让用户两手空空)。
+    # 产品线锚点过滤只用于单产品线查找("iPhone13" → 不要 iPad)。在对比
+    # ("iPhone和小米哪个好")或任何点名 ≥2 个品牌的查询里,它会错误地剥掉
+    # 另一个品牌 → "目录里没有小米"。这种情况下跳过它;
+    # 重排器已经能把两者都排上来(在 145 条目索引上实测验证过)。
     _is_comparison = bool(_COMPARISON_RE.search(text))
     _multi_brand = bool(retrieval_filter) and _distinct_brand_count(getattr(retrieval_filter, "brand_include", None)) >= 2
     if not (_is_comparison or _multi_brand):
         candidates = _filter_by_product_line(text, candidates)
 
-    # 5) Re-check hard constraints after retrieval. Foreign-source products
-    # receive live CNY values only here, so RMB budgets become strict now.
+    # 5) 检索后复查硬约束。海外货源商品到这一步才拿到实时折算的人民币价,
+    # 所以人民币预算从现在起才变成严格约束。
     if retrieval_filter:
         from rag.retrieve.query import apply_product_filter
         if has_price_filter:
@@ -658,7 +646,7 @@ def _heavy_retrieve(
             candidates = normalize_product_prices(candidates)
         candidates = apply_product_filter(candidates, retrieval_filter, strict_cny_price=True)
 
-    # 6) Price intent is a preference layer after hard constraints.
+    # 6) 价格意图是排在硬约束之后的偏好层。
     if price_on:
         try:
             from app.services.price_intent import apply_price_intent, parse_price_intent
@@ -674,9 +662,9 @@ def _heavy_retrieve(
         except Exception:
             pass
 
-    # Per-entity coverage: a comparison OR a bare multi-brand list ("iphone华为
-    # 小米呢") should keep EACH named brand in the top-5, so the reranker doubling
-    # up on one doesn't drop another (was losing iPhone here).
+    # 按实体保障覆盖:无论是对比、还是裸的多品牌列表("iphone华为小米呢"),
+    # 都应让每个被点名的品牌留在 top-5 里,避免重排器在一个上重复下注
+    # 而挤掉另一个(之前在这里丢过 iPhone)。
     if (_is_comparison or _multi_brand) and retrieval_filter and (getattr(retrieval_filter, "brand_include", None) or []):
         _anchors = tuple(a for a in _PRODUCT_LINE_ANCHORS if a in text.lower())
         candidates = _ensure_brand_coverage(candidates, retrieval_filter.brand_include, anchors=_anchors, top=5)
@@ -694,10 +682,10 @@ def top_k(
     user_id: str | None = None,
     relevance_gate: bool = True,
 ) -> list[dict]:
-    """Hybrid-retrieve + (optional) rewrite + negation-filter + rerank → top-k products.
+    """混合检索 + (可选)改写 + 否定过滤 + 重排序 → top-k 商品。
 
-    R9.B: when `user_id` is given, a gentle preference prior (from the
-    user's 👍/👎 history) re-orders the final list before truncation.
+    R9.B:给定 `user_id` 时,用一个温和的偏好先验(来自用户的 👍/👎
+    历史)在截断前对最终列表重新排序。
     """
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
@@ -709,45 +697,41 @@ def top_k(
     from rag.retrieve.constraints import build_retrieval_filter
     from rag.retrieve.query import Filter
 
-    # R8.F.7 — Topic-switch detection (generalized in R8.F.8).
+    # R8.F.7 —— 话题切换检测(R8.F.8 中做了泛化)。
     #
-    # Original narrow version only caught Apple product-line anchors
-    # (iPhone / iPad / MacBook / AirPods / ...). User feedback (and the
-    # 'snacks after skincare' regression) showed that's whack-a-mole:
-    # switching to "我想买点零食" or "Nike 跑鞋" still let the inherited
-    # 美妆护肤 filter strand retrieval.
+    # 最初的窄版本只能捕获 Apple 产品线锚点(iPhone / iPad / MacBook /
+    # AirPods / ...)。用户反馈(以及「护肤之后接零食」那次回归)表明
+    # 这是在打地鼠:切换到 "我想买点零食" 或 "Nike 跑鞋" 时,继承下来的
+    # 美妆护肤 过滤器仍会让检索颗粒无收。
     #
-    # Generalized to two complementary signals — either flips the switch:
+    # 泛化为两个互补信号——任一命中都触发切换:
     #
-    #   Path A  Hard-coded product-LINE anchors (iPhone / iPad / etc.).
-    #           These tokens are SKU-line names that build_retrieval_filter
-    #           doesn't know how to map to a category. Keep the explicit
-    #           list as a safety net.
+    #   路径 A  硬编码的产品线锚点(iPhone / iPad 等)。这些 token 是
+    #           SKU 产品线名,build_retrieval_filter 不知道怎么把它们
+    #           映射到类目。保留这份显式列表当安全网。
     #
-    #   Path B  Re-extract a Filter from the RAW current user message
-    #           (intent_text, NOT the contextual-rewrite'd text). If it
-    #           carries a category / sub_category / brand_include signal
-    #           that differs from the inherited conversation_filter, the
-    #           user has clearly named a new topic — reset.
+    #   路径 B  从当前用户的原始消息(intent_text,而不是经过上下文改写
+    #           的文本)重新提取一个 Filter。如果它携带的 category /
+    #           sub_category / brand_include 信号与继承的
+    #           conversation_filter 不同,说明用户明确点了新话题——重置。
     #
-    # Either path firing drops conversation_filter AND substitutes the
-    # raw message for the rewritten text. "再便宜点的"-style follow-ups
-    # (no category/brand signal of their own) still inherit normally.
+    # 任一路径触发都会丢弃 conversation_filter,并用原始消息替换改写后
+    # 的文本。"再便宜点的" 这类追问(自身没有类目/品牌信号)
+    # 仍然正常继承。
     raw_message_for_anchor = intent_text or text or ""
     topic_switch = False
 
-    # Path A: explicit product-line anchor.
+    # 路径 A:显式的产品线锚点。
     if raw_message_for_anchor and any(
         a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS
     ):
         topic_switch = True
 
-    # Path B (R8.F.8.1, expanded): conflict-check against inherited filter
-    # on EITHER category OR brand. Earlier version only checked category,
-    # which let inherited brand_include = ["Apple"] (from a prior iPad
-    # turn) keep filtering retrieval even when the new query carried a
-    # clear category signal — that was the "护肤品 / 鞋子 / 纸尿片 returns
-    # 0 results after iPad turns" failure.
+    # 路径 B(R8.F.8.1,扩充版):对继承的过滤器在类目或品牌任一维度做
+    # 冲突检查。早期版本只检查类目,导致继承的 brand_include = ["Apple"]
+    # (来自之前的 iPad 轮)即使新查询带有清晰的类目信号也继续过滤检索
+    # ——这就是「iPad 轮之后 护肤品 / 鞋子 / 纸尿片 返回 0 条结果」
+    # 那次故障。
     if not topic_switch and isinstance(conversation_filter, Filter) and raw_message_for_anchor:
         try:
             raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
@@ -765,42 +749,40 @@ def top_k(
         inh_cat = conversation_filter.category
         inh_brands = set((conversation_filter.brand_include or []))
 
-        # Category conflict: raw has a new category signal that doesn't
-        # match inherited (including "inherited had no category but
-        # something else like brand was sticky").
+        # 类目冲突:原始消息带有与继承不一致的新类目信号
+        # (也包括「继承里本来没有类目,但品牌之类的其它条件
+        # 还黏着」的情况)。
         cat_conflict = bool(raw_cat and raw_cat != inh_cat)
 
-        # Brand conflict: raw has brand_include and it doesn't intersect
-        # inherited's. Triggers e.g. "推荐 OPPO 手机" after iPad turns
-        # where conversation_filter inherited brand_include = ["Apple"].
+        # 品牌冲突:原始消息有 brand_include 且与继承的不相交。
+        # 例如 iPad 轮之后说 "推荐 OPPO 手机",而 conversation_filter
+        # 继承了 brand_include = ["Apple"],就会触发。
         brand_conflict = bool(raw_brands and inh_brands and not (raw_brands & inh_brands))
 
-        # Also: raw has a category but inherited has a brand_include of
-        # a different ecosystem (typical: iPad turns leave brand=Apple,
-        # then user says "护肤品" — different category, different brand).
+        # 另外:原始消息有类目,而继承里带着另一个生态的 brand_include
+        # (典型场景:iPad 轮留下 brand=Apple,然后用户说 "护肤品"
+        # ——类目不同,品牌也不同)。
         category_vs_brand_conflict = bool(
             raw_cat and inh_brands and not raw_brands and raw_cat != inh_cat
         )
 
-        # R9.A.1 — Path C: sub_categories conflict.
-        # The leakiest dimension per Sam's CONTEXT_CONTAMINATION_DIAGNOSIS.md.
-        # Inherited sub_categories from an earlier turn (e.g. ['洁面']
-        # from "推荐适合敏感肌的洁面") survive through unrelated turns
-        # (iPad / 鞋子 / 纸尿片) because none of them produce a category
-        # signal AND none mention 洁面. By turn 5, the final query
-        # "护肤品" matches the inherited category (美妆护肤) so
-        # cat_conflict above doesn't fire — but sub_categories=['洁面']
-        # is still there, narrowing retrieval to a single product class.
+        # R9.A.1 —— 路径 C:sub_categories 冲突。
+        # 按 Sam 的 CONTEXT_CONTAMINATION_DIAGNOSIS.md,这是泄漏最严重的维度。
+        # 早前轮次继承下来的 sub_categories(例如 "推荐适合敏感肌的洁面"
+        # 留下的 ['洁面'])会在不相关的轮次(iPad / 鞋子 / 纸尿片)中一路
+        # 存活,因为这些轮次都不产生类目信号,也都没提到 洁面。到第 5 轮,
+        # 最终查询 "护肤品" 与继承的类目(美妆护肤)匹配,所以上面的
+        # cat_conflict 不会触发——但 sub_categories=['洁面'] 还在,
+        # 把检索收窄到单一商品类。
         #
-        # Detection: inherited has sub_categories AND
-        #   (a) current raw turn extracts its OWN sub_categories that
-        #       don't intersect the inherited ones, OR
-        #   (b) current turn produced no sub_categories AND its text
-        #       doesn't mention any inherited sub_category token AND
-        #       it carries a fresh topical signal (category or brand).
-        # Case (b) treats "iPad" / "护肤品" / etc. as topic switches
-        # without false-positive-ing on "再便宜点的" follow-ups (which
-        # have no category/brand signal of their own).
+        # 检测条件:继承里有 sub_categories,且
+        #   (a) 当前原始轮提取出了自己的 sub_categories,且与继承的
+        #       不相交,或
+        #   (b) 当前轮没有产出 sub_categories,且其文本没提到任何继承的
+        #       sub_category token,且它带有新的话题信号(类目或品牌)。
+        # 情况 (b) 把 "iPad" / "护肤品" 等当成话题切换,
+        # 同时不会在 "再便宜点的" 这类追问上误报
+        # (它们自身没有类目/品牌信号)。
         inh_sub_cats = list(conversation_filter.sub_categories or [])
         if conversation_filter.sub_category and conversation_filter.sub_category not in inh_sub_cats:
             inh_sub_cats.append(conversation_filter.sub_category)
@@ -816,20 +798,20 @@ def top_k(
                 tok and tok in raw_message_for_anchor for tok in inh_sub_cats
             )
             if raw_sub_cats:
-                # Case (a): both have sub_cats — conflict if no overlap.
+                # 情况 (a):双方都有 sub_cats——没有交集即为冲突。
                 sub_conflict = not (set(raw_sub_cats) & set(inh_sub_cats))
             elif not text_mentions_inherited and raw_cat:
-                # Case (b): inherited has stale sub_cats, current turn
-                # has a fresh CATEGORY signal but doesn't reference any
-                # inherited sub_cat → topic switch.
+                # 情况 (b):继承里有过期的 sub_cats,当前轮带有新的
+                # 类目信号、却没有引用任何继承的 sub_cat
+                # → 话题切换。
                 sub_conflict = True
             elif not text_mentions_inherited and raw_brands:
-                # Case (c) — R13 fix: a BRAND-only turn ("苹果的呢" after
-                # 推荐笔记本) is a refinement of the same shopping need when
-                # that brand sells products in the inherited aisle; treating
-                # it as a switch dropped the whole conversation filter and
-                # lost the category. Only switch when the named brand has NO
-                # products in the inherited category (e.g. OPPO after 洁面).
+                # 情况 (c)—— R13 修复:只点了品牌的轮次(推荐笔记本 之后
+                # 说 "苹果的呢"),当该品牌在继承的货架上有商品在售时,
+                # 其实是同一购物需求的细化;把它当成切换会丢掉整个对话
+                # 过滤器,连类目一起丢失。只有当被点名的品牌在继承类目下
+                # 没有任何商品时(例如 洁面 之后说 OPPO)
+                # 才视为切换。
                 inh_cat_for_brands = conversation_filter.category
                 if inh_cat_for_brands:
                     try:
@@ -850,9 +832,9 @@ def top_k(
 
     if topic_switch:
         conversation_filter = None
-        text = raw_message_for_anchor  # bypass the contextual-query rewriter
-        # The raw message lost chat.py's English augmentation — re-apply so an
-        # English topic switch still carries its Chinese category hints.
+        text = raw_message_for_anchor  # 绕过上下文查询改写器
+        # 原始消息丢掉了 chat.py 做的英文增强——重新应用一次,
+        # 让英文的话题切换仍然带着对应的中文类目提示。
         try:
             from rag.retrieve.english_terms import augment_english_query
 
@@ -861,20 +843,19 @@ def top_k(
             pass
 
     if hard_filters_on and isinstance(conversation_filter, Filter):
-        # Conversation state is authoritative, including an empty Filter after
-        # the user explicitly cancels conditions inherited from earlier turns.
+        # 对话状态是权威的——包括用户明确取消了早前轮次继承的条件之后
+        # 留下的空 Filter。
         retrieval_filter = conversation_filter
     else:
         retrieval_filter = build_retrieval_filter(text if hard_filters_on else "", filters)
     preference_text = intent_text if intent_text is not None else text
 
-    # R10 Option A — retrieval-result cache. Steps 1-6 (query expansion →
-    # hybrid → negation → rerank → anchor filter → hard constraints → price
-    # intent) are expensive and preference-INDEPENDENT, so memoize them.
-    # On a hit we skip hybrid + the v2-m3 cross-encoder entirely — that's
-    # the dominant latency, especially on the English path. The cheap,
-    # user-specific preference reorder (step 7) stays below, OUTSIDE the
-    # cache, so 👍/👎 still re-orders live and proposal #12 is preserved.
+    # R10 方案 A —— 检索结果缓存。第 1-6 步(查询扩展 → 混合检索 →
+    # 否定过滤 → 重排序 → 锚点过滤 → 硬约束 → 价格意图)既昂贵又与偏好
+    # 无关,所以做 memoize。命中时完全跳过混合检索 + v2-m3 交叉编码器
+    # ——那是延迟的大头,英文链路尤甚。廉价、用户相关的偏好重排
+    # (第 7 步)留在下面、缓存之外,
+    # 这样 👍/👎 仍能实时调整顺序,提案 #12 也得以保留。
     _rc_key = _retrieval_cache_key(
         text, k, retrieval_filter, f"{preference_text}|gate={relevance_gate}"
     )
@@ -894,10 +875,10 @@ def top_k(
         )
         _retrieval_cache_put(_rc_key, candidates)
 
-    # 7) R9.B — closed-loop preference prior (proposal #12). Gentle,
-    # bounded re-order by the user's 👍/👎 history. No-ops when the user
-    # has no recorded preferences. Applied LAST so relevance + hard
-    # constraints are already settled; preference only nudges near-ties.
+    # 7) R9.B —— 闭环偏好先验(提案 #12)。按用户的 👍/👎 历史做温和、
+    # 有界的重排。用户没有偏好记录时等于不操作。放在最后一步应用,
+    # 此时相关性 + 硬约束都已尘埃落定;
+    # 偏好只在几乎打平的候选之间轻推一下。
     pref_on = os.getenv("RAG_PREFERENCES", "1") == "1"
     if pref_on and user_id:
         try:
@@ -913,7 +894,7 @@ def top_k(
 
 
 def top_k_image(image_bytes: bytes, k: int = 3) -> list[dict]:
-    """Visually similar top-k via CLIP. Empty list if CLIP isn't available."""
+    """用 CLIP 找视觉相似的 top-k。CLIP 不可用时返回空列表。"""
     try:
         from rag.retrieve.query import query_image
         hits = query_image(image_bytes, k=k)

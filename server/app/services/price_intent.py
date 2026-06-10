@@ -1,4 +1,4 @@
-"""Lightweight price-intent parsing and candidate ordering."""
+"""轻量级的价格意图(price-intent)解析与候选商品排序。"""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ class PriceIntent:
         return self.direction is not None or self.price_min is not None or self.price_max is not None
 
 
-# R13 — English direction/bound phrasing too, so "any cheaper ones?" sorts
-# ascending instead of keeping the reranker's (often pricier-first) order.
+# R13 — 同时覆盖英文的方向/上下限表述, 这样 "any cheaper ones?" 会按价格升序排,
+# 而不是沿用 reranker 的原始顺序(它往往把贵的排在前面)。
 _CHEAP_RE = re.compile(
     r"便宜|平价|性价比|低价|划算|预算有限|预算友好"
     r"|\bcheap(?:er|est)?\b|\bafford|\bbudget[- ]?friendly|\bless expensive|\blower price",
@@ -35,8 +35,8 @@ _EXPENSIVE_RE = re.compile(
     re.IGNORECASE,
 )
 _PRICE_MAX_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以内|以下|内|封顶|不超过|不要超过)")
-# R13 — marker-FIRST phrasing ("不超过300"); the number-first regex above
-# never matched it (its 不超过 branch needs the marker AFTER the number).
+# R13 — 处理标记词在前的说法("不超过300"); 上面那条"数字在前"的正则
+# 永远匹配不到这种写法(它的 不超过 分支要求标记词出现在数字之后)。
 _PRICE_MAX_PREFIX_RE = re.compile(r"(?:不要?超过|最多|顶多)\s*[¥￥]?\s*(\d+(?:\.\d+)?)\s*(?:元|块)?")
 _PRICE_MIN_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以上|起|起步)")
 _PRICE_MAX_EN_RE = re.compile(
@@ -61,10 +61,10 @@ def parse_price_intent(text: str) -> PriceIntent:
     direction: PriceDirection | None = None
     cheap = bool(_CHEAP_RE.search(text))
     expensive = bool(_EXPENSIVE_RE.search(text))
-    # A complaint that the CURRENT results are too cheap / too expensive flips
-    # the intent and takes precedence: "太便宜了 / 嫌便宜 / 不够贵" rejects cheap →
-    # wants expensive (mirror for 太贵). Without this, "这些太便宜了，推荐一些贵的"
-    # carries both 便宜+贵 and cancels to no direction → expensive never sorts.
+    # 用户抱怨"当前结果"太便宜/太贵时, 意图要取反且优先级更高:
+    # "太便宜了 / 嫌便宜 / 不够贵" 是在嫌弃便宜 → 实际想要贵的(太贵的情形对称)。
+    # 不做这层处理, "这些太便宜了，推荐一些贵的" 会同时命中 便宜+贵 两个方向,
+    # 互相抵消后没有方向 → 永远不会按贵的排序。
     too_cheap = bool(re.search(r"太便宜|嫌便宜|不够贵|不够高端", text))
     too_pricey = bool(re.search(r"太贵|嫌贵|不够便宜", text))
     if too_cheap and not too_pricey:
@@ -84,10 +84,10 @@ def parse_price_intent(text: str) -> PriceIntent:
 
 
 def apply_price_intent(products: Sequence[dict], text: str, *, enforce_ranges: bool = True) -> list[dict]:
-    """Filter explicit price ranges, then stable-sort by price preference.
+    """先按显式价格区间过滤, 再按价格偏好做稳定排序(stable sort)。
 
-    The input order is assumed to already encode semantic relevance from the
-    retriever/reranker. Price is only a final preference layer.
+    输入顺序默认已经携带了检索器/reranker 给出的语义相关性,
+    价格只作为最后一层偏好叠加, 不推翻语义排序。
     """
     intent = parse_price_intent(text)
     ranked = list(products)
@@ -106,8 +106,8 @@ def apply_price_intent(products: Sequence[dict], text: str, *, enforce_ranges: b
             (i, p) for i, p in with_index
             if (price := _price(p)) is not None and price <= intent.price_max
         ]
-    # A declared RMB range is a hard constraint. Returning over-budget items
-    # would contradict the user; an empty set lets the answer say no match.
+    # 用户明确给出的人民币价格区间是硬约束: 返回超预算的商品等于跟用户唱反调;
+    # 宁可返回空集, 让回答里直接说"没有符合条件的商品"。
     if not with_index and intent.price_min is None and intent.price_max is None:
         with_index = [(i, p) for i, p in enumerate(ranked)]
 
@@ -125,7 +125,7 @@ def apply_price_intent(products: Sequence[dict], text: str, *, enforce_ranges: b
 
 
 def _price(product: dict) -> float | None:
-    """Return a comparable RMB amount, or none when foreign FX is unavailable."""
+    """返回可比较的人民币金额; 外币商品缺少汇率(FX)换算时返回 None。"""
     raw = product.get("price_cny")
     if raw is None:
         provenance = product.get("provenance")

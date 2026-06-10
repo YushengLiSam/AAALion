@@ -1,6 +1,6 @@
-"""Top-k retrieval over the text index. Uses the Chroma store via
-``rag.store``. Returns one product dict per hit (de-duplicated by
-product_id and ordered by best chunk score).
+"""文本索引上的 Top-k 检索。通过 ``rag.store`` 访问 Chroma 存储。
+每个命中返回一个商品 dict(按 product_id 去重,并按该商品最佳
+chunk 得分排序)。
 """
 
 from __future__ import annotations
@@ -21,15 +21,15 @@ class Filter:
     sub_categories: list[str] | None = None
     brand_include: list[str] | None = None
     brand_exclude: list[str] | None = None
-    # R8: country-keyword exclusions ("日系" / "美系" / "韩系" ...) extracted
-    # locally at turn time and carried across multi-turn conversations.
-    # Consumed by `apply_negation` via `brand_origin.excluded_countries()`.
-    # Stored here (not just as a per-turn `apply_negation` call) so that a
-    # turn like "再便宜点的呢" inherits "不要日系" from a prior turn.
+    # R8: 国别关键词排除("日系" / "美系" / "韩系" ...),在每轮对话时本地抽取,
+    # 并在多轮对话间持续生效。
+    # 由 `apply_negation` 经 `brand_origin.excluded_countries()` 消费。
+    # 之所以存在这里(而不是只做每轮一次的 `apply_negation` 调用),是为了让
+    # "再便宜点的呢" 这样的后续轮次能继承前一轮的 "不要日系" 约束。
     exclude_keywords: list[str] | None = None
     price_max_cny: float | None = None
     price_min_cny: float | None = None
-    # Kept for callers created before CNY semantics were made explicit.
+    # 为兼容在 CNY 语义显式化之前写的调用方而保留。
     price_max: float | None = None
     price_min: float | None = None
 
@@ -100,8 +100,8 @@ def _build_where(f: Filter | None) -> dict | None:
             cny_price_parts.append({"base_price": {"$gte": f.effective_price_min_cny}})
         if f.effective_price_max_cny is not None:
             cny_price_parts.append({"base_price": {"$lte": f.effective_price_max_cny}})
-        # Foreign-source amounts cannot be compared with a RMB budget until
-        # response-time FX normalization. Keep them in the candidate pool.
+        # 外币商品的金额在响应阶段做汇率(FX)归一化之前,无法与人民币预算直接比较,
+        # 因此先保留在候选池中。
         parts.append(
             {
                 "$or": [
@@ -116,11 +116,11 @@ def _build_where(f: Filter | None) -> dict | None:
 
 
 def product_matches_filter(product: dict, f: Filter | None, *, strict_cny_price: bool = False) -> bool:
-    """Apply product-level filtering shared by dense/BM25 and final results.
+    """商品级过滤,供稠密检索/BM25 与最终结果共用。
 
-    During retrieval, foreign-source products pass RMB price bounds because
-    their live CNY value is not indexed. After currency normalization,
-    ``strict_cny_price=True`` enforces that budget with ``price_cny``.
+    检索阶段,外币商品会直接通过人民币价格区间约束——因为其实时 CNY 价格
+    并未入索引。完成货币归一化后,用 ``strict_cny_price=True`` 基于
+    ``price_cny`` 严格执行预算约束。
     """
     if f is None:
         return True
@@ -185,8 +185,8 @@ def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
 
 
 def query_image(image_bytes: bytes, k: int = 5) -> list[Hit]:
-    """Top-k visually similar products. Embeds the input image with OpenCLIP
-    and queries the `products_image` Chroma collection."""
+    """返回视觉上最相似的 Top-k 商品。用 OpenCLIP 对输入图片做向量化,
+    再查询 `products_image` 这个 Chroma collection。"""
     try:
         from rag.ingest.embed_image import embed_image_bytes
         from rag.store import query_image as store_query_image

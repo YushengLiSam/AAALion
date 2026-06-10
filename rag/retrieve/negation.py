@@ -1,10 +1,9 @@
-"""Negation / exclusion extraction.
+"""否定 / 排除条件抽取。
 
-When a user says "不要日系品牌, 不要含酒精, 除了 iPhone", we need to lift
-those constraints out of the prose so we can apply them as filters on the
-catalog rather than relying on the LLM to obey them post-hoc.
+当用户说"不要日系品牌, 不要含酒精, 除了 iPhone"时, 需要把这些约束从自然语言
+中抽取出来, 直接作为商品目录上的过滤条件来执行, 而不是事后指望 LLM 自觉遵守。
 
-Returns a structured dict the retrieval layer can consume:
+返回一个检索层可直接消费的结构化 dict:
 
 ```
 {
@@ -23,22 +22,21 @@ import re
 import urllib.request
 
 
-# Negation triggers. "不想要/不需要" listed before "不要" (leftmost-alternative
-# clarity). "(?<!有)没有" so "有没有X" (a POSITIVE availability question, e.g.
-# "有没有华为手机") is NOT read as "exclude X" — only a bare "没有X" still counts.
+# 否定触发词。"不想要/不需要" 排在 "不要" 之前(正则按最左分支优先匹配, 长词在前更清晰)。
+# "(?<!有)没有" 是为了让 "有没有X" 这种"是否有货"的正向提问(如 "有没有华为手机")
+# 不被误读成"排除 X" —— 只有单独出现的 "没有X" 才算否定。
 _NEG_PHRASE_RE = re.compile(
     r"(?:不想要|不需要|不要|别要|别给我|不考虑|不买|不选|除了|不含|不带|不是|排除|也不要|(?<!有)没有)\s*([^,，。;；！!?？]+)"
 )
 
 
 def _local_country_keywords(text: str) -> list[str]:
-    """Local-only fallback: scan raw user text for country-trigger keywords
-    so `apply_negation` → `excluded_countries` can still work when no
-    TokenRouter key is configured (e.g. when LLM_PROVIDER=doubao).
+    """纯本地兜底: 直接在用户原文里扫描国别触发词, 使得在没有配置
+    TokenRouter key 时(例如 LLM_PROVIDER=doubao), `apply_negation` →
+    `excluded_countries` 这条链路仍然可用。
 
-    Returns the matched trigger phrases (e.g. ['日系']) so
-    `excluded_countries(...)` resolves them to ISO codes via
-    `brand_origin.COUNTRY_KEYWORDS`.
+    返回命中的触发词原文(如 ['日系']), 由 `excluded_countries(...)` 通过
+    `brand_origin.COUNTRY_KEYWORDS` 把它们解析成 ISO 国家码。
     """
     try:
         from rag.retrieve.brand_origin import COUNTRY_KEYWORDS
@@ -53,17 +51,16 @@ def _local_country_keywords(text: str) -> list[str]:
 
 
 def _local_brand_mentions(text: str) -> list[str]:
-    """Local-only fallback: scan negation phrases ("不要 X" / "除了 X") for
-    explicit brand mentions and return matched canonical brand names.
+    """纯本地兜底: 在否定短语("不要 X" / "除了 X")中扫描显式提到的品牌,
+    返回命中的标准品牌名。
 
-    Why: without a TokenRouter key the LLM-based extract_negation never
-    fills `exclude_brands`, so queries like "不要 Apple" / "不要 Sony" /
-    "不要 雀巢" sneaked the named brand back into top-k. This fallback
-    catches them by intersecting the post-negation phrase against the
-    `brand_origin.BRAND_ORIGIN` known-brand set.
+    背景: 没有 TokenRouter key 时, 基于 LLM 的 extract_negation 永远填不上
+    `exclude_brands`, 导致 "不要 Apple" / "不要 Sony" / "不要 雀巢" 这类查询
+    里被点名的品牌又混回了 top-k。这个兜底通过把否定词后面的短语与
+    `brand_origin.BRAND_ORIGIN` 已知品牌集求交集来兜住这些 case。
 
-    Only fires inside negation context (after 不要/除了/不含/etc.), so
-    queries like "推荐 Apple iPhone" don't accidentally exclude Apple.
+    只在否定语境内(不要/除了/不含 等触发词之后)生效, 所以
+    "推荐 Apple iPhone" 这类查询不会误把 Apple 排除掉。
     """
     try:
         from rag.retrieve.brand_origin import BRAND_ORIGIN
@@ -73,7 +70,7 @@ def _local_brand_mentions(text: str) -> list[str]:
         return []
     found: list[str] = []
     seen: set[str] = set()
-    # Sort known brands by length descending so "Apple 苹果" matches before "Apple"
+    # 已知品牌按长度降序排序, 使 "Apple 苹果" 先于 "Apple" 被匹配到
     known = sorted(BRAND_ORIGIN.keys(), key=len, reverse=True)
     for m in _NEG_PHRASE_RE.finditer(text):
         phrase = m.group(1).lower()
@@ -88,17 +85,17 @@ def _local_brand_mentions(text: str) -> list[str]:
 
 
 def extract_negation(text: str) -> dict:
-    """Best-effort extraction. Silent fallback to {} on any error
-    (the prompt still has a fallback rule, so behavior degrades gracefully)."""
+    """尽力而为的抽取。任何报错都静默回退到空结果
+    (prompt 里仍保留兜底规则, 所以整体行为是优雅降级的)。"""
     if not text or not any(neg in text for neg in (
         "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不买", "不选",
         "不含", "不带", "除了", "排除", "就算了", "就不看", "不用了"
     )):
         return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
 
-    # Always include locally-detected country triggers ("日系"/"美系"/...) so
-    # the brand-origin filter works even without an LLM call. The LLM-
-    # extracted keywords are union'd into this list when available.
+    # 始终带上本地检测到的国别触发词("日系"/"美系"/...), 这样即使不调 LLM,
+    # 品牌产地(brand-origin)过滤也能正常工作。LLM 抽取到的关键词可用时
+    # 会再并(union)进这个列表。
     local_kw = _local_country_keywords(text)
     local_brands = _local_brand_mentions(text)
 
@@ -139,7 +136,7 @@ def extract_negation(text: str) -> dict:
         result = json.loads(content)
         llm_brands = [str(s).strip() for s in result.get("exclude_brands", []) if s]
         llm_kw = [str(s).strip() for s in result.get("exclude_keywords", []) if s]
-        # Union LLM-extracted + local detection, preserving order, dedup.
+        # 合并 LLM 抽取结果与本地检测结果, 保持顺序并去重。
         merged_brands = list(dict.fromkeys(llm_brands + local_brands))
         merged_kw = list(dict.fromkeys(llm_kw + local_kw))
         return {
@@ -148,7 +145,7 @@ def extract_negation(text: str) -> dict:
             "exclude_keywords": merged_kw,
         }
     except Exception:
-        # LLM unavailable — fall back to local detection at minimum.
+        # LLM 不可用 —— 至少回退到本地检测结果。
         return {
             "exclude_brands": local_brands,
             "exclude_categories": [],
@@ -157,22 +154,22 @@ def extract_negation(text: str) -> dict:
 
 
 def apply_negation(products: list[dict], neg: dict) -> list[dict]:
-    """Filter the candidate list.
+    """过滤候选商品列表。
 
-    Removes products that match any of:
-      1. excluded brand (substring match on brand name),
-      2. excluded category,
-      3. excluded keyword in title/marketing_description (textual),
-      4. **excluded brand-origin country** (Round 7 fix): when the user says
-         "不要日系" / "不要美系", resolve each product's origin via
-         `provenance.origin_country` or the `brand_origin` lookup table
-         and drop products whose origin matches the excluded country.
+    命中以下任一条件的商品会被剔除:
+      1. 被排除的品牌(对品牌名做子串匹配),
+      2. 被排除的类目,
+      3. 标题/marketing_description 文本中含有被排除的关键词,
+      4. **被排除的品牌产地国别**(Round 7 修复): 当用户说
+         "不要日系" / "不要美系" 时, 通过 `provenance.origin_country`
+         或 `brand_origin` 查找表解析每件商品的产地,
+         产地命中被排除国家的商品会被丢弃。
     """
     if not neg or not (neg.get("exclude_brands") or neg.get("exclude_categories") or neg.get("exclude_keywords")):
         return products
 
-    # Expand each excluded brand to its known aliases so "不要 Nike" also
-    # catches Chinese-labelled "耐克" products (and vice versa).
+    # 把每个被排除的品牌扩展到其已知别名, 使 "不要 Nike" 也能命中
+    # 中文标注的 "耐克" 商品(反之亦然)。
     try:
         from rag.retrieve.brand_origin import expand_brand_aliases
         excl_brands: set[str] = set()
@@ -185,7 +182,7 @@ def apply_negation(products: list[dict], neg: dict) -> list[dict]:
     excl_cats = {c for c in neg.get("exclude_categories", [])}
     excl_kw = [k for k in neg.get("exclude_keywords", []) if k]
 
-    # Resolve country exclusions from the keyword set (e.g. "日系" → JP).
+    # 从关键词集合解析国别排除条件(如 "日系" → JP)。
     try:
         from rag.retrieve.brand_origin import excluded_countries, product_origin
         excl_countries = excluded_countries(excl_kw)
@@ -214,9 +211,9 @@ def apply_negation(products: list[dict], neg: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# R11.fix — POSITIVE origin constraint ("要国产 / 国货"). Distinct from the
-# negation extractor above (which only handles 不要X / 除了X). Implemented as a
-# standalone filter so it can't regress the explicit-negation path.
+# R11.fix —— 正向产地约束("要国产 / 国货")。区别于上面的否定抽取器
+# (它只处理 不要X / 除了X)。实现为独立的过滤器, 以保证不会让
+# 显式否定那条路径出现回归。
 # ---------------------------------------------------------------------------
 
 _DOMESTIC_RE = re.compile(r"国产|国货|国内品牌|本土品牌|民族品牌")
@@ -224,20 +221,20 @@ _DOMESTIC_NEG_RE = re.compile(r"不要\s*(?:国产|国货|国内品牌)|别要\s
 
 
 def requires_domestic(text: str) -> bool:
-    """True when the user POSITIVELY asks for 国产 / 国货 (CN-origin) products —
-    an origin constraint that should drop foreign brands. Guards against the
-    negated form '不要国产'."""
+    """当用户**正向**要求 国产 / 国货(CN 产地)商品时返回 True ——
+    这是一个应当剔除外国品牌的产地约束。同时防住否定形式 '不要国产'
+    被误判为正向需求。"""
     if not text:
         return False
     return bool(_DOMESTIC_RE.search(text)) and not _DOMESTIC_NEG_RE.search(text)
 
 
 def apply_domestic_filter(products: list[dict]) -> list[dict]:
-    """Keep only CN-origin (or unknown-origin) products; drop known-foreign
-    brands. Uses brand_origin.product_origin, which resolves AI-gen demo seed
-    by BRAND name (its provenance.origin_country is a mis-tagged 'CN'), so a
-    foreign brand like adidas / HOKA / 迪卡侬 is correctly dropped. Fail-soft:
-    if filtering would empty the list, return the input unchanged."""
+    """只保留 CN 产地(或产地未知)的商品, 剔除已知外国品牌。
+    使用 brand_origin.product_origin —— 它对 AI 生成的演示种子数据按**品牌名**
+    解析产地(这批数据的 provenance.origin_country 被错标成了 'CN'),
+    因此 adidas / HOKA / 迪卡侬 这类外国品牌能被正确剔除。失败软着陆(fail-soft):
+    若过滤会把列表清空, 则原样返回输入。"""
     try:
         from rag.retrieve.brand_origin import product_origin
     except Exception:
@@ -246,15 +243,15 @@ def apply_domestic_filter(products: list[dict]) -> list[dict]:
     return out if out else products
 
 
-# "X 以外 / X 之外" — exclude brand X (e.g. multi-turn "华为以外还有吗").
+# "X 以外 / X 之外" —— 排除品牌 X(例如多轮追问 "华为以外还有吗")。
 _EXCEPT_RE = re.compile(r"([^，。、；;！!？?\s]{2,16})\s*(?:以外|之外)")
 
 
 def except_brands(text: str) -> list[str]:
-    """Brands the user wants EXCLUDED via the 'X以外 / X之外' pattern (e.g. the
-    multi-turn follow-up '华为以外还有吗'). The phrase before 以外/之外 is
-    intersected with the known-brand set, so a non-brand like '五百元以外'
-    excludes nothing. Standalone — does not touch the 不要X/除了X path."""
+    """用户通过 'X以外 / X之外' 句式要求**排除**的品牌(例如多轮追问
+    '华为以外还有吗')。以外/之外 前面的短语会与已知品牌集求交集,
+    所以 '五百元以外' 这种非品牌短语不会排除任何东西。
+    独立实现 —— 不触碰 不要X/除了X 那条路径。"""
     if not text:
         return []
     try:

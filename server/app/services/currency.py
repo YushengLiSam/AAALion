@@ -1,8 +1,8 @@
-"""Currency normalization for user-facing product prices.
+"""面向用户展示的商品价格货币归一化。
 
-Catalog prices remain in their source currency. This module enriches product
-payloads with a CNY display price using the latest available reference rate
-from Frankfurter, and keeps the original amount for transparency.
+商品目录价格保持源币种不变。本模块使用 Frankfurter 最新可用的参考汇率,
+为商品 payload 补充一个人民币(CNY)展示价,同时保留原始金额,
+以保证价格来源透明、可审计。
 """
 
 from __future__ import annotations
@@ -53,17 +53,17 @@ _cache_lock = threading.Lock()
 
 
 def clear_rate_cache() -> None:
-    """Clear in-memory exchange-rate state, primarily for deterministic tests."""
+    """清空内存中的汇率缓存状态,主要用于让测试结果可复现(确定性)。"""
     with _cache_lock:
         _cache.clear()
 
 
 def get_exchange_rate(source_currency: str, target_currency: str = TARGET_CURRENCY) -> ExchangeRate | None:
-    """Return the latest available quote, or a marked stale fallback.
+    """返回最新可用的汇率报价;取不到时回退到标记为过期(stale)的旧报价。
 
-    A live request is made after the local TTL expires. If the provider is
-    temporarily unavailable, a previously fetched quote is reused with
-    ``stale=True``; without any quote, callers leave the original price shown.
+    仅在本地 TTL 过期后才发起实时请求。若汇率源暂时不可用,则复用之前
+    获取过的报价并置 ``stale=True``;若连旧报价都没有,则返回 None,
+    调用方会保持展示原币种价格。
     """
     source = _normalized_code(source_currency)
     target = _normalized_code(target_currency)
@@ -91,7 +91,7 @@ def get_exchange_rate(source_currency: str, target_currency: str = TARGET_CURREN
 
 
 def normalize_product_price(product: dict) -> dict:
-    """Return a product payload enriched with CNY display prices."""
+    """返回补充了人民币(CNY)展示价的商品 payload。"""
     normalized = copy.deepcopy(product)
     source_currency = _product_currency(product)
     base_price = _amount(product.get("base_price"))
@@ -123,7 +123,7 @@ def normalize_product_prices(products: Sequence[dict]) -> list[dict]:
 
 
 def pricing_cache_token(products: Sequence[dict]) -> str:
-    """Build a stable token so cached answers track the displayed FX quote."""
+    """构造稳定的缓存 token,使缓存命中的回答与当前展示的汇率报价保持一致。"""
     pieces: list[str] = []
     for product in products:
         rate = product.get("exchange_rate") or {}

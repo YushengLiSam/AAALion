@@ -1,22 +1,22 @@
-"""Brand → origin-country lookup for the negation filter.
+"""品牌 → 原产国查询表,服务于反选(negation)过滤器。
 
-Round 7 fix: `apply_negation` used to filter by literal brand string and
-title/description keyword. "不要日系" failed to exclude 安热沙 because the
-title contains neither 日本 nor 日系. This table lets the filter resolve a
-product's origin from its brand (when `provenance.origin_country` is absent
-on AI-gen seed entries) and drop it when the user excludes that country.
+Round 7 修复:`apply_negation` 此前按品牌字符串字面值和标题/描述关键词
+过滤。"不要日系" 没能排除安热沙,因为商品标题里既没有 "日本" 也没有
+"日系"。有了这张表,当 AI 生成的种子条目缺少 `provenance.origin_country`
+时,过滤器可以通过品牌反查商品的原产国,并在用户排除该国家时
+把对应商品剔除。
 
-Coverage: the ~30 named brands in our current catalog. New brands fall
-through to "unknown" — same behavior as pre-Round-7 (no regression).
-Extend the dict as the catalog grows. Tujie or Sam can also add to it
-without touching `negation.py`.
+覆盖范围:当前商品目录里约 30 个具名品牌。新品牌会落到 "unknown"——
+行为与 Round 7 之前完全一致(不会引入回归)。
+随商品目录扩充逐步扩展此字典即可;Tujie 或 Sam 也可以直接往里加条目,
+无需改动 `negation.py`。
 """
 
 from __future__ import annotations
 
-# ISO 3166-1 alpha-2 country codes. Keep keys lowercase-stripped for matching.
+# ISO 3166-1 两位字母国家代码。键统一保持小写并去除首尾空白,便于匹配。
 BRAND_ORIGIN: dict[str, str] = {
-    # Japanese 日系 (the case that prompted this fix).
+    # 日系(正是促成本次修复的案例)。
     "安热沙": "JP",
     "anessa": "JP",
     "资生堂": "JP",
@@ -30,7 +30,7 @@ BRAND_ORIGIN: dict[str, str] = {
     "muji": "JP",
     "kewpie": "JP",
     "pigeon": "JP",
-    "gerber": "US",  # Founded Fremont, Michigan 1927; owned by Nestlé (CH) since 2007 but brand origin = US
+    "gerber": "US",  # 1927 年创立于美国密歇根州 Fremont;2007 年起归雀巢 Nestlé(CH)所有,但品牌原产地按 US 算
     "nintendo": "JP",
     "sony": "JP",
     "索尼": "JP",
@@ -39,14 +39,14 @@ BRAND_ORIGIN: dict[str, str] = {
     "calpis": "JP",
     "可尔必思": "JP",
     "glico": "JP",
-    # Nestlé family — Swiss HQ (Vevey). KitKat is a Nestlé brand worldwide
-    # except in the US (where Hershey licenses it). Treat as CH for negation
-    # so "不要瑞士的" filters it out, and "不要日系" does not.
+    # 雀巢(Nestlé)系——总部在瑞士沃韦(Vevey)。KitKat 在全球都是雀巢品牌,
+    # 唯独美国例外(由 Hershey 持有授权)。反选时按 CH 处理,
+    # 这样 "不要瑞士的" 能把它过滤掉,而 "不要日系" 不会误伤。
     "kit kat": "CH",
     "nestlé": "CH",
     "nestle": "CH",
     "uniqlo": "JP",
-    # American 美系
+    # 美系
     "雅诗兰黛": "US",
     "estée lauder": "US",
     "estee lauder": "US",
@@ -60,7 +60,7 @@ BRAND_ORIGIN: dict[str, str] = {
     "levis": "US",
     "the ordinary": "US",
     "kiehl's since 1851": "US",
-    # French 法系
+    # 法系
     "理肤泉": "FR",
     "la roche-posay": "FR",
     "la roche posay": "FR",
@@ -71,19 +71,19 @@ BRAND_ORIGIN: dict[str, str] = {
     "l'oréal paris": "FR",
     "loreal paris": "FR",
     "loreal": "FR",
-    # Korean 韩系
+    # 韩系
     "雪花秀": "KR",
     "sulwhasoo": "KR",
     "innisfree": "KR",
     "悦诗风吟": "KR",
-    # German 德系
+    # 德系
     "adidas": "DE",
     "puma": "DE",
-    # British
+    # 英系
     "the body shop": "GB",
-    # Italian
+    # 意系
     "ferrari": "IT",
-    # Chinese 国货
+    # 国货
     "薇诺娜": "CN",
     "winona": "CN",
     "珀莱雅": "CN",
@@ -104,7 +104,7 @@ BRAND_ORIGIN: dict[str, str] = {
     "斯利安": "CN",
     "海尔": "CN",
     "haier": "CN",
-    "迪卡侬": "FR",  # French brand, very popular in CN — flag as FR for honesty
+    "迪卡侬": "FR",  # 法国品牌,在国内很流行——为求如实标注,记为 FR
     "decathlon": "FR",
     "凯乐石": "CN",
     "kailas": "CN",
@@ -114,23 +114,23 @@ BRAND_ORIGIN: dict[str, str] = {
     "toread": "CN",
     "网易严选": "CN",
     "雅芳婷": "CN",
-    "珊珂": "JP",  # 珊珂 (Senka) is Shiseido Japan
+    "珊珂": "JP",  # 珊珂(Senka)是日本资生堂旗下品牌
     "senka": "JP",
     "百雀羚": "CN",
     "自然堂": "CN",
     "韩束": "CN",
     "丸美": "CN",
-    "帮宝适": "US",  # Pampers (Procter & Gamble US)
+    "帮宝适": "US",  # Pampers(美国宝洁 Procter & Gamble 旗下)
     "pampers": "US",
-    "好奇": "US",  # Huggies (Kimberly-Clark US)
+    "好奇": "US",  # Huggies(美国金佰利 Kimberly-Clark 旗下)
     "huggies": "US",
-    "嘉宝": "US",  # Gerber US
+    "嘉宝": "US",  # 即美国 Gerber
     "重庆出版社": "CN",
     "北京十月文艺出版社": "CN",
     "商务印书馆": "CN",
     "吉林美术出版社": "CN",
-    # --- Round 7 PM: brands that AI-gen catalog products use but were
-    # missing from this dict — found via leak audit on the eval dashboard.
+    # --- Round 7 PM:AI 生成的目录商品在用、但本字典此前缺失的品牌——
+    # 通过评测看板上的漏排(leak)审计发现。
     # 数码电子
     "苹果": "US",
     "oppo": "CN",
@@ -143,7 +143,7 @@ BRAND_ORIGIN: dict[str, str] = {
     "adidas": "DE",
     "优衣库": "JP",
     "uniqlo": "JP",
-    "北面": "US",          # The North Face Chinese name
+    "北面": "US",          # The North Face 的中文名
     "始祖鸟": "CA",        # Arc'teryx
     "arc'teryx": "CA",
     "arcteryx": "CA",
@@ -153,7 +153,7 @@ BRAND_ORIGIN: dict[str, str] = {
     "merrell": "US",
     "露露乐蒙": "CA",      # Lululemon
     "lululemon": "CA",
-    "hoka": "US",          # founded FR 2009, Deckers US since 2013
+    "hoka": "US",          # 2009 年创立于法国,2013 年起归美国 Deckers 所有
     "osprey": "US",
     "安踏": "CN",
     "李宁": "CN",
@@ -171,12 +171,12 @@ BRAND_ORIGIN: dict[str, str] = {
     # 食品饮料
     "三只松鼠": "CN",
     "三顿半": "CN",
-    "东方树叶": "CN",      # 农夫山泉 sub-brand
+    "东方树叶": "CN",      # 农夫山泉子品牌
     "东鹏": "CN",          # 东鹏特饮
     "伊利": "CN",
-    "金典": "CN",          # 伊利 sub-brand
+    "金典": "CN",          # 伊利子品牌
     "蒙牛": "CN",
-    "纯甄": "CN",          # 蒙牛 sub-brand
+    "纯甄": "CN",          # 蒙牛子品牌
     "元气森林": "CN",
     "农夫山泉": "CN",
     "可口可乐": "US",
@@ -190,15 +190,15 @@ BRAND_ORIGIN: dict[str, str] = {
     "海天": "CN",
     "百草味": "CN",
     "良品铺子": "CN",
-    "红牛": "TH",          # Krating Daeng Thai origin
-    "雀巢": "CH",          # Nestlé Swiss HQ
+    "红牛": "TH",          # 源自泰国 Krating Daeng
+    "雀巢": "CH",          # Nestlé,总部在瑞士
 }
 
-# Brand alias clusters. Each set holds names that refer to the SAME brand
-# across languages / capitalizations. Used by negation extraction so that
-# "不要 Nike" also catches Chinese-labelled "耐克" products and vice-versa.
-# Add a cluster whenever a Chinese vernacular brand has an English alias
-# (or vice-versa) and both appear in the catalog.
+# 品牌别名簇。每个集合收录跨语言/不同大小写、但指向同一个品牌的名称。
+# 供反选(negation)抽取使用,使 "不要 Nike" 也能命中标注为 "耐克" 的商品,
+# 反之亦然。
+# 每当某个品牌的中文俗称有对应英文别名(或反过来)、且两种写法都出现在
+# 商品目录里时,就新增一个别名簇。
 BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"nike", "耐克"}),
     frozenset({"apple", "苹果", "iphone", "ipad", "macbook", "airpods"}),
@@ -230,16 +230,16 @@ BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"pampers", "帮宝适"}),
     frozenset({"gerber", "嘉宝"}),
     frozenset({"huggies", "好奇"}),
-    # R9.A.1 — cross-language canonicalization extension. Brands a judge
-    # is likely to type in EN or Pinyin while the catalog uses CN form
-    # (or vice versa). Each cluster should be unambiguous — avoid
-    # multi-meaning Chinese strings ("博士" = both Bose AND "doctor").
+    # R9.A.1 — 跨语言归一化(canonicalization)扩展。收录评委可能用英文或
+    # 拼音输入、而商品目录用中文写法(或反过来)的品牌。
+    # 每个别名簇必须无歧义——避免一词多义的中文字符串
+    # ("博士" 既可指 Bose,也是普通名词)。
     frozenset({"puma", "彪马"}),
     frozenset({"new balance", "newbalance", "nb", "新百伦"}),
     frozenset({"samsung", "三星"}),
     frozenset({"huawei", "华为"}),
     frozenset({"xiaomi", "mi", "小米"}),
-    frozenset({"oppo"}),  # OPPO is the same in both languages; placeholder keeps the slot.
+    frozenset({"oppo"}),  # OPPO 中英文同名;此条占位保留位置。
     frozenset({"vivo"}),
     frozenset({"asus", "华硕"}),
     frozenset({"dell", "戴尔"}),
@@ -258,9 +258,9 @@ BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"reebok", "锐步"}),
     frozenset({"under armour", "安德玛"}),
     frozenset({"asics", "亚瑟士"}),
-    # R13 — bare "lining" removed: it's a common English noun ("fleece
-    # lining") and pinned brand_include=['李宁'] onto English queries even
-    # after the letter-boundary fix (it's a full word, not a substring).
+    # R13 — 移除了裸写的 "lining":它是常见英文名词(如 "fleece lining"),
+    # 即使加了字母边界修复(它是完整单词而非子串,边界检查拦不住),
+    # 仍会给英文查询错误地固定 brand_include=['李宁']。
     frozenset({"li-ning", "li ning", "李宁"}),
     frozenset({"anta", "安踏"}),
     frozenset({"xtep", "特步"}),
@@ -274,10 +274,10 @@ BRAND_ALIASES: tuple[frozenset[str], ...] = (
 
 
 def expand_brand_aliases(brand: str) -> set[str]:
-    """Return all known aliases of a brand (lowercased). If the input isn't
-    in any known cluster, returns just {brand_lower}.
+    """返回某品牌已知的全部别名(均为小写)。若输入不属于任何已知
+    别名簇,则只返回 {brand_lower} 本身。
 
-    Example:
+    示例:
         expand_brand_aliases("Nike") → {"nike", "耐克"}
         expand_brand_aliases("某不知名牌") → {"某不知名牌"}
     """
@@ -290,8 +290,8 @@ def expand_brand_aliases(brand: str) -> set[str]:
     return {b}
 
 
-# Country code → trigger keywords users might type when excluding.
-# Match is case-insensitive and substring-based; small set keeps it precise.
+# 国家代码 → 用户表达排除意图时可能输入的触发关键词。
+# 匹配不区分大小写、按子串进行;关键词集合刻意保持精简以保证精确。
 COUNTRY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "JP": ("日本", "日系", "日货", "倭"),
     "US": ("美国", "美系", "美货"),
@@ -300,23 +300,23 @@ COUNTRY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "DE": ("德国", "德系"),
     "GB": ("英国", "英系"),
     "IT": ("意大利", "意系"),
-    "CN": ("国货", "中国"),  # rarely excluded but supported for completeness
+    "CN": ("国货", "中国"),  # 很少被排除,但为完整性予以支持
 }
 
 
 def lookup_origin(brand: str) -> str | None:
-    """Return the ISO-2 country code for a brand, or None if unknown.
+    """返回品牌对应的 ISO 两位国家代码;未知品牌返回 None。
 
-    Matching is case-insensitive and trims whitespace. Substring match in
-    both directions to catch "雅诗兰黛 / Estée Lauder" hybrid titles.
+    匹配不区分大小写并去除首尾空白。双向子串匹配,
+    以覆盖 "雅诗兰黛 / Estée Lauder" 这类中英混排标题。
     """
     if not brand:
         return None
     key = brand.strip().lower()
     if key in BRAND_ORIGIN:
         return BRAND_ORIGIN[key]
-    # Loose match: any known brand name that's a substring of the input,
-    # or vice-versa. Keeps the dictionary compact.
+    # 宽松匹配:任何已知品牌名只要是输入的子串(或反之)即可命中。
+    # 这样字典本身可以保持精简。
     for known_brand, country in BRAND_ORIGIN.items():
         if known_brand in key or key in known_brand:
             return country
@@ -324,8 +324,8 @@ def lookup_origin(brand: str) -> str | None:
 
 
 def excluded_countries(exclude_keywords: list[str]) -> set[str]:
-    """Given the negation extractor's `exclude_keywords`, return the set of
-    ISO-2 country codes the user wants to exclude."""
+    """根据反选抽取器给出的 `exclude_keywords`,返回用户想要排除的
+    ISO 两位国家代码集合。"""
     excluded: set[str] = set()
     if not exclude_keywords:
         return excluded
@@ -337,16 +337,16 @@ def excluded_countries(exclude_keywords: list[str]) -> set[str]:
 
 
 def product_origin(product: dict) -> str | None:
-    """Resolve a product's origin country. Prefers explicit provenance
-    metadata (Round 6 real products carry this) and falls back to the
-    brand-name lookup."""
+    """解析商品的原产国。优先使用显式的 provenance 元数据
+    (Round 6 引入的真实商品带有该字段),否则回退到
+    品牌名查表。"""
     prov = product.get("provenance") or {}
     explicit = (prov.get("origin_country") or "").strip().upper()
     if explicit and len(explicit) == 2:
-        # Treat AI-gen demo seed (`source_platform = "AI-gen (demo)"`) as
-        # unknown origin — its `origin_country` default is "CN" but we don't
-        # want to falsely tag a 雅诗兰黛 (US) AI-gen card as CN. Brand-name
-        # lookup is more reliable for AI-gen entries.
+        # 把 AI 生成的演示种子(`source_platform = "AI-gen (demo)"`)视为
+        # 原产国未知——其 `origin_country` 默认填 "CN",但我们不希望把
+        # 雅诗兰黛(US)的 AI 生成卡片错标成 CN。对 AI 生成条目而言,
+        # 品牌名查表更可靠。
         if prov.get("source_platform") == "AI-gen (demo)":
             from_brand = lookup_origin(product.get("brand") or "")
             return from_brand or explicit

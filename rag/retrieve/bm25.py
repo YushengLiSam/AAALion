@@ -1,9 +1,9 @@
-"""BM25 over the product catalog. Tokenizes with jieba so Chinese text
-splits into meaningful units rather than per-character.
+"""基于商品目录的 BM25 检索。使用 jieba 分词,让中文文本切分成
+有意义的词语单元,而不是逐字切分。
 
-Corpus is built lazily from product JSON files in data/seed/*/data/*.json.
-Each document is the concatenation of title + brand + sub_category +
-marketing_description, indexed by product_id.
+语料库从 data/seed/*/data/*.json 中的商品 JSON 文件惰性构建。
+每篇文档由 title + brand + sub_category + marketing_description
+拼接而成,以 product_id 作为索引键。
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def _tokenize(text: str) -> list[str]:
     import jieba
-    # jieba handles Chinese; drop punctuation + whitespace afterward
+    # jieba 负责中文分词;分词后再过滤掉标点和空白符
     raw = jieba.lcut(text or "")
     return [t for t in raw if re.search(r"[\w一-鿿]", t)]
 
@@ -56,7 +56,7 @@ def _index():
 
 
 def bm25_topk(query: str, k: int = 10, f=None) -> list[tuple[str, float, dict]]:
-    """Return [(product_id, score, product_dict), …] sorted by BM25 score."""
+    """返回按 BM25 分数降序排列的 [(product_id, score, product_dict), …] 列表。"""
     if not query.strip():
         return []
     bm25, ids, by_id = _index()
