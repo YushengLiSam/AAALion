@@ -241,21 +241,42 @@ def _product_card_event(p: dict) -> dict:
 
 
 # Intent detection for 4.1 cart flow.
-_ADD_TO_CART = re.compile(r"加入?购物?车|加购|加入车|放购物?车")
+# R13 — English alternatives added (live probes: "add this to my cart" fell
+# through to retrieval; the English canned replies + lang detection already
+# existed, only these regexes were Chinese-only).
+_ADD_TO_CART = re.compile(
+    r"加入?购物?车|加购|加入车|放购物?车"
+    r"|\badd\b[^.!?，。]{0,30}\bto\s+(?:my\s+|the\s+)?(?:cart|bag)\b",
+    re.IGNORECASE,
+)
 # "买单(?!反)" so "买单反相机"/"买单反" (DSLR camera) doesn't false-match the
-# "买单" (pay-the-bill) checkout verb.
-_CHECKOUT = re.compile(r"下单|结(账|算)|去结算|帮我下个?单|买单(?!反)")
-# A NEGATED checkout ("先不要下单" / "不下单了" / "暂时不结算") is the user
+# "买单" (pay-the-bill) checkout verb. English "check out" must not match the
+# "look at" sense ("check out these headphones") — block a following article/
+# demonstrative noun phrase.
+_CHECKOUT = re.compile(
+    r"下单|结(账|算)|去结算|帮我下个?单|买单(?!反)"
+    r"|\bcheck\s*out\b(?!\s+(?:the|this|that|these|those|some|my|our|other))"
+    r"|\bplace\s+(?:my|the|an)?\s*order\b|\bbuy\s+now\b|\bpay\s+now\b",
+    re.IGNORECASE,
+)
+# A NEGATED checkout ("先不要下单" / "don't check out yet") is the user
 # DECLINING to order — it must not trigger checkout. .search() finds the
 # negation anywhere; the checkout verb is the same set as _CHECKOUT.
 _NEG_CHECKOUT = re.compile(
     r"(?:先不|先别|暂不|暂时不|还不|不用|不想|没|别|不)(?:要|想|用|着急|急着|现在|马上)?"
     r"(?:下单|结(?:账|算)|去结算|买单)"
+    r"|(?:don'?t|do\s+not|not\s+(?:yet|now|going\s+to)|hold\s+off(?:\s+on)?|no\s+need\s+to|let'?s\s+not)"
+    r"[^,.!?]{0,24}(?:check\s*out|checkout|order|pay)",
+    re.IGNORECASE,
 )
 # R11.demo-fix — conversational cart CLEAR ("把购物车清空" / "全部删掉").
 # Distinct from the remove path (which needs an ordinal): clear drops ALL
 # lines, so it must NOT require a 第N个. iOS maps action=clear → cart.clear().
-_CLEAR_CART = re.compile(r"清空|全部删(?:掉|除|了)|都删(?:掉|了)|删光|全部(?:移除|清掉)|清掉购物车|全清")
+_CLEAR_CART = re.compile(
+    r"清空|全部删(?:掉|除|了)|都删(?:掉|了)|删光|全部(?:移除|清掉)|清掉购物车|全清"
+    r"|\b(?:clear|empty)\s+(?:my\s+|the\s+)?(?:cart|bag)\b",
+    re.IGNORECASE,
+)
 
 # R9.A.5 — comparison-intent detector (proposal #10). When the user asks
 # to compare two specific products ("A 和 B 哪个更好 / vs / 对比"), we
@@ -692,7 +713,7 @@ def _needs_clarification(text: str, messages) -> str | None:
 # (products=[]) and tell the LLM to decline politely — no 答非所问的 random 卡.
 # Multi-char phrases only (no bare 车/房) to avoid 厨房/婴儿车-style false hits.
 _OUT_OF_DOMAIN = re.compile(
-    r"汽车|买车|一辆车|租车|车险|机票|订票|订机票|航班|高铁票|火车票|船票|"
+    r"汽车|买辆?车|一辆车|租车|车险|机票|订票|订机票|航班|高铁票|火车票|船票|"
     r"酒店|订房|民宿|房子|房产|买房|卖房|楼盘|租房|户型|"
     r"天气|气温|下雨|股票|基金|彩票|挂号|看病|外卖|点餐|打车|约车|加油站|"
     r"贷款|签证|护照|话费充值|游戏点卡|演唱会门票"
@@ -722,6 +743,7 @@ def _is_out_of_domain(text: str) -> bool:
 _PRICE_PHRASE_RE = re.compile(
     r"\d+(?:\.\d+)?\s*(?:元|块|万|w|rmb|￥|¥)?\s*"
     r"(?:以内|以下|以上|之内|内|封顶|不超过|不要超过|左右|起步|起|上下)"
+    r"|(?:不要?超过|最多|顶多)\s*[¥￥]?\s*\d+(?:\.\d+)?\s*(?:元|块)?"
     r"|预算\s*\d*(?:\s*(?:元|块|万))?"
     r"|\d+\s*(?:到|-|~|至)\s*\d+\s*(?:元|块)?"
     r"|便宜(?:点|些|一点|实惠)?|平价|实惠|性价比|划算|高端|高档"

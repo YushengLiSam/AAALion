@@ -32,7 +32,7 @@ EN_CATEGORY_HINTS: tuple[tuple[str, str], ...] = (
     ("headphones", "耳机"), ("headphone", "耳机"), ("earphones", "耳机"),
     ("earphone", "耳机"), ("earbuds", "耳机"), ("camera", "相机"),
     ("keyboard", "键盘"), ("speaker", "音箱"), ("sneakers", "运动鞋"),
-    ("shoes", "鞋子"), ("backpack", "双肩包"), ("snacks", "零食"),
+    ("shoes", "鞋子"), ("hoodie", "卫衣"), ("backpack", "双肩包"), ("snacks", "零食"),
     ("snack", "零食"), ("coffee", "咖啡"), ("diaper", "纸尿裤"),
     ("toothpaste", "牙膏"), ("phone", "手机"),
 )

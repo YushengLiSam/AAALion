@@ -270,3 +270,34 @@ class EndToEndRepros(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# R13 — workflow-audit fixes (2026-06-09 200-probe sweep): marker-first budget
+# phrasing, "lining" alias collision, 买辆车 out-of-domain gap.
+# ---------------------------------------------------------------------------
+
+class WorkflowAuditFixes(unittest.TestCase):
+    def test_marker_first_budget_extracts_price_cap(self) -> None:
+        self.assertEqual(build_retrieval_filter("耳机不超过1800").price_max_cny, 1800)
+        self.assertEqual(build_retrieval_filter("不要超过300的口红").price_max_cny, 300)
+        self.assertEqual(build_retrieval_filter("最多500块的跑鞋").price_max_cny, 500)
+        intent = parse_price_intent("不超过300")
+        self.assertEqual(intent.price_max, 300)
+        self.assertEqual(intent.direction, "cheap")
+
+    def test_lining_noun_pins_no_brand(self) -> None:
+        f = build_retrieval_filter("a hoodie with fleece lining")
+        self.assertFalse(f and f.brand_include, f and f.brand_include)
+        # The brand itself must still be reachable.
+        f2 = build_retrieval_filter("李宁篮球鞋")
+        self.assertTrue(any("李宁" in b for b in (f2.brand_include or [])))
+        f3 = build_retrieval_filter("li-ning basketball shoes")
+        self.assertTrue(any("李宁" in b for b in (f3.brand_include or [])))
+
+    def test_buy_a_car_is_out_of_domain(self) -> None:
+        from app.routes.chat import _is_out_of_domain
+
+        self.assertTrue(_is_out_of_domain("我想买辆车"))
+        self.assertTrue(_is_out_of_domain("我想买车"))
+        self.assertFalse(_is_out_of_domain("买个车载手机支架"))

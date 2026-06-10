@@ -35,6 +35,9 @@ _EXPENSIVE_RE = re.compile(
     re.IGNORECASE,
 )
 _PRICE_MAX_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以内|以下|内|封顶|不超过|不要超过)")
+# R13 — marker-FIRST phrasing ("不超过300"); the number-first regex above
+# never matched it (its 不超过 branch needs the marker AFTER the number).
+_PRICE_MAX_PREFIX_RE = re.compile(r"(?:不要?超过|最多|顶多)\s*[¥￥]?\s*(\d+(?:\.\d+)?)\s*(?:元|块)?")
 _PRICE_MIN_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以上|起|起步)")
 _PRICE_MAX_EN_RE = re.compile(
     r"(?:under|below|less than|within|up to|no more than|cheaper than|max\.?|≤|<=?)\s*"
@@ -49,7 +52,8 @@ _PRICE_MIN_EN_RE = re.compile(
 
 def parse_price_intent(text: str) -> PriceIntent:
     text = text or ""
-    max_match = _PRICE_MAX_RE.search(text) or _PRICE_MAX_EN_RE.search(text)
+    max_match = (_PRICE_MAX_RE.search(text) or _PRICE_MAX_PREFIX_RE.search(text)
+                 or _PRICE_MAX_EN_RE.search(text))
     min_match = _PRICE_MIN_RE.search(text) or _PRICE_MIN_EN_RE.search(text)
     price_max = float(max_match.group(1)) if max_match else None
     price_min = float(min_match.group(1)) if min_match else None

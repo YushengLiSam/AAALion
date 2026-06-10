@@ -258,7 +258,10 @@ BRAND_ALIASES: tuple[frozenset[str], ...] = (
     frozenset({"reebok", "锐步"}),
     frozenset({"under armour", "安德玛"}),
     frozenset({"asics", "亚瑟士"}),
-    frozenset({"li-ning", "lining", "李宁"}),
+    # R13 — bare "lining" removed: it's a common English noun ("fleece
+    # lining") and pinned brand_include=['李宁'] onto English queries even
+    # after the letter-boundary fix (it's a full word, not a substring).
+    frozenset({"li-ning", "li ning", "李宁"}),
     frozenset({"anta", "安踏"}),
     frozenset({"xtep", "特步"}),
     frozenset({"erke", "鸿星尔克"}),

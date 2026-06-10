@@ -71,3 +71,35 @@ def test_refine_results_is_not_cart_remove(text):
 ])
 def test_legit_cart_ops_still_fire(text, expected):
     assert _action(text) == expected
+
+
+# ---------------------------------------------------------------------------
+# R13 — English cart intents (workflow audit: "add this to my cart" and
+# "check out please" fell through to retrieval; regexes were Chinese-only).
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text,expected", [
+    ("add this to my cart", "add"),
+    ("Add it to the cart", "add"),
+    ("add the Sony headphones to my cart", "add"),
+    ("check out please", "checkout"),
+    ("checkout", "checkout"),
+    ("place my order", "checkout"),
+    ("buy now", "checkout"),
+    ("empty my cart", "clear"),
+    ("clear the cart", "clear"),
+])
+def test_english_cart_intents(text, expected):
+    assert _action(text) == expected
+
+
+@pytest.mark.parametrize("text", [
+    "check out these headphones",      # "look at" sense — not a checkout
+    "check out the Sony XM5 for me",
+    "don't check out yet",             # negated checkout
+    "no need to checkout now",
+    "let's not order yet",
+    "where can I buy nike shoes",      # "buy" without "now" is a search
+])
+def test_english_non_checkout_phrases(text):
+    assert _action(text) is None

@@ -17,6 +17,10 @@ from rag.retrieve.query import Filter
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _PRICE_MAX_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以内|以下|内|封顶|不超过|不要超过)")
+# R13 — marker-FIRST phrasing ("不超过300" / "价格不要超过300" / "最多500块").
+# The number-first regex above never matched it: its 不超过/不要超过 branch
+# only fires when the marker FOLLOWS the number, which nobody types.
+_PRICE_MAX_PREFIX_RE = re.compile(r"(?:不要?超过|最多|顶多)\s*[¥￥]?\s*(\d+(?:\.\d+)?)\s*(?:元|块)?")
 _PRICE_MIN_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:元|块|rmb|RMB)?\s*(?:以上|起|起步)")
 _BUDGET_MAX_RE = re.compile(
     r"(?:预算|价格上限|最高价)\s*(?:提高|增加|加|放宽|调整|调|改)?\s*"
@@ -229,8 +233,8 @@ def build_retrieval_filter(text: str, explicit: Mapping[str, Any] | None = None)
         sub_categories=_sub_categories(text),
         brand_include=[],
         brand_exclude=[],
-        price_max_cny=(_price_bound(_PRICE_MAX_RE, text) or _price_bound(_BUDGET_MAX_RE, text)
-                       or _price_bound(_PRICE_MAX_EN_RE, text)),
+        price_max_cny=(_price_bound(_PRICE_MAX_RE, text) or _price_bound(_PRICE_MAX_PREFIX_RE, text)
+                       or _price_bound(_BUDGET_MAX_RE, text) or _price_bound(_PRICE_MAX_EN_RE, text)),
         price_min_cny=_price_bound(_PRICE_MIN_RE, text),
     )
     included, excluded = _brands(text)
