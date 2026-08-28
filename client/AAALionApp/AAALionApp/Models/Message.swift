@@ -24,6 +24,11 @@ struct Message: Identifiable, Hashable {
     /// markers (older cached replies, error replies, user messages).
     var claimSummary: ClaimSummary?
 
+    /// R14 multi-hop —— 检索链。多跳检索(如"比X便宜的Y")时后端会发
+    /// `hop_trace`,气泡顶部渲染成面包屑:「参照 特步160X ¥999 → 同价位跑鞋」,
+    /// 让用户看到答案是怎么两跳推出来的。单跳回复为 nil。
+    var hopTrace: HopTrace?
+
     init(
         id: UUID = UUID(),
         role: Role,

@@ -158,6 +158,8 @@ final class ChatViewModel {
                         await MainActor.run {
                             self.setClaimSummary(.init(verified: v, inferred: i), to: assistantId)
                         }
+                    case .hopTrace(let trace):
+                        await MainActor.run { self.setHopTrace(trace, to: assistantId) }
                     case .error(let message):
                         await MainActor.run { self.errorMessage = message }
                     case .done:
@@ -386,6 +388,12 @@ final class ChatViewModel {
     private func setClaimSummary(_ summary: ClaimSummary, to id: UUID) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].claimSummary = summary
+    }
+
+    /// R14 multi-hop —— 把检索链挂到对应的 assistant 气泡上。
+    private func setHopTrace(_ trace: HopTrace, to id: UUID) {
+        guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[idx].hopTrace = trace
     }
 
     private func appendProduct(_ card: ProductCard, to id: UUID) {

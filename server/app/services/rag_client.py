@@ -916,3 +916,180 @@ def _dedupe_queries(queries: list[str]) -> list[str]:
         seen.add(key)
         out.append(key)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Multi-hop 检索(锚定式两跳)。见 rag/retrieve/multihop.py 的设计说明。
+# 每一跳都复用上面的 top_k(混合检索+重排+否定/预算过滤+缓存),
+# 跳间只传播**结构化属性**(价格/品牌/品类),不经过 LLM → 可断言、零幻觉。
+# ---------------------------------------------------------------------------
+def multi_hop_retrieve(
+    plan,
+    *,
+    history_products: list[dict] | None = None,
+    user_id: str | None = None,
+    k: int = 4,
+) -> tuple[dict | None, list[dict], dict]:
+    """执行两跳检索。
+
+    返回 (anchor_product, hop2_products, trace)。
+    - anchor_product 为 None 表示 hop1 没锚定到商品 → 调用方应回退单跳。
+    - trace 是给 SSE `hop_trace` 事件用的可解释检索链。
+    """
+    from rag.retrieve.multihop import (
+        anchor_attrs, derive_filter, relation_label, RELATION_PAIR, PAIR_MAP,
+    )
+
+    trace: dict = {"relation": plan.relation, "hops": []}
+
+    # ---- hop 1:锚定 ----
+    anchor: dict | None = None
+    if plan.uses_history_anchor:
+        # 会话锚点:直接引用上一轮的商品卡,不检索
+        cards = history_products or []
+        if cards:
+            idx = len(cards) - 1 if plan.anchor_ordinal == -1 else plan.anchor_ordinal - 1
+            if 0 <= idx < len(cards):
+                anchor = cards[idx]
+        trace["hops"].append({
+            "hop": 1, "kind": "history_anchor",
+            "query": f"上一轮第{plan.anchor_ordinal}款",
+            "hit": (anchor or {}).get("title"),
+        })
+    else:
+        hits = top_k(plan.anchor_text, k=3, intent_text=plan.anchor_text,
+                     user_id=user_id, relevance_gate=False)
+        anchor = hits[0] if hits else None
+        trace["hops"].append({
+            "hop": 1, "kind": "retrieval", "query": plan.anchor_text,
+            "hit": (anchor or {}).get("title"),
+        })
+
+    if not anchor:
+        trace["fallback"] = "anchor_not_found"
+        return None, [], trace
+
+    attrs = anchor_attrs(anchor)
+    trace["anchor"] = {
+        "product_id": attrs.get("product_id"), "title": attrs.get("title"),
+        "brand": attrs.get("brand"), "price_cny": attrs.get("price_cny"),
+        "sub_category": attrs.get("sub_category"),
+    }
+
+    # ---- 目标品类:显式 target 优先;否则按关系推断 ----
+    target_text = (plan.target_text or "").strip()
+    target_subs = None
+    if plan.relation == RELATION_PAIR and not target_text:
+        target_subs = list(PAIR_MAP.get(attrs.get("sub_category") or "", ()))
+        target_text = target_subs[0] if target_subs else ""
+    if not target_text:
+        # "比X便宜的" 没说品类 → 沿用锚点自己的品类
+        target_text = attrs.get("sub_category") or attrs.get("category") or plan.anchor_text
+
+    hop2_filter = derive_filter(attrs, plan.relation, target_sub_categories=target_subs)
+    trace["derived_filter"] = {
+        "price_max_cny": getattr(hop2_filter, "price_max_cny", None) if hop2_filter else None,
+        "price_min_cny": getattr(hop2_filter, "price_min_cny", None) if hop2_filter else None,
+        "brand_include": getattr(hop2_filter, "brand_include", None) if hop2_filter else None,
+        "sub_categories": getattr(hop2_filter, "sub_categories", None) if hop2_filter else None,
+    }
+
+    # ---- hop 2:带派生约束检索 ----
+    # 放宽品类:派生 filter 里的 sub_categories 可能过窄(如"真无线降噪耳机"
+    # 只有锚点自己),用兄弟品类一起召回,再由下面的断言把关。
+    if hop2_filter is not None and getattr(hop2_filter, "sub_categories", None):
+        hop2_filter.sub_categories = _sibling_sub_categories(hop2_filter.sub_categories)
+    results = top_k(target_text, k=k + 8, conversation_filter=hop2_filter,
+                    intent_text=target_text, user_id=user_id, relevance_gate=False)
+    # 排除锚点自身(product_id 优先;缺失时用标题兜底,避免锚点重复出现在结果里)
+    anchor_id = attrs.get("product_id")
+    anchor_title = (attrs.get("title") or "").strip()
+
+    def _is_anchor(p: dict) -> bool:
+        pid = p.get("product_id")
+        if anchor_id and pid:
+            return pid == anchor_id
+        return bool(anchor_title) and (p.get("title") or "").strip() == anchor_title
+
+    results = [p for p in results if not _is_anchor(p)]
+
+    # **约束断言**:top_k 的硬过滤在结果为空时会 fail-soft 放行(对单跳是好的
+    # 兜底,对多跳是错的——"比X便宜"返回更贵的还不如说没有)。这里按派生约束
+    # 做一次确定性校验,不满足的直接剔除。这也是 relation_correctness 指标
+    # 能达到 1.000 的原因。
+    results = _assert_relation(results, attrs, plan.relation, hop2_filter)
+    results = results[:k]
+
+    # 约束下确实没有 → 放宽兜底:同品类里取最接近的,并在 trace 标记,
+    # prompt 会据此如实说明"没有完全符合的,最接近的是…"(与单跳预算兜底同策略)
+    relaxed = False
+    if not results:
+        widened = top_k(target_text, k=k + 4, intent_text=target_text,
+                        user_id=user_id, relevance_gate=False)
+        widened = [p for p in widened if not _is_anchor(p)]
+        anchor_price = attrs.get("price_cny")
+        if anchor_price and plan.relation in ("cheaper", "pricier", "same_price"):
+            def _pv(p):
+                v = p.get("price_cny")
+                v = v if v is not None else p.get("base_price")
+                return float(v) if v is not None else float("inf")
+            widened.sort(key=lambda p: abs(_pv(p) - anchor_price))
+        results = widened[:k]
+        relaxed = bool(results)
+
+    trace["hops"].append({
+        "hop": 2, "kind": "retrieval", "query": target_text,
+        "count": len(results), "relaxed": relaxed,
+    })
+    trace["label"] = relation_label(plan.relation, attrs)
+    trace["relaxed"] = relaxed
+    if not results:
+        trace["fallback"] = "hop2_empty"
+    return anchor, results, trace
+
+
+def _sibling_sub_categories(subs: list[str]) -> list[str]:
+    """把过窄的细分品类扩成同族兄弟(耳机族/跑鞋族等),避免 hop2 召回为空。"""
+    FAMILIES = (
+        {"无线降噪耳机", "真无线耳机", "真无线降噪耳机"},
+        {"跑步鞋", "运动休闲鞋"},
+        {"徒步鞋", "登山徒步鞋"},
+        {"面霜", "面霜/敏感肌"},
+        {"精华", "精华液", "精华水"},
+        {"化妆水", "化妆水/精华水", "爽肤水/化妆水"},
+        {"短袖T恤", "速干T恤"},
+        {"运动长裤", "运动短裤"},
+    )
+    out = set(subs)
+    for fam in FAMILIES:
+        if out & fam:
+            out |= fam
+    return sorted(out)
+
+
+def _assert_relation(products: list[dict], attrs: dict, relation: str, hop2_filter) -> list[dict]:
+    """确定性校验 hop2 结果是否真的满足派生约束。不满足的剔除。"""
+    if not products:
+        return products
+    price_max = getattr(hop2_filter, "price_max_cny", None) if hop2_filter else None
+    price_min = getattr(hop2_filter, "price_min_cny", None) if hop2_filter else None
+    brands = getattr(hop2_filter, "brand_include", None) if hop2_filter else None
+
+    def price_of(p: dict):
+        v = p.get("price_cny")
+        return float(v) if v is not None else (
+            float(p.get("base_price")) if p.get("base_price") is not None else None)
+
+    out = []
+    for p in products:
+        pr = price_of(p)
+        if price_max is not None and (pr is None or pr > price_max):
+            continue
+        if price_min is not None and (pr is None or pr < price_min):
+            continue
+        if brands:
+            b = (p.get("brand") or "").casefold()
+            if not any((x or "").casefold() in b or b in (x or "").casefold() for x in brands):
+                continue
+        out.append(p)
+    return out

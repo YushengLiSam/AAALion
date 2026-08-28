@@ -1,0 +1,15 @@
+{"id":"mh01","query":"有没有比AirPods Pro便宜的降噪耳机","relation":"cheaper","anchor_contains":"AirPods Pro","target_family":["无线降噪耳机","真无线耳机","真无线降噪耳机"]}
+{"id":"mh02","query":"比理肤泉那款防晒便宜的防晒霜","relation":"cheaper","anchor_contains":"理肤泉","target_family":["防晒"]}
+{"id":"mh03","query":"跟特步跑鞋同价位的其他跑鞋","relation":"same_price","anchor_contains":"特步","target_family":["跑步鞋","运动休闲鞋"]}
+{"id":"mh04","query":"和iPhone一样牌子的平板","relation":"same_brand","anchor_contains":"iPhone","target_family":["平板电脑"]}
+{"id":"mh05","query":"买了小米手机,配个耳机","relation":"pair","anchor_contains":"小米","target_family":["无线降噪耳机","真无线耳机","真无线降噪耳机"]}
+{"id":"mh06","query":"比华为MateBook便宜的笔记本","relation":"cheaper","anchor_contains":"MateBook","target_family":["笔记本电脑"]}
+{"id":"mh07","query":"跟索尼降噪耳机同价位的耳机","relation":"same_price","anchor_contains":"索尼","target_family":["无线降噪耳机","真无线耳机","真无线降噪耳机"]}
+{"id":"mh08","query":"和华为一样牌子的平板","relation":"same_brand","anchor_contains":"华为","target_family":["平板电脑"]}
+{"id":"mh09","query":"比雅诗兰黛精华便宜的精华","relation":"cheaper","anchor_contains":"雅诗兰黛","target_family":["精华","精华液","精华水"]}
+{"id":"mh10","query":"买了跑鞋,配个T恤","relation":"pair","anchor_contains":"跑","target_family":["短袖T恤","速干T恤"]}
+{"id":"mh11","query":"比HOKA那双跑鞋便宜的跑鞋","relation":"cheaper","anchor_contains":"HOKA","target_family":["跑步鞋","运动休闲鞋"]}
+{"id":"mh12","query":"跟薇诺娜面霜同价位的面霜","relation":"same_price","anchor_contains":"薇诺娜","target_family":["面霜","面霜/敏感肌"]}
+{"id":"mh13","query":"比Bose耳机便宜的降噪耳机","relation":"cheaper","anchor_contains":"Bose","target_family":["无线降噪耳机","真无线耳机","真无线降噪耳机"]}
+{"id":"mh14","query":"和Apple一样牌子的笔记本","relation":"same_brand","anchor_contains":"Apple","target_family":["笔记本电脑"]}
+{"id":"mh15","query":"比小米平板贵一点的平板","relation":"pricier","anchor_contains":"小米","target_family":["平板电脑"]}

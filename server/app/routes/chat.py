@@ -441,6 +441,30 @@ def _detect_cart_intent(text: str) -> dict | None:
 # 卡片字面发挥(「所有男装T恤都在1000以内」)。检索层早就用整个 history 了,
 # LLM 也要看到。只取文本(图片只随当前轮走视觉通道),每条截断、限最近几轮,
 # 合并连续同角色消息并保证以 user 开头(Anthropic provider 要求严格交替)。
+def _history_product_cards(messages) -> list[dict]:
+    """从会话历史里取上一轮 assistant 展示过的商品卡(供会话锚点使用)。
+
+    iOS 在多轮请求里会把上一轮的商品卡以结构化形式带回;这里做尽力解析,
+    拿不到就返回空列表(会话锚点随之不触发,回退单跳)。
+    """
+    cards: list[dict] = []
+    try:
+        for m in reversed(messages):
+            if getattr(m, "role", None) != "assistant":
+                continue
+            raw = getattr(m, "products", None) or getattr(m, "product_cards", None)
+            if isinstance(raw, list) and raw:
+                for item in raw:
+                    if isinstance(item, dict):
+                        cards.append(item)
+                    elif hasattr(item, "model_dump"):
+                        cards.append(item.model_dump())
+                break
+    except Exception:
+        return []
+    return cards
+
+
 def _prior_text_turns(messages, *, limit: int = 8, max_chars: int = 600) -> list[dict]:
     last_user_index = next(
         (i for i in range(len(messages) - 1, -1, -1) if messages[i].role == "user"), None
@@ -906,6 +930,30 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 if lang == "en" else
                 ["美妆护肤", "数码电子", "服饰运动", "食品零食",
                  "500 元以内", "1000 左右"])
+    # R14 multi-hop —— 锚定式两跳检索。命中"比X便宜/跟X同价位/同品牌/搭配"
+    # 这类**跳间依赖**的问法时,先检索锚点、再用锚点的结构化属性(价格/品牌/
+    # 品类)派生 hop2 硬约束。未命中则完全走下面的单跳流程(零改动)。
+    hop_trace: dict | None = None
+    if clarify_dims is None and not empty_query and not out_of_domain and not _has_image(req.messages):
+        try:
+            from rag.retrieve.multihop import detect_multihop
+            _hist_cards = _history_product_cards(req.messages)
+            _plan = detect_multihop(user_text, has_history_cards=bool(_hist_cards))
+            if _plan is not None:
+                from app.services.rag_client import multi_hop_retrieve
+                _anchor, _hop2, _trace = await asyncio.to_thread(
+                    multi_hop_retrieve, _plan,
+                    history_products=_hist_cards, user_id=req.user_id, k=4,
+                )
+                if _anchor and _hop2:
+                    # 与单跳同样做币种归一化,否则外币商品的 price_cny 为空、
+                    # 卡片价格显示异常(多跳路径不走下面那段归一化)。
+                    products = await asyncio.to_thread(
+                        normalize_product_prices, [_anchor] + _hop2)
+                    hop_trace = _trace
+        except Exception:
+            hop_trace = None  # 任何异常静默回退单跳
+
     if clarify_dims is None and not empty_query and not out_of_domain:
         if _has_image(req.messages):
             img_bytes_list = _extract_image_bytes_list(req.messages)
@@ -1046,6 +1094,23 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # R11.demo-fix — 预算把结果筛空了;我们已兜底取最接近的商品。
     # 告诉 LLM 这些候选可能超预算,让它如实表述,
     # 而不是声称目录为空。
+    # R14 multi-hop —— 两跳检索时,让 LLM 先确认锚点、再解释推荐与锚点的关系。
+    if hop_trace:
+        _a = hop_trace.get("anchor") or {}
+        _lbl = hop_trace.get("label") or ""
+        addendum += (
+            f"\n\n9. **本轮是多跳检索({_lbl})**: 第一张卡是**参照商品**"
+            f"「{_a.get('title','')}」(¥{_a.get('price_cny')}),其余是基于它筛出的结果。"
+            "回复时:先用一句话确认参照商品,再逐条说明每个推荐**与它的关系**"
+            "(例如「比它便宜 ¥120」「同价位」「同为 Apple 生态」),"
+            "价格与品牌用 [目录✓] 标注。"
+        )
+        if hop_trace.get("relaxed"):
+            addendum += (
+                "注意:**没有完全符合该条件的商品**,下面是目录里最接近的,"
+                "请如实说明这一点,不要谎称完全符合。"
+            )
+
     if budget_relaxed:
         addendum += (
             "\n\n8. **预算无完全匹配**: 没有完全符合用户预算/约束的商品,下面的候选是目录里"
@@ -1205,6 +1270,13 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         # 效果:检索一结束用户就能看到商品(缓存命中 ~0.3s / 热启动 1s 内),
         # 而不必等整个 LLM 生成结束、
         # 卡片才姗姗出现。
+        # R14 multi-hop —— 先发检索链,让 UI/评委看到"它是怎么想的":
+        # 锚点 → 派生约束 → hop2。可解释性从生成层延伸到检索层。
+        if hop_trace:
+            ev_trace = {"type": "hop_trace", **hop_trace}
+            yield _sse(ev_trace)
+            events_to_cache.append(ev_trace)
+
         for p in products:
             if await request.is_disconnected():
                 return

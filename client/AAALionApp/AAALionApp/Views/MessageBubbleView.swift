@@ -81,6 +81,33 @@ struct MessageBubbleView: View {
                     }
                     .transition(.opacity)
                 }
+                // R14 multi-hop —— 检索链面包屑。多跳检索时显示
+                // 「参照 特步160X ¥999 → 同价位跑鞋」,让用户看到答案
+                // 是怎么两跳推出来的(可解释性从生成层延伸到检索层)。
+                if message.role == .assistant, let hop = message.hopTrace {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.accentColor)
+                        Text(hop.breadcrumb)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                        if hop.relaxed == true {
+                            Text("· 已放宽")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(Color.orange)
+                        }
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.08))
+                    )
+                    .padding(.top, 2)
+                    .transition(.opacity)
+                }
                 // R9.A.5 — proposal #8 fact-check footer. Renders only on
                 // assistant messages where the backend emitted a
                 // claim_summary event. Visible per-message claim tally.
