@@ -1,0 +1,15 @@
+{
+  "n": 18,
+  "judge_model": "claude-haiku-4-5",
+  "ragas": {
+    "faithfulness": 0.639259192151349,
+    "answer_relevancy": 0.4495973654533171,
+    "llm_context_precision_without_reference": 0.5879629629136576
+  },
+  "fact_grounding": {
+    "ok": 47,
+    "total": 47,
+    "rate": 1.0,
+    "violations": []
+  }
+}

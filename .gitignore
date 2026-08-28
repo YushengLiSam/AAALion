@@ -113,3 +113,5 @@ client/AAALionApp/build-device/
 # `apps/` holds the device .ipa downloaded from the iOS Unsigned IPA CI run.
 apps/
 *.ipa
+rag/eval/.ragas_judge_cache.json
+rag/eval/ragas_triples.jsonl
