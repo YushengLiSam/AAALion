@@ -57,7 +57,7 @@ Last touched: **R11 (2026-06-02) — login/sign-up page + account profile; docs 
 | Cloud sync | **the VM is a GIT CLONE with auto-deploy (R10 CD)** — `lionpick-autodeploy.timer` runs `tools/cloud-autodeploy.sh` every ~2 min: `git fetch` → if `origin/main` advanced, `reset --hard` + `systemctl restart lionpick` + `/ready` check, **rolling back** on failure. **A merge to main is live on the cloud within ~2 min, hands-free** (gitignored `.env` / `data/.chroma` / `data/*.db` survive a `reset --hard`). Manual redeploy if needed: SSH in, `git pull && sudo systemctl restart lionpick`. VM external IP `34.139.88.204`. |
 | Mac LAN IP | run `ipconfig getifaddr en0` each session | overridable from the in-app Settings sheet at runtime (long-press gear 1.5 s → dev mode) |
 | iOS app | iPhone 13 Pro UDID `7310469E-E396-5197-9408-FF1AD58D4CF2` | `aaalion ios-device` |
-| Chroma vector DB | in-process, persisted to `data/.chroma/` (gitignored) | implicit |
+| Vector store | **pluggable (R15)**: Chroma in-process by default (`data/.chroma/`, gitignored); Milvus via `RAG_STORE=milvus` + `RAG_MILVUS_URI` (Lite file, `tools/milvus-lite-server.sh`, or Standalone) | see [`docs/VECTOR_STORE.md`](docs/VECTOR_STORE.md); index schema/version shown in `/ready` |
 | A100 GPU | `ssh uc` (host alias in `~/.ssh/config`) | scope is `~/shufeng/AAALion-/` only |
 | **Off-limits** | `~/shufeng/cuda-fuzzing/` on uc | **NEVER touch this dir** — it's another project |
 | Credentials | `~/.config/lionpick/credentials.env` (mode 0700, OUTSIDE repo) | Apple Team ID, TokenRouter key, Mac password, Apple ID |

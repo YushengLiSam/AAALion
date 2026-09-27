@@ -352,3 +352,21 @@ def product_origin(product: dict) -> str | None:
             return from_brand or explicit
         return explicit
     return lookup_origin(product.get("brand") or "")
+
+
+def origin_fingerprint(products) -> str:
+    """当前"商品 → 国别"解析结果的指纹(R15)。
+
+    索引里的 ``brand_country`` 是入库那一刻用 ``product_origin`` 算出来的快照。
+    之后若修正了 BRAND_ORIGIN 表或种子数据里的产地,自动部署会让 Python 侧的反选
+    立刻用上新值,而数据库里还是旧值——此时把国别条件下推到数据库,会误删 Python
+    侧本应保留的商品。入库时把这个指纹写进索引,查询侧只有指纹一致才下推。
+    """
+    import hashlib
+
+    lines = sorted(
+        f"{p.get('product_id')}={(product_origin(p) or '').upper()}"
+        for p in products
+        if isinstance(p.get("product_id"), str)
+    )
+    return hashlib.sha1("\n".join(lines).encode("utf-8")).hexdigest()[:16]

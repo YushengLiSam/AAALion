@@ -30,3 +30,10 @@ tmp/
 **/.env
 **/.env.*
 node_modules/
+# R15 — local indexes, embedding artifacts, external datasets (GBs), env backups
+data/.chroma_backup_*/
+data/.milvus/
+*.milvus.db
+data/.embeddings/
+data/external/
+.env.bak*

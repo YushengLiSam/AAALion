@@ -115,3 +115,16 @@ apps/
 *.ipa
 rag/eval/.ragas_judge_cache.json
 rag/eval/ragas_triples.jsonl
+
+# R15 — external benchmark datasets (KuaiSearch / Multi-CPR, several GB) and
+# Milvus Lite local database files. Never commit.
+data/external/
+data/external/**
+data/.milvus/
+*.milvus.db
+data/.chroma_backup_*/
+# R15 — cached embedding artifacts written by rag.ingest.* (rebuildable)
+data/.embeddings/
+# Backups of .env files contain live keys — never commit (pre-existing server/.env.bak.* was untracked but not ignored)
+.env.bak*
+*.env.bak

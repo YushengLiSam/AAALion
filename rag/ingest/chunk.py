@@ -25,6 +25,22 @@ class Chunk:
     metadata: dict = field(default_factory=dict)
 
 
+def _brand_country(product: dict) -> str:
+    """商品的品牌国别(ISO 两位码),未知时为空串。
+
+    必须和反选逻辑用同一个解析函数 ``brand_origin.product_origin``:
+    它对 AI 生成的演示商品会改用品牌查表,而不是直接信 ``provenance.origin_country``
+    (那个字段对演示数据一律默认填 "CN",欧莱雅也是 CN)。入库和查询共用一个
+    事实来源,过滤下推到数据库后才不会和 Python 侧的反选结果不一致。
+    """
+    try:
+        from rag.retrieve.brand_origin import product_origin
+
+        return (product_origin(product) or "").upper()
+    except Exception:
+        return ""
+
+
 def _meta(product: dict) -> dict:
     provenance = product.get("provenance") or {}
     return {
@@ -32,6 +48,7 @@ def _meta(product: dict) -> dict:
         "category": product.get("category"),
         "sub_category": product.get("sub_category"),
         "brand": product.get("brand"),
+        "brand_country": _brand_country(product),
         "base_price": product.get("base_price"),
         "currency": provenance.get("currency", "CNY"),
     }

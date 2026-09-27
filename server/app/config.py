@@ -23,6 +23,8 @@ class Settings:
     doubao_model_id: str = os.getenv("DOUBAO_MODEL_ID", "ep-20260514111645-lmgt2")
     doubao_api_key: str = os.getenv("DOUBAO_API_KEY", "")
 
+    # 注意:仓库里从来没有 Qdrant 实现,下面三项没有任何代码读取。
+    # 向量库由环境变量 RAG_STORE 选择(chroma / milvus),见 rag/store/__init__.py。
     qdrant_url: str = os.getenv("QDRANT_URL", "http://localhost:6333")
     qdrant_text_collection: str = os.getenv("QDRANT_COLLECTION_TEXT", "products_text")
     qdrant_image_collection: str = os.getenv("QDRANT_COLLECTION_IMAGE", "products_image")

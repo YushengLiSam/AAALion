@@ -6,6 +6,8 @@ chunk 得分排序)。
 from __future__ import annotations
 
 import json
+import os
+import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -110,9 +112,62 @@ def _build_where(f: Filter | None) -> dict | None:
                 ]
             }
         )
+    # R15 —— 国别反选("不要日系")下推到数据库。只有当前索引确实带
+    # brand_country 字段(schema v2 重建过)时才下推;旧索引会自动跳过,
+    # 由 product_matches_filter 里的 Python 侧同一条规则兜底。
+    countries = _pushdown_countries(f)
+    if countries:
+        parts.append({"brand_country": {"$nin": sorted(countries)}})
     if not parts:
         return None
     return {"$and": parts} if len(parts) > 1 else parts[0]
+
+
+def _filter_pushdown_on() -> bool:
+    return os.getenv("RAG_FILTER_PUSHDOWN", "1") == "1"
+
+
+@lru_cache(maxsize=256)
+def _excluded_countries_cached(keywords: tuple[str, ...]) -> frozenset[str]:
+    try:
+        from rag.retrieve.brand_origin import excluded_countries
+
+        return frozenset(excluded_countries(list(keywords)))
+    except Exception:
+        return frozenset()
+
+
+def _filter_excluded_countries(f: Filter | None) -> frozenset[str]:
+    if f is None or not f.exclude_keywords or not _filter_pushdown_on():
+        return frozenset()
+    return _excluded_countries_cached(tuple(k for k in f.exclude_keywords if k))
+
+
+@lru_cache(maxsize=1)
+def _current_origin_fp() -> str:
+    from rag.retrieve.brand_origin import origin_fingerprint
+
+    return origin_fingerprint(_product_index().values())
+
+
+def _pushdown_countries(f: Filter | None) -> frozenset[str]:
+    """能下推到数据库的被排除国别。三个条件缺一不可:开关打开、索引带 brand_country、
+    索引里 brand_country 是用**当前**产地解析结果算的(指纹一致)。任一不满足就只走
+    Python 侧的同一条规则——结果不变,只是少了数据库层的提前过滤。"""
+    countries = _filter_excluded_countries(f)
+    if not countries:
+        return frozenset()
+    try:
+        from rag.store import get_store
+
+        store = get_store()
+        if "brand_country" not in store.filterable_fields():
+            return frozenset()
+        if store.index_properties().get("origin_fp") != _current_origin_fp():
+            return frozenset()
+    except Exception:
+        return frozenset()
+    return countries
 
 
 def product_matches_filter(product: dict, f: Filter | None, *, strict_cny_price: bool = False) -> bool:
@@ -135,6 +190,21 @@ def product_matches_filter(product: dict, f: Filter | None, *, strict_cny_price:
         return False
     if f.brand_exclude and brand in {item.casefold() for item in f.brand_exclude}:
         return False
+
+    # R15 —— 国别反选的 Python 侧版本,与数据库下推是同一条规则、同一个解析函数
+    # (brand_origin.product_origin),和后面 apply_negation 的国别判断也一致。
+    # 放在这里是为了让稠密检索与 BM25 两路在截 top-k 之前就剔除被排除国别,
+    # 候选名额不再浪费在注定会被删掉的商品上。开关:RAG_FILTER_PUSHDOWN。
+    excluded = _filter_excluded_countries(f)
+    if excluded:
+        try:
+            from rag.retrieve.brand_origin import product_origin
+
+            origin = product_origin(product)
+        except Exception:
+            origin = None
+        if origin and origin in excluded:
+            return False
 
     if not f.has_price_constraint:
         return True
@@ -168,7 +238,10 @@ def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
     try:
         vec = embed_query(text or " ")
         raw = query_text(vec, k=k * 3, where=_build_where(f))
-    except Exception:
+    except Exception as exc:
+        # 向量库出错时退回关键词检索,保证可用;但必须留痕——否则换后端后
+        # 即使 Milvus 整个挂掉,评测也可能靠关键词兜底"看起来还行"。
+        print(f"[rag] dense query failed, falling back to keyword search: {type(exc).__name__}: {exc}", file=sys.stderr)
         return _keyword_fallback(text, k=k, f=f)
 
     products = _product_index()

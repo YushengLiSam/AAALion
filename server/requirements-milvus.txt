@@ -1,0 +1,6 @@
+# Optional: Milvus vector-store backend (RAG_STORE=milvus). Not needed for the
+# default Chroma backend, so it is kept out of requirements.txt.
+#   pip install -r server/requirements-milvus.txt
+# milvus-lite[chinese] pulls jieba for Milvus' built-in BM25 Chinese analyzer.
+pymilvus==3.0.2
+milvus-lite[chinese]==3.2.1

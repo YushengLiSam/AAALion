@@ -14,6 +14,30 @@
 
 ---
 
+## 2026-09-26 — R15:向量存储层抽象,Chroma / Milvus 可插拔
+
+**作者**: 李雨晟 · 本地验证(单元测试 174 通过;两套评测 + 一致性比对全绿;提交前对抗式审查 8 条确认问题已修)· 线上 VM 行为不变
+
+- **`rag/store.py` → `rag/store/` 包。** 接口(`base.py`)、Chroma 后端(默认,行为不变)、
+  Milvus 后端、过滤条件翻译器、跨后端迁移、向量文件加载器。`RAG_STORE=chroma|milvus` 切换;
+  pymilvus 是可选依赖(`server/requirements-milvus.txt`),VM 自动部署不受影响。
+- **Schema v2 + 国别反选下推。** 每条文档带 `brand_country`(和反选逻辑用同一个
+  `product_origin()` 算)和 `currency`;索引上打版本号,`/ready` 会报出来。"不要日系"在截
+  top-k 之前就过滤掉,不下推时平均每条 query 浪费 8.8/60 个候选名额,下推后为 0。
+  旧索引会被自动识别,只走 Python 侧过滤。
+- **一致性:以精确解为准。** 同一批向量,生产路径指标在 Chroma、嵌入式 Milvus、Milvus 服务进程上
+  逐字相同(golden 0.947 / compositional 0.841);Milvus 在 297 条 query 上召回都不低于 Chroma。
+- **抓到并修掉的问题**:本地和线上索引悄悄漂移(本地缺 `currency`);HNSW 加窄过滤少召回
+  (recall 0.414 → 分档策略后 1.000);Lite 单进程文件锁导致静默降级 202 次(降级路径现在必打日志);
+  macOS 上 torch 与 faiss 两份 OpenMP 同进程会 abort,`KMP_DUPLICATE_LIB_OK` 也会崩
+  (→ 向量库独立进程:`tools/milvus-lite-server.sh`);pymilvus 自己会读 `MILVUS_URI`
+  (→ 统一改用 `RAG_MILVUS_*`)。
+- **提交前对抗式审查**(4 个审查员 + 逐条反驳):修了 Milvus 服务重启后查询一直降级、`--rebuild` 先删后算、产地表修正后 `brand_country` 过期(→ 产地指纹门控)、`/ready` 暴露绝对路径等问题。
+- **更正**:compositional recall@5 的当前值是 **0.841**,`EVAL_RESULTS.md` R13 节的 0.832 已过时。
+- 设计与复盘:[`docs/VECTOR_STORE.md`](VECTOR_STORE.md)。
+
+---
+
 ## 2026-06-09 — v0.2.0:应用内中英语言切换、签名 JWT、演示加固
 
 **作者**: 管图杰 (JackGuan99) · CI 已验证(iOS Simulator Build + RAG Eval 全绿) · 后端已自动部署至 `main`

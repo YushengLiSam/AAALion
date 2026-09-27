@@ -55,6 +55,17 @@ def warm_retrieval_pipeline() -> dict[str, str]:
         except Exception:
             clip = "error"
 
+    # R15 — report which vector store is serving and what its index holds
+    # (backend, schema version, filterable fields, doc counts). An index built
+    # by older ingest code shows schema_version=null here, which is exactly the
+    # silent local-vs-cloud drift we had before this field existed.
+    try:
+        from rag.store import describe_store
+
+        vector_store = describe_store()
+    except Exception as exc:
+        vector_store = {"error": str(exc)}
+
     return {
         "prewarm": "completed",
         "embedding": "ready",
@@ -62,4 +73,5 @@ def warm_retrieval_pipeline() -> dict[str, str]:
         "reranker": reranker,
         "clip": clip,
         "query_path": "ready",
+        "vector_store": vector_store,
     }
