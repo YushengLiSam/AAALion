@@ -37,3 +37,4 @@ data/.milvus/
 data/.embeddings/
 data/external/
 .env.bak*
+data/.bench/

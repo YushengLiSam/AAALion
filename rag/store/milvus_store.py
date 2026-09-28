@@ -65,26 +65,40 @@ _UPSERT_BATCH = int(os.getenv("RAG_MILVUS_UPSERT_BATCH", "2000"))
 
 def _hnsw_ef(k: int) -> int:
     # HNSW 的搜索宽度必须 >= k;给足余量以免小库上召回被 ef 截断
-    return max(int(os.getenv("RAG_MILVUS_HNSW_EF", "256")), k)
+    return max(int(os.getenv("RAG_MILVUS_HNSW_EF", "1024")), k)
 
 
 # ---------------------------------------------------------------------------
 # 带过滤搜索的分档策略
 #
 # HNSW + 标量过滤有个经典坑:过滤越窄,图遍历在 ef 预算内碰到的合格节点越少,
-# 结果凑不满 k 个、还会漏掉真正的近邻。R15 一致性比对实测:1082 条里只剩 5% 合格时,
-# ef=128 的 recall 只有 0.41(返回 24 条,应有 58 条)。
-#
-# Milvus 服务端(Knowhere)遇到高选择性过滤会自动改走暴力搜索;Milvus Lite 3.x
-# 是 Python 重写版,没有这层逻辑,所以在适配层补上:
+# 结果凑不满 k 个、还会漏掉真正的近邻。Milvus 服务端(Knowhere)遇到高选择性过滤会
+# 自动改走暴力搜索;Milvus Lite 3.x 是 Python 重写版,没有这层逻辑,所以在适配层补上:
 #   1. 先用标量倒排索引数出合格条数 m(很便宜);
-#   2. m == 0          → 直接返回空;
-#   3. m <= 暴力上限    → 把这 m 条的向量取出来精确算余弦,保证不漏;
-#   4. 其余            → 走 HNSW,ef 按选择性的倒数放大(有上限)。
+#   2. m == 0            → 直接返回空;
+#   3. m <= 暴力上限      → 只拉这 m 条的向量精确算余弦,再只取 top-k 的元数据;
+#   4. 其余              → 走 HNSW,ef = 系数 × k / 选择性(有上限)。
+#
+# 参数是量出来的(docs/bench/calibrate_{10k,100k}.json,KuaiSearch 真实商品,k=60):
+#   - 固定 ef 时,越窄的类目过滤召回越低:10 万条、ef=1024,选择性 17% / 3% / 0.1%
+#     的 recall@10 只有 0.69 / 0.57 / 0.31。类目和查询语义相关(同类商品在向量空间里
+#     聚成一团),查询不在那一团附近时,图遍历在预算内很难走进去。
+#   - 17% 的类目过滤要 ef≈16384 才到 0.99 → 系数 ≈ 48(1 万条时量出的 12 到 10 万不够;
+#     最初拍的 2 差了一个数量级)。品牌排除这类过滤 ef=1024 就够,但查询时无法廉价判断
+#     过滤和语义相不相关,按最坏情况取值:用排除类多花的延迟换类目过滤不丢召回。
+#   - 精确计算的成本 ≈ 100 ms + 每条合格向量 0.12 ms(服务模式每次 RPC 约 50 ms 固定开销),
+#     合格 3000 条时 449 ms 满召回,优于 ef=16384 的 669 ms / 0.962,故暴力上限取 4096。
+#   - 不带过滤时 ef 从 256 提到 1024,召回 0.991 → 1.000,只多约 7 ms。
 # 开关:RAG_MILVUS_FILTER_STRATEGY=adaptive(默认)| plain(只用固定 ef,便于对照实验)
 # ---------------------------------------------------------------------------
 _BRUTE_MAX = int(os.getenv("RAG_MILVUS_FILTER_BRUTE_MAX", "4096"))
-_EF_MAX = int(os.getenv("RAG_MILVUS_HNSW_EF_MAX", "8192"))
+_EF_MAX = int(os.getenv("RAG_MILVUS_HNSW_EF_MAX", "16384"))
+_EF_FACTOR = float(os.getenv("RAG_MILVUS_FILTER_EF_FACTOR", "48"))
+# 合格条数缓存:count 在 milvus-lite 服务模式下有固定的 RPC 开销,`not in` 之类还可能全表扫;
+# 同一个过滤条件(比如"女装")在生产里会反复出现。缓存只影响走哪一档,不影响正确性——
+# 精确计算那一档会用 上限+1 做 limit,发现真实条数已超上限就退回 HNSW。
+_COUNT_TTL = float(os.getenv("RAG_MILVUS_COUNT_CACHE_TTL", "300"))
+_COUNT_CACHE_MAX = 512
 
 
 def _adaptive_filter_on() -> bool:
@@ -106,6 +120,7 @@ class MilvusStore:
         self._loaded: set[str] = set()
         self._totals: dict[str, int] = {}
         self._pending_props: dict[str, dict] = {}  # reset_collection 时给定,建集合时写入
+        self._count_cache: dict[tuple[str, str], tuple[float, int]] = {}
         self.last_search_path: str = ""  # 调试/压测用:最近一次搜索走了哪一档
 
     # -- 内部 -----------------------------------------------------------------
@@ -325,6 +340,7 @@ class MilvusStore:
                 "RAG_MILVUS_INDEX_TYPE=FLAT, or use Milvus Standalone."
             )
         self._totals.pop(name, None)
+        self._drop_counts(name)
         client = self._client()
         for i in range(0, len(rows), _UPSERT_BATCH):
             self._locked(client.upsert, name, data=rows[i : i + _UPSERT_BATCH])
@@ -340,10 +356,15 @@ class MilvusStore:
                 self.last_search_path = "empty"
                 return []
             if matched <= _BRUTE_MAX:
-                self.last_search_path = f"exact(m={matched})"
-                return self._exact_search(name, embedding, k, expr, matched)
+                hits = self._exact_search(name, embedding, k, expr)
+                if hits is not None:
+                    self.last_search_path = f"exact(m={matched})"
+                    return hits
+                # 缓存的条数过期了,真实条数已超上限:重新数一次,走 HNSW
+                self._count_cache.pop((name, expr), None)
+                matched = self._count_where(name, expr)
             selectivity = matched / max(1, self._total(name))
-            ef = min(_EF_MAX, max(ef, math.ceil(2 * k / selectivity)))
+            ef = min(_EF_MAX, max(ef, math.ceil(_EF_FACTOR * k / selectivity)))
             path = f"hnsw(m={matched},ef={ef})"
         self.last_search_path = path
         res = self._call(
@@ -362,8 +383,12 @@ class MilvusStore:
             for h in hits
         ]
 
-    def _exact_search(self, name: str, embedding: Sequence[float], k: int, expr: str, matched: int) -> list[Hit]:
-        """把满足过滤的 m 条向量取出来精确算余弦 top-k(m 已知不超过暴力上限)。"""
+    def _exact_search(self, name: str, embedding: Sequence[float], k: int, expr: str) -> list[Hit] | None:
+        """满足过滤的向量精确算余弦 top-k;合格条数超过暴力上限时返回 None(由调用方改走 HNSW)。
+
+        分两步拉取:先只要 id + 向量(实测比连同全部字段一起拉快约一倍),
+        算出 top-k 后再只取这 k 条的元数据。
+        """
         import numpy as np
 
         rows = self._call(
@@ -371,9 +396,11 @@ class MilvusStore:
             self._client().query,
             name,
             filter=expr,
-            output_fields=["vector", *self._output_fields(name)],
-            limit=int(matched),
+            output_fields=["vector"],
+            limit=_BRUTE_MAX + 1,
         )
+        if len(rows) > _BRUTE_MAX:
+            return None
         if not rows:
             return []
         mat = np.asarray([r["vector"] for r in rows], dtype=np.float32)
@@ -382,18 +409,32 @@ class MilvusStore:
         q /= max(float(np.linalg.norm(q)), 1e-12)
         sims = mat @ q
         top = np.argsort(-sims, kind="stable")[: int(k)]
+        top_ids = [str(rows[i]["id"]) for i in top]
+        meta_rows = self._call(name, self._client().get, name, ids=top_ids, output_fields=self._output_fields(name))
+        by_id = {str(r["id"]): r for r in (meta_rows or [])}
         return [
-            Hit(
-                id=str(rows[i]["id"]),
-                score=float(sims[i]),
-                metadata=self._to_meta({kk: vv for kk, vv in rows[i].items() if kk != "vector"}),
-            )
-            for i in top
+            Hit(id=top_ids[j], score=float(sims[i]), metadata=self._to_meta(by_id.get(top_ids[j], {})))
+            for j, i in enumerate(top)
         ]
 
     def _count_where(self, name: str, expr: str) -> int:
+        import time as _time
+
+        key = (name, expr)
+        now = _time.monotonic()
+        hit = self._count_cache.get(key)
+        if hit is not None and now - hit[0] <= _COUNT_TTL:
+            return hit[1]
         res = self._call(name, self._client().query, name, filter=expr, output_fields=["count(*)"])
-        return int(res[0]["count(*)"]) if res else 0
+        n = int(res[0]["count(*)"]) if res else 0
+        if len(self._count_cache) >= _COUNT_CACHE_MAX:
+            self._count_cache.clear()
+        self._count_cache[key] = (now, n)
+        return n
+
+    def _drop_counts(self, name: str) -> None:
+        for key in [k for k in self._count_cache if k[0] == name]:
+            self._count_cache.pop(key, None)
 
     def _total(self, name: str) -> int:
         n = self._totals.get(name)
@@ -492,6 +533,7 @@ class MilvusStore:
             self._locked(client.drop_collection, name)
         self._loaded.discard(name)
         self._totals.pop(name, None)
+        self._drop_counts(name)
         # 维度要等第一批向量到来才知道,所以这里只删不建;upsert 时按需创建,届时写入属性
         if properties:
             self._pending_props[name] = dict(properties)

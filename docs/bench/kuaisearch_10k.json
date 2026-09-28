@@ -1,0 +1,240 @@
+{
+ "dataset": "KuaiSearch items_lite (first N, file order)",
+ "n": 10000,
+ "dim": 512,
+ "milvus_params": {
+  "hnsw_ef": 1024,
+  "filter_brute_max": 4096,
+  "filter_ef_factor": 48.0,
+  "hnsw_ef_max": 16384,
+  "index": "HNSW M=16 efConstruction=200",
+  "mode": "milvus-lite 3.2.1 server"
+ },
+ "machine": "MacBook Air M4 (Mac16,12), 24 GB",
+ "queries": 300,
+ "k": 60,
+ "filters": [
+  {
+   "name": "none",
+   "where": null,
+   "selectivity": 1.0
+  },
+  {
+   "name": "broad",
+   "where": {
+    "category": "女装"
+   },
+   "selectivity": 0.1742
+  },
+  {
+   "name": "medium",
+   "where": {
+    "sub_category": {
+     "$in": [
+      "手机壳配件"
+     ]
+    }
+   },
+   "selectivity": 0.029
+  },
+  {
+   "name": "narrow",
+   "where": {
+    "sub_category": {
+     "$in": [
+      "中式糕点"
+     ]
+    }
+   },
+   "selectivity": 0.002
+  },
+  {
+   "name": "exclude",
+   "where": {
+    "brand": {
+     "$nin": [
+      "无品牌"
+     ]
+    }
+   },
+   "selectivity": 0.3959
+  }
+ ],
+ "backends": {
+  "chroma": {
+   "ingest_s": 7.7,
+   "cold_load_s": 0.57,
+   "disk_mb": 58,
+   "serving_rss_mb": 147,
+   "queries": 300,
+   "filters": {
+    "none": {
+     "p50_ms": 110.66,
+     "p95_ms": 116.2,
+     "p99_ms": 152.5,
+     "recall@10": 0.977,
+     "min_recall@10": 0.6,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "broad": {
+     "p50_ms": 30.26,
+     "p95_ms": 35.63,
+     "p99_ms": 37.21,
+     "recall@10": 0.9327,
+     "min_recall@10": 0.6,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "medium": {
+     "p50_ms": 19.64,
+     "p95_ms": 24.01,
+     "p99_ms": 25.89,
+     "recall@10": 0.987,
+     "min_recall@10": 0.8,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "narrow": {
+     "p50_ms": 18.3,
+     "p95_ms": 20.62,
+     "p99_ms": 21.27,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 20.0,
+     "paths": {}
+    },
+    "exclude": {
+     "p50_ms": 57.25,
+     "p95_ms": 60.92,
+     "p99_ms": 76.86,
+     "recall@10": 0.9877,
+     "min_recall@10": 0.6,
+     "avg_returned": 60.0,
+     "paths": {}
+    }
+   }
+  },
+  "milvus": {
+   "ingest_s": 6.3,
+   "cold_load_s": 0.8,
+   "disk_mb": 21,
+   "server_rss_mb": 366,
+   "server_rss_after_ingest_mb": 504,
+   "filters": {
+    "none": {
+     "p50_ms": 11.51,
+     "p95_ms": 12.47,
+     "p99_ms": 13.32,
+     "recall@10": 0.9997,
+     "min_recall@10": 0.9,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 300
+     }
+    },
+    "broad": {
+     "p50_ms": 194.84,
+     "p95_ms": 220.97,
+     "p99_ms": 249.24,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "exact": 300
+     }
+    },
+    "medium": {
+     "p50_ms": 41.47,
+     "p95_ms": 63.31,
+     "p99_ms": 67.79,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "exact": 300
+     }
+    },
+    "narrow": {
+     "p50_ms": 11.49,
+     "p95_ms": 34.75,
+     "p99_ms": 40.3,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 20.0,
+     "paths": {
+      "exact": 300
+     }
+    },
+    "exclude": {
+     "p50_ms": 430.31,
+     "p95_ms": 472.12,
+     "p99_ms": 495.04,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "exact": 300
+     }
+    }
+   },
+   "filters_plain_ef": {
+    "none": {
+     "p50_ms": 11.73,
+     "p95_ms": 12.24,
+     "p99_ms": 12.8,
+     "recall@10": 0.9997,
+     "min_recall@10": 0.9,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 300
+     }
+    },
+    "broad": {
+     "p50_ms": 12.03,
+     "p95_ms": 13.27,
+     "p99_ms": 14.29,
+     "recall@10": 0.9087,
+     "min_recall@10": 0.1,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 300
+     }
+    },
+    "medium": {
+     "p50_ms": 11.68,
+     "p95_ms": 12.24,
+     "p99_ms": 12.5,
+     "recall@10": 0.626,
+     "min_recall@10": 0.0,
+     "avg_returned": 45.0,
+     "paths": {
+      "hnsw": 300
+     }
+    },
+    "narrow": {
+     "p50_ms": 8.54,
+     "p95_ms": 9.54,
+     "p99_ms": 9.91,
+     "recall@10": 0.4507,
+     "min_recall@10": 0.0,
+     "avg_returned": 7.6,
+     "paths": {
+      "hnsw": 300
+     }
+    },
+    "exclude": {
+     "p50_ms": 12.14,
+     "p95_ms": 12.7,
+     "p99_ms": 13.26,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 300
+     }
+    }
+   }
+  }
+ }
+}

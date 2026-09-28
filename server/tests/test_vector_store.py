@@ -241,6 +241,17 @@ class MilvusStoreTests(unittest.TestCase):
             self.assertEqual(len(hits), want_n)
             self.assertEqual([h.id for h in hits], _exact(self.vecs, self.docs, q, 60, pred))
 
+    def test_stale_count_cache_falls_back_to_hnsw_and_stays_correct(self) -> None:
+        where = {"brand_country": {"$nin": ["JP"]}}  # 300 of 400 match
+        from rag.store.filters import to_milvus_expr
+
+        self.store._count_cache[("products_text", to_milvus_expr(where))] = (10**12, 5)  # pretend: only 5 match
+        with patch("rag.store.milvus_store._BRUTE_MAX", 10):
+            hits = self.store.query_text(self.vecs[2], 20, where=where)
+        self.assertTrue(self.store.last_search_path.startswith("hnsw(m=300"))
+        self.assertEqual(len(hits), 20)
+        self.assertTrue(all(h.metadata["brand_country"] != "JP" for h in hits))
+
     def test_filter_matching_nothing_returns_empty(self) -> None:
         self.assertEqual(self.store.query_text(self.vecs[0], 5, where={"brand": "不存在"}), [])
         self.assertEqual(self.store.last_search_path, "empty")

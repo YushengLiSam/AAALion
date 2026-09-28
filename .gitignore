@@ -128,3 +128,5 @@ data/.embeddings/
 # Backups of .env files contain live keys — never commit (pre-existing server/.env.bak.* was untracked but not ignored)
 .env.bak*
 *.env.bak
+# R15 P4 — scale-benchmark stores (rebuildable, GBs)
+data/.bench/

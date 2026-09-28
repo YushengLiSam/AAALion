@@ -1,0 +1,241 @@
+{
+ "dataset": "KuaiSearch items_lite (first N, file order)",
+ "n": 1000000,
+ "dim": 512,
+ "queries": 20,
+ "k": 60,
+ "filters": [
+  {
+   "name": "none",
+   "where": null,
+   "selectivity": 1.0
+  },
+  {
+   "name": "broad",
+   "where": {
+    "category": "女装"
+   },
+   "selectivity": 0.17366
+  },
+  {
+   "name": "medium",
+   "where": {
+    "sub_category": {
+     "$in": [
+      "T恤"
+     ]
+    }
+   },
+   "selectivity": 0.03028
+  },
+  {
+   "name": "narrow",
+   "where": {
+    "sub_category": {
+     "$in": [
+      "被套类"
+     ]
+    }
+   },
+   "selectivity": 0.001
+  },
+  {
+   "name": "exclude",
+   "where": {
+    "brand": {
+     "$nin": [
+      "无品牌"
+     ]
+    }
+   },
+   "selectivity": 0.3926
+  }
+ ],
+ "backends": {
+  "chroma": {
+   "ingest_s": 2676.9,
+   "cold_load_s": 2.32,
+   "disk_mb": 3714,
+   "serving_rss_mb": 667,
+   "queries": 20,
+   "filters": {
+    "none": {
+     "p50_ms": 21663.08,
+     "p95_ms": 30952.4,
+     "p99_ms": 31059.25,
+     "recall@10": 0.76,
+     "min_recall@10": 0.0,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "broad": {
+     "p50_ms": 6690.48,
+     "p95_ms": 9764.17,
+     "p99_ms": 10222.09,
+     "recall@10": 0.735,
+     "min_recall@10": 0.1,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "medium": {
+     "p50_ms": 912.1,
+     "p95_ms": 2536.01,
+     "p99_ms": 2982.82,
+     "recall@10": 0.805,
+     "min_recall@10": 0.2,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "narrow": {
+     "p50_ms": 757.31,
+     "p95_ms": 1318.16,
+     "p99_ms": 1548.17,
+     "recall@10": 0.895,
+     "min_recall@10": 0.7,
+     "avg_returned": 60.0,
+     "paths": {}
+    },
+    "exclude": {
+     "p50_ms": 14415.86,
+     "p95_ms": 16355.72,
+     "p99_ms": 16471.43,
+     "recall@10": 0.915,
+     "min_recall@10": 0.0,
+     "avg_returned": 60.0,
+     "paths": {}
+    }
+   }
+  },
+  "milvus": {
+   "ingest_s": 493.8,
+   "cold_load_s": 18.7,
+   "disk_mb": 4259,
+   "server_rss_mb": 5237,
+   "server_rss_after_ingest_mb": null,
+   "filters": {
+    "none": {
+     "p50_ms": 996.02,
+     "p95_ms": 1275.95,
+     "p99_ms": 1749.24,
+     "recall@10": 0.985,
+     "min_recall@10": 0.8,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "broad": {
+     "p50_ms": 5814.2,
+     "p95_ms": 7414.89,
+     "p99_ms": 18472.61,
+     "recall@10": 0.98,
+     "min_recall@10": 0.7,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "medium": {
+     "p50_ms": 5792.95,
+     "p95_ms": 6283.3,
+     "p99_ms": 11555.85,
+     "recall@10": 0.97,
+     "min_recall@10": 0.7,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "narrow": {
+     "p50_ms": 1715.51,
+     "p95_ms": 5236.94,
+     "p99_ms": 5632.77,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "exact": 20
+     }
+    },
+    "exclude": {
+     "p50_ms": 2143.05,
+     "p95_ms": 4080.72,
+     "p99_ms": 32553.61,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    }
+   },
+   "filters_plain_ef": {
+    "none": {
+     "p50_ms": 968.01,
+     "p95_ms": 987.81,
+     "p99_ms": 998.05,
+     "recall@10": 0.985,
+     "min_recall@10": 0.8,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "broad": {
+     "p50_ms": 989.55,
+     "p95_ms": 1015.4,
+     "p99_ms": 1055.59,
+     "recall@10": 0.69,
+     "min_recall@10": 0.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "medium": {
+     "p50_ms": 978.66,
+     "p95_ms": 1016.11,
+     "p99_ms": 1016.96,
+     "recall@10": 0.735,
+     "min_recall@10": 0.0,
+     "avg_returned": 58.6,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "narrow": {
+     "p50_ms": 985.74,
+     "p95_ms": 1077.95,
+     "p99_ms": 1091.39,
+     "recall@10": 0.175,
+     "min_recall@10": 0.0,
+     "avg_returned": 29.9,
+     "paths": {
+      "hnsw": 20
+     }
+    },
+    "exclude": {
+     "p50_ms": 1005.26,
+     "p95_ms": 1047.37,
+     "p99_ms": 1190.16,
+     "recall@10": 1.0,
+     "min_recall@10": 1.0,
+     "avg_returned": 60.0,
+     "paths": {
+      "hnsw": 20
+     }
+    }
+   }
+  }
+ },
+ "milvus_params": {
+  "hnsw_ef": 1024,
+  "filter_brute_max": 4096,
+  "filter_ef_factor": 48.0,
+  "hnsw_ef_max": 16384,
+  "index": "HNSW M=16 efConstruction=200",
+  "mode": "milvus-lite 3.2.1 server"
+ },
+ "machine": "MacBook Air M4 (Mac16,12), 24 GB",
+ "note": "Milvus 与 Chroma 分两次跑(同一数据、同一批 20 条 query 与过滤条件),用 rag.bench.scale.merge_reports 合并。Milvus 导入耗时取自进度日志(2,025 条/秒)。"
+}

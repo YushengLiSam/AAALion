@@ -1,0 +1,369 @@
+{
+ "n": 10000,
+ "queries": 100,
+ "selectivity": {
+  "none": 1.0,
+  "broad": 0.1742,
+  "medium": 0.029,
+  "narrow": 0.002,
+  "exclude": 0.3959
+ },
+ "matched": {
+  "none": 10000,
+  "broad": 1742,
+  "medium": 290,
+  "narrow": 20,
+  "exclude": 3959
+ },
+ "results": {
+  "固定 ef=256": {
+   "none": {
+    "p50_ms": 13.0,
+    "p95_ms": 17.55,
+    "p99_ms": 18.26,
+    "recall@10": 0.999,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "broad": {
+    "p50_ms": 15.96,
+    "p95_ms": 26.56,
+    "p99_ms": 46.26,
+    "recall@10": 0.618,
+    "min_recall@10": 0.0,
+    "avg_returned": 51.9,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "medium": {
+    "p50_ms": 16.98,
+    "p95_ms": 82.23,
+    "p99_ms": 212.55,
+    "recall@10": 0.393,
+    "min_recall@10": 0.0,
+    "avg_returned": 27.8,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "narrow": {
+    "p50_ms": 8.47,
+    "p95_ms": 13.29,
+    "p99_ms": 16.2,
+    "recall@10": 0.197,
+    "min_recall@10": 0.0,
+    "avg_returned": 3.2,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "exclude": {
+    "p50_ms": 15.2,
+    "p95_ms": 26.95,
+    "p99_ms": 31.36,
+    "recall@10": 0.998,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   }
+  },
+  "固定 ef=1024": {
+   "none": {
+    "p50_ms": 19.4,
+    "p95_ms": 40.38,
+    "p99_ms": 56.54,
+    "recall@10": 0.999,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "broad": {
+    "p50_ms": 17.73,
+    "p95_ms": 33.87,
+    "p99_ms": 42.47,
+    "recall@10": 0.906,
+    "min_recall@10": 0.3,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "medium": {
+    "p50_ms": 21.18,
+    "p95_ms": 31.97,
+    "p99_ms": 53.02,
+    "recall@10": 0.64,
+    "min_recall@10": 0.0,
+    "avg_returned": 44.8,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "narrow": {
+    "p50_ms": 14.09,
+    "p95_ms": 19.22,
+    "p99_ms": 20.49,
+    "recall@10": 0.461,
+    "min_recall@10": 0.0,
+    "avg_returned": 8.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "exclude": {
+    "p50_ms": 19.12,
+    "p95_ms": 23.51,
+    "p99_ms": 24.08,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   }
+  },
+  "固定 ef=4096": {
+   "none": {
+    "p50_ms": 44.93,
+    "p95_ms": 105.04,
+    "p99_ms": 187.04,
+    "recall@10": 0.999,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "broad": {
+    "p50_ms": 43.75,
+    "p95_ms": 58.57,
+    "p99_ms": 82.18,
+    "recall@10": 0.998,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "medium": {
+    "p50_ms": 40.66,
+    "p95_ms": 46.68,
+    "p99_ms": 49.33,
+    "recall@10": 0.94,
+    "min_recall@10": 0.5,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "narrow": {
+    "p50_ms": 37.48,
+    "p95_ms": 41.28,
+    "p99_ms": 45.05,
+    "recall@10": 0.886,
+    "min_recall@10": 0.3,
+    "avg_returned": 16.6,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "exclude": {
+    "p50_ms": 42.34,
+    "p95_ms": 46.22,
+    "p99_ms": 46.91,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   }
+  },
+  "固定 ef=16384": {
+   "none": {
+    "p50_ms": 145.0,
+    "p95_ms": 157.51,
+    "p99_ms": 252.28,
+    "recall@10": 0.999,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "broad": {
+    "p50_ms": 129.1,
+    "p95_ms": 151.95,
+    "p99_ms": 155.43,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "medium": {
+    "p50_ms": 122.32,
+    "p95_ms": 162.92,
+    "p99_ms": 184.83,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "narrow": {
+    "p50_ms": 141.4,
+    "p95_ms": 187.82,
+    "p99_ms": 244.73,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 20.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "exclude": {
+    "p50_ms": 148.7,
+    "p95_ms": 194.59,
+    "p99_ms": 277.82,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   }
+  },
+  "全部精确计算": {
+   "none": {
+    "p50_ms": 17.07,
+    "p95_ms": 22.57,
+    "p99_ms": 26.05,
+    "recall@10": 0.999,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "broad": {
+    "p50_ms": 429.64,
+    "p95_ms": 941.05,
+    "p99_ms": 1403.18,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "exact": 100
+    }
+   },
+   "medium": {
+    "p50_ms": 155.81,
+    "p95_ms": 350.08,
+    "p99_ms": 497.96,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "exact": 100
+    }
+   },
+   "narrow": {
+    "p50_ms": 46.06,
+    "p95_ms": 124.56,
+    "p99_ms": 168.27,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 20.0,
+    "paths": {
+     "exact": 100
+    }
+   },
+   "exclude": {
+    "p50_ms": 1273.61,
+    "p95_ms": 2375.78,
+    "p99_ms": 4699.45,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "exact": 100
+    }
+   }
+  },
+  "分档策略(默认参数)": {
+   "none": {
+    "p50_ms": 19.35,
+    "p95_ms": 197.73,
+    "p99_ms": 603.38,
+    "recall@10": 0.999,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "broad": {
+    "p50_ms": 167.52,
+    "p95_ms": 472.21,
+    "p99_ms": 662.59,
+    "recall@10": 0.998,
+    "min_recall@10": 0.9,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   },
+   "medium": {
+    "p50_ms": 110.56,
+    "p95_ms": 207.32,
+    "p99_ms": 522.42,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "exact": 100
+    }
+   },
+   "narrow": {
+    "p50_ms": 44.93,
+    "p95_ms": 127.46,
+    "p99_ms": 144.39,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 20.0,
+    "paths": {
+     "exact": 100
+    }
+   },
+   "exclude": {
+    "p50_ms": 204.74,
+    "p95_ms": 735.11,
+    "p99_ms": 2076.97,
+    "recall@10": 1.0,
+    "min_recall@10": 1.0,
+    "avg_returned": 60.0,
+    "paths": {
+     "hnsw": 100
+    }
+   }
+  }
+ },
+ "adaptive_params_at_run": {
+  "hnsw_ef": 256,
+  "filter_brute_max": 1024,
+  "filter_ef_factor": 12.0,
+  "hnsw_ef_max": 8192
+ },
+ "note": "'分档策略(默认参数)'一列用的是校准之前的参数(见 adaptive_params_at_run);当前默认参数是根据本文件和 calibrate_100k.json 定出来的。"
+}
