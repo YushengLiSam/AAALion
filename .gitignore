@@ -130,3 +130,5 @@ data/.embeddings/
 *.env.bak
 # R15 P4 — scale-benchmark stores (rebuildable, GBs)
 data/.bench/
+# P1 — shadow-query comparison logs written by rag.store.composite.ShadowStore
+data/.shadow/
