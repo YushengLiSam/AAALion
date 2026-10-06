@@ -8,6 +8,7 @@
 | 文档 | 内容 |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 端到端系统设计及设计依据 |
+| [AGENT.md](AGENT.md) | 可选的 LangGraph 智能体路径(AGENT_PATH,默认关闭):路由规则、工具硬约束、上限、评测、不能说的话 |
 | [API.md](API.md) | 后端接口 + SSE 事件分类体系 |
 | [PIPELINE.md](PIPELINE.md) | 开发标准流程(SOP)— 一次改动从编辑到部署的完整流转 |
 | [DATA.md](DATA.md) | 商品目录 + 种子数据结构 |

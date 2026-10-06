@@ -1,6 +1,10 @@
 # 架构
 
-基于 RAG 的多模态电商导购 Agent 的端到端设计。
+基于 RAG 的多模态电商导购系统的端到端设计。
+
+> 说明(2026-10):下文描述的是**确定性检索流水线**(顺序写死的规则 + 检索 + 生成),
+> 它不是自主选工具的智能体。可选的 LangGraph 智能体路径(只接规则命中的复杂请求,
+> 默认关闭)见 [`AGENT.md`](AGENT.md)。
 
 > **本文档的"大二学生也能读懂"版本**,见
 > [`docs/explainers/10-app-architecture.md`](explainers/10-app-architecture.md)。
