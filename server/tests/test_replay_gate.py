@@ -141,6 +141,13 @@ class ReplayGateTests(unittest.TestCase):
         self.assertGreater(rep["errors"]["count"], 0)
         self.assertIn("down", rep["errors"]["sample"][0]["error"])
 
+    def test_collection_size_mismatch_fails(self) -> None:
+        # B 只有 A 的一部分:即便抽到的查询碰巧都一致,也必须判失败
+        short = (TEXT[0][:-1], TEXT[1][:-1], TEXT[2][:-1])
+        rc, rep = self._run(MemStore("chroma", TEXT, IMG), MemStore("milvus", short, IMG))
+        self.assertEqual(rc, 1)
+        self.assertTrue(any("sizes differ" in r for r in rep["reasons"]))
+
     def test_p95_budget_is_optional(self) -> None:
         rc, rep = self._run(MemStore("chroma", TEXT, IMG), MemStore("milvus", TEXT, IMG), "--p95-max-ms", "0.000001")
         self.assertEqual(rc, 1)

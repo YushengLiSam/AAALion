@@ -16,6 +16,7 @@ B 的结果是否确定(同一查询前后两次结果不同会单独计数,不�
 
 判定(退出码非 0 即不通过):
 
+* A、B 的 text / image 条数不一致 → 失败(B 应当是 A 原样迁移的);
 * 任一后端任一次调用报错 → 失败;
 * top-10 一致率:两边前 10 名集合相同(第 10 名分数并列造成的差异不算不一致,见
   ``store_parity._topk_agree``);不一致的那些,如果 B 对精确解的 recall@10 与 recall@K
@@ -196,8 +197,13 @@ def run(args) -> int:
     exact_img = Exact(a, IMAGE_COLLECTION) if not args.skip_images else None
     counts = {"a_text": a.text_count(), "b_text": b.text_count(),
               "a_image": a.image_count(), "b_image": b.image_count()}
-    if counts["a_text"] != counts["b_text"] or (exact_img is not None and counts["a_image"] != counts["b_image"]):
-        print(f"[replay] WARNING: collection sizes differ: {counts}", file=sys.stderr)
+    # 条数不一致直接判失败:B 应当是 A 原样搬过去的。B 多出来的文档精确解(只看 A 的向量)
+    # 根本看不到,"被精确解解释"的判断在这种情况下不成立。
+    size_mismatch = counts["a_text"] != counts["b_text"] or (
+        exact_img is not None and counts["a_image"] != counts["b_image"]
+    )
+    if size_mismatch:
+        print(f"[replay] collection sizes differ: {counts}", file=sys.stderr)
 
     text_calls = build_text_calls()
     vec_cache: dict[str, list[float]] = {}
@@ -296,6 +302,8 @@ def run(args) -> int:
             slices[key] = slice_stats(rs)
 
     reasons = []
+    if size_mismatch:
+        reasons.append(f"collection sizes differ: {counts}")
     if errors:
         reasons.append(f"{len(errors)} store errors")
     if effective < args.min_agreement:
