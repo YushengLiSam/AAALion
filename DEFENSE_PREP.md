@@ -228,8 +228,8 @@ category,而目标词("降噪耳机")带,`top_k` 的话题切换检测会把它�
 `base_price` 兜底,海外版 AirPods Pro 2 的 $249 被当成 ¥249(Bug 1,已修,锚点和 hop2 候选
 都先走 `normalize_product_price(s)`)。所以断言是**纵深防御**:检索链路以后怎么改,
 "比X便宜"都不会悄悄返回更贵的。真的无货时走 relaxed 兜底(按人民币距离取最接近的),
-并让 prompt 如实说"没有完全符合的"。修复后本地多跳评测 relation_correctness 38/38
-(分母变大是因为 Bug 2 修好后 hop2 召回变多)。
+并让 prompt 如实说"没有完全符合的"。修复后本地多跳评测(实时参考汇率)relation_correctness
+40/40、hop2_nonempty 15/15(分母变大是因为派生约束真正进了检索、hop2 召回变多)。
 
 ### 8.2 RAGAS:三层评测体系(最高频追问)
 
