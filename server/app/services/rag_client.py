@@ -1087,7 +1087,7 @@ def multi_hop_retrieve(
 
             def _pv(p):
                 from app.services.currency import price_in_cny
-                v = price_in_cny(p)
+                v = price_in_cny(p, fetch=False)   # widened 刚归一化过
                 return v if v is not None else float("inf")
             widened.sort(key=lambda p: abs(_pv(p) - anchor_price))
         results = widened[:k]
@@ -1218,7 +1218,7 @@ def _assert_relation(products: list[dict], attrs: dict, relation: str, hop2_filt
 
     out = []
     for p in products:
-        pr = price_in_cny(p)
+        pr = price_in_cny(p, fetch=False)   # 候选已在 multi_hop_retrieve 里归一化
         if price_max is not None and (pr is None or pr > price_max):
             continue
         if price_min is not None and (pr is None or pr < price_min):

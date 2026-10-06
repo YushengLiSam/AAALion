@@ -314,7 +314,9 @@ async def run_agent(
         error = "timeout"
 
     cited: list[str] = list(final.get("cited") or []) if error is None else []
-    products, kept, dropped = backfill(ctx, cited)
+    # backfill 里的 satisfies_session 可能为缺汇率的外币商品请求汇率源(同步 httpx),
+    # 放线程池,不阻塞事件循环。
+    products, kept, dropped = await asyncio.to_thread(backfill, ctx, cited)
     if error is None and not products:
         error = "no_citable_products"
 

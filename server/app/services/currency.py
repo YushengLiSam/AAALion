@@ -122,7 +122,7 @@ def normalize_product_prices(products: Sequence[dict]) -> list[dict]:
     return [normalize_product_price(product) for product in products]
 
 
-def price_in_cny(product: dict) -> float | None:
+def price_in_cny(product: dict, *, fetch: bool = True) -> float | None:
     """商品的人民币价格(用于**比较**:多跳关系断言、排序、智能体 price_of 工具)。
 
     规则与 normalize_product_price 完全一致:
@@ -131,13 +131,22 @@ def price_in_cny(product: dict) -> float | None:
       * 外币 → 按同一份参考汇率换算;汇率拿不到时返回 None。
     **绝不**把外币 base_price 当人民币用——那正是多跳 Bug 1 的根因
     (海外版 AirPods Pro 2 的 $249 被当成 ¥249)。
+
+    `fetch=False`:调用方已经对商品做过 normalize_product_price(外币仍缺 price_cny
+    说明那次就没拿到汇率),不再重新请求汇率源——汇率源宕机且没有旧报价时,
+    每件商品再打一次 HTTP(默认 3 秒超时)会把多跳/智能体的时延放大好几倍。
     """
     if not isinstance(product, dict):
         return None
     cny = _amount(product.get("price_cny"))
     if cny is not None:
         return cny
-    if _amount(product.get("base_price")) is None:
+    base = _amount(product.get("base_price"))
+    if base is None:
+        return None
+    if _product_currency(product) == TARGET_CURRENCY:
+        return round(base, 2)
+    if not fetch:
         return None
     return _amount(normalize_product_price(product).get("price_cny"))
 

@@ -290,7 +290,8 @@ def _compact(p: dict, *, role: str | None = None) -> dict:
         "brand": p.get("brand"),
         "category": p.get("category"),
         "sub_category": p.get("sub_category"),
-        "price_cny": price_in_cny(p),
+        # 进 _compact 的商品都已归一化过,不再为缺汇率的外币商品重复请求汇率源
+        "price_cny": price_in_cny(p, fetch=False),
         "source_currency": str(prov.get("currency") or "CNY").upper(),
         "summary": (rag.get("marketing_description") or "")[:60],
     }
@@ -398,7 +399,7 @@ def price_of(ctx: ToolContext, args: ProductIdArgs) -> dict:
     rate = p.get("exchange_rate") or {}
     return {
         "product_id": args.product_id,
-        "price_cny": price_in_cny(p),
+        "price_cny": price_in_cny(p, fetch=False),
         "source_currency": str(prov.get("currency") or "CNY").upper(),
         "source_price": p.get("base_price"),
         "fx_rate": rate.get("rate"),

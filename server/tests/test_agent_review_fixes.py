@@ -133,6 +133,43 @@ def test_top_k_uses_same_detector(monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+#  3. price_in_cny(fetch=False)
+# --------------------------------------------------------------------------- #
+
+def test_price_in_cny_no_refetch_for_normalized(monkeypatch):
+    calls = []
+
+    def down(s, t):
+        calls.append((s, t))
+        raise RuntimeError("fx down")
+
+    currency.clear_rate_cache()
+    monkeypatch.setattr(currency, "_request_rate", down)
+    usd = {"product_id": "x", "base_price": 249, "provenance": {"currency": "USD"}}
+    assert price_in_cny(usd, fetch=False) is None
+    assert calls == []
+    cny = {"product_id": "y", "base_price": 199, "provenance": {"currency": "CNY"}}
+    assert price_in_cny(cny, fetch=False) == 199.0
+    assert price_in_cny({"base_price": 99}, fetch=False) == 99.0     # 缺 provenance 视为 CNY
+    assert price_in_cny(usd) is None                                  # 默认仍会尝试一次
+    assert len(calls) == 1
+    currency.clear_rate_cache()
+
+
+def test_assert_relation_does_not_refetch(monkeypatch):
+    calls = []
+    currency.clear_rate_cache()
+    monkeypatch.setattr(currency, "_request_rate",
+                        lambda s, t: calls.append(1) or (_ for _ in ()).throw(RuntimeError()))
+    prods = [{"product_id": "a", "base_price": 100, "provenance": {"currency": "USD"}},
+             {"product_id": "b", "base_price": 100, "provenance": {"currency": "CNY"}}]
+    out = rag_client._assert_relation(prods, {"price_cny": 500}, "cheaper", Filter(price_max_cny=450))
+    assert [p["product_id"] for p in out] == ["b"]   # 外币缺人民币价:剔除,不拿 $100 当 ¥100
+    assert calls == []
+    currency.clear_rate_cache()
+
+
+# --------------------------------------------------------------------------- #
 #  6. 会话锚点多跳留在快路
 # --------------------------------------------------------------------------- #
 
