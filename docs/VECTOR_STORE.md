@@ -337,14 +337,16 @@ python -m rag.bench.scale --calibrate --n 100000 --nq 100  # 校准分档参数
 
 ## 9. 上生产的配套(P1)
 
-只加开关、不改默认:不设任何新变量时,行为与上面各节完全相同。
+只加开关、不改默认:不设任何新变量时,行为与上面各节完全相同——唯一例外是 Milvus 服务模式的读 RPC 默认带 5 s 超时(见下表"读超时")。
 
 | 能力 | 入口 | 要点 |
 |---|---|---|
 | 就绪门控 | `server/app/services/retrieval_readiness.py` `vector_store_gate()`,`RAG_READY_GATE=off\|report\|enforce` | 绕开稠密→关键词兜底,直接查底层存储:条数 > 0、真实向量查询非空;Milvus 另要 schema v2。`enforce` 不过时 `/ready` 返回 503,autodeploy 据此回滚。`/ready` 另报 `fallbacks.dense_to_keyword` 计数 |
 | 影子查询 | `rag/store/composite.py` `ShadowStore`,`RAG_STORE_SHADOW=milvus\|chroma` | 主存储回答;有界后台线程(1–2 个,队列满即丢)查影子,写 JSONL(ids、overlap@k、两边延迟、错误);`python -m rag.store.composite --summarize` 汇总 |
-| 限期兜底 | `FallbackStore`,`RAG_STORE_FALLBACK=chroma` + `RAG_STORE_FALLBACK_UNTIL=YYYY-MM-DD` | 主存储抛错时由兜底回答并计数;没写日期不启用,过期自动失效 |
+| 限期兜底 | `FallbackStore`,`RAG_STORE_FALLBACK=chroma` + `RAG_STORE_FALLBACK_UNTIL=YYYY-MM-DD` | 主存储抛错时由兜底回答并计数;没写日期不启用,过期自动失效;失败后 `RAG_STORE_FALLBACK_COOLDOWN_S`(10 s)内直接走兜底 |
+| 读超时 | `RAG_MILVUS_TIMEOUT_S`(服务模式默认 5 s)/ `RAG_MILVUS_LOAD_TIMEOUT_S`(60 s) | pymilvus 3.0.2 对 UNAVAILABLE 重试 75 次且无 deadline,服务不应答时一次 search 实测 68 s 才失败;读 RPC 带超时后 5 s 失败,兜底才接得住。写入不加;Lite 文件默认不加 |
 | 版本化集合 + 别名 | `RAG_MILVUS_VERSIONED=1`,`python -m rag.store.alias --list\|--switch\|--rollback` | `--rebuild` 写 `products_text__v2_<时间戳>`,核对条数后才切别名;保留 2 个物理集合,不删正在服务的那个;非版本化模式拒绝经由别名 reset |
+| 外部 Milvus 压测 | `python -m rag.bench.scale --backends milvus --milvus-uri http://…:19530 --milvus-db lionpick_bench` | 给临时 spot VM 上的 Standalone 用;库名不能是 `default`,目标库里的 `products_text` 不是本脚本建的(无 `dataset=kuaisearch` 属性)或是别名一律拒绝 reset,URI+库名等于当前 `RAG_MILVUS_URI`/`RAG_MILVUS_DB` 也拒绝 |
 | 回放门槛 | `python -m rag.eval.replay_gate` | ≥1000 次调用(golden + compositional ± 生产过滤、stress_e2e、145 张图),对精确解解释不一致;错误 > 0 或 < 0.99 即失败 |
 | 部署 | `deploy/milvus/`、`deploy/systemd/`、`tools/milvus_bootstrap.py`、`server/requirements-milvus-server.txt` | 显式钉 `milvusdb/milvus:v3.0.2`,端口只绑 127.0.0.1,鉴权开,最小权限账号;生产只装 pymilvus |
 

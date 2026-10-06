@@ -14,6 +14,9 @@
 
 ## 0. 开关一览(全部默认关闭 = 行为与 P1 之前相同)
 
+唯一例外:`RAG_MILVUS_URI` 指向 Milvus **服务**(`http://…`)时,读 RPC 默认带 5 s 超时(见下表)。
+默认的 Chroma 路径与 Lite 文件模式不受影响;要恢复 R15 的"无超时"设 `RAG_MILVUS_TIMEOUT_S=0`。
+
 | 变量 | 默认 | 作用 |
 |---|---|---|
 | `RAG_READY_GATE` | `off` | `report`:`/ready` 展示向量库门控结果;`enforce`:门控不过返回 503 |
@@ -21,11 +24,13 @@
 | `RAG_READY_GATE_REQUIRE_IMAGE`、`RAG_READY_MIN_TEXT`、`RAG_READY_MIN_IMAGE` | 1、1、1 | 门控是否要求图片集合、最少条数 |
 | `RAG_STORE` | `chroma` | `milvus` 即切换 |
 | `RAG_MILVUS_URI` / `RAG_MILVUS_TOKEN` / `RAG_MILVUS_DB` | Lite 文件 / 空 / 默认库 | Standalone:`http://127.0.0.1:19530`,`user:password` |
+| `RAG_MILVUS_TIMEOUT_S` / `RAG_MILVUS_LOAD_TIMEOUT_S` | 5 / 60(仅服务模式;Lite 文件默认不加) | 读 RPC(search / query / describe / alias 查询)与 load 的超时;0 = 不加。写入不加超时 |
 | `RAG_MILVUS_CONSISTENCY` | `Strong` | 建集合时的一致性级别(1082 条、无流式写入,差别可忽略) |
 | `RAG_MILVUS_VERSIONED` / `RAG_MILVUS_RETAIN` | 0 / 2 | 版本化物理集合 + 别名;保留几个物理集合 |
 | `RAG_STORE_SHADOW` | 空 | `milvus` / `chroma`:影子查询 |
 | `RAG_SHADOW_LOG` / `_TIMEOUT_MS` / `_WORKERS` / `_QUEUE` / `_LOG_MAX_MB` | `data/.shadow/shadow.jsonl` / 2000 / 1 / 64 / 200 | 影子参数 |
 | `RAG_STORE_FALLBACK` + `RAG_STORE_FALLBACK_UNTIL` | 空 | 主存储抛错时限期由兜底存储回答;没写日期不启用,过期自动失效 |
+| `RAG_STORE_FALLBACK_COOLDOWN_S` | 10 | 兜底的熔断冷却:主存储失败一次后这么多秒内直接走兜底,之后放一个请求试主存储;0 = 每次都先试主存储 |
 | `RAG_CHROMA_DIR` | `data/.chroma` | 离线工具用另一份 Chroma(如 `data/.chroma_v2`) |
 
 `/ready` 的 JSON 里始终多一个 `fallbacks` 字段:`dense_to_keyword`(稠密检索失败退回关键词的次数)、
@@ -170,7 +175,7 @@ sudo reboot
 # 回来后:
 systemctl status docker lionpick --no-pager
 sudo docker compose -f ~/AAALion-/deploy/milvus/docker-compose.yml ps   # restart: unless-stopped 自动拉起
-journalctl -u lionpick -b | grep -i milvus    # 10-milvus.conf 的 ExecStartPre 最多等 80 s healthz
+journalctl -u lionpick -b | grep -i milvus    # 10-milvus.conf 的 ExecStartPre 最多等 60 s healthz(RAG_STORE 必须对 systemd 可见)
 curl -sf http://127.0.0.1:8000/ready | grep -q ready && echo READY
 ```
 
@@ -191,7 +196,7 @@ curl -sf http://127.0.0.1:8000/ready | grep -q ready && echo READY
 |---|---|---|---|
 | L1 | 部署后门控不过 | autodeploy 自动 `reset --hard` 回上一个 SHA 并重启(配置在 git 里的话一起退回) | ~2–3 分钟 |
 | L2 | 切换后发现问题 | `git revert <切换提交>` 推 main;`data/.chroma` 至少保留 14 天 | ~2–3 分钟 + 一次重启 |
-| L3 | Milvus 运行中出错 | 不用动:`RAG_STORE_FALLBACK=chroma` 在截止日期前自动接住(计数可见);过期后退回关键词检索 | 即时(降级) |
+| L3 | Milvus 运行中出错 | 不用动:`RAG_STORE_FALLBACK=chroma` 在截止日期前自动接住(计数可见);过期后退回关键词检索。容器停了(连接被拒)立刻失败;服务"不应答"时第一次要等满 `RAG_MILVUS_TIMEOUT_S`(5 s),之后 `RAG_STORE_FALLBACK_COOLDOWN_S` 内直接走兜底 | 即时(降级);最坏首个请求 +5 s |
 | 别名 | 新一版索引有问题 | `RAG_MILVUS_TOKEN=lionpick_admin:... python -m rag.store.alias --rollback`(或 `--switch <物理集合>`) | 秒级,无需重启 API |
 
 `FALLBACK_UNTIL` 到期后**删掉**兜底配置,而不是续期;要续期就意味着该做的验证没做完。
@@ -208,6 +213,10 @@ time RAG_STORE=milvus .venv/bin/python -m rag.store.load data/.embeddings/produc
 .venv/bin/python -m rag.store.alias --list         # 新物理集合在服务,上一版保留可回滚
 RAG_CHROMA_DIR=data/.chroma_v2 .venv/bin/python -m rag.eval.store_parity   # exit 0
 ```
+
+大规模压测**不在生产机上做**(PLAN P1 第 9 步):临时 spot VM 上起同一份 compose,然后
+`RAG_MILVUS_TOKEN=root:... python -m rag.bench.scale --backends milvus --n 1000000 --milvus-uri http://127.0.0.1:19530 --milvus-db lionpick_bench --machine "<机型>"`。
+脚本拒绝在 `default` 库或任何不是它自己建的集合上 reset(本地对 milvus-lite 服务验证过拒绝路径与正常路径)。
 
 milvus-backup(0.6.0)按 PLAN 只**演示一次**:备份 → 恢复到 `restore_drill` 库 → 用 `RAG_MILVUS_DB=restore_drill` 跑 parity;不设每晚任务。
 
@@ -239,7 +248,10 @@ Attu 不常驻,需要时 `ssh -L` 临时开。
 - 后端以 `RAG_STORE=milvus RAG_READY_GATE=enforce` 跑在 127.0.0.1:18765:`/ready` 200(门控显示 physical 集合与 1082/145);
   kill milvus-lite 服务后 503(`reason=vector_store_gate`),重启服务后自动回到 200。
 - 兜底:Milvus 不可达时由 Chroma 回答(`served_by_fallback=1`);截止日期已过时不兜底、退回关键词(`dense_to_keyword=1`)。
-- `docker compose config` 校验 compose 文件(默认与 `--profile minio` 两种);`10-milvus.conf` 的 ExecStartPre 脚本用 `sh` 跑过三种情形。
+- Milvus"不应答"(milvus-lite 服务进程 `SIGSTOP`,端口仍在):不加超时时一次 search **68 s** 才抛错
+  (pymilvus 3.0.2 对 UNAVAILABLE 重试 75 次、无 deadline);加了读超时后 5.0 s 抛错,`FallbackStore` 第一次
+  5.0 s 后由兜底回答,冷却期内后续调用 0.0 s。连接被拒(进程被 kill)时 3.0.2 立即失败,本来就不受影响。
+- `docker compose config` 校验 compose 文件(默认与 `--profile minio` 两种);`10-milvus.conf` 的 ExecStartPre 脚本按 systemd 的转义规则(`$$`→`$`、`%%`→`%`)还原后用 `sh` 跑过(Milvus 未起时按截止时间退出、非 milvus 时直接跳过)。
 - 依赖解析:`uv pip compile` Py3.10 / 3.11、linux x86_64。
 
 **没有验证的**:真实 Milvus Standalone v3.0.2(本机没起 Docker 镜像)、鉴权与权限组的实际效果、

@@ -9,7 +9,7 @@
 | `milvus/user.yaml` | 覆盖镜像内 `milvus.yaml`:`common.security.authorizationEnabled: true`。挂载到 `/milvus/configs/user.yaml` |
 | `milvus/.env.example` | 复制成 `milvus/.env`(gitignore,`chmod 600`):root / app / admin 三个密码,存储类型 |
 | `systemd/lionpick.service.d/05-ready-gate.conf` | `RAG_READY_GATE=enforce`:向量库门控不过时 `/ready` 返回 503,autodeploy 回滚 |
-| `systemd/lionpick.service.d/10-milvus.conf` | `After=/Wants=docker.service`;读 `/etc/lionpick/milvus.secret.env`;`RAG_STORE=milvus` 时启动前最多等 80 s Milvus healthz |
+| `systemd/lionpick.service.d/10-milvus.conf` | `After=/Wants=docker.service`;读 `/etc/lionpick/milvus.secret.env`;`RAG_STORE=milvus`(须写在 systemd 的 Environment / EnvironmentFile 里)时启动前最多等 60 s Milvus healthz |
 | `../tools/milvus_bootstrap.py` | 轮换 root 密码,建 `lionpick_app`(只读 + Load)和 `lionpick_admin`(入库 / 切别名) |
 
 几个必须知道的事实(2026-10-06 核实):
