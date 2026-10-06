@@ -170,6 +170,29 @@ def test_assert_relation_does_not_refetch(monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+#  4. agent_eval 防手滑 + 事件循环复用
+# --------------------------------------------------------------------------- #
+
+def test_agent_eval_requires_explicit_live(monkeypatch):
+    from rag.eval import agent_eval as ev
+    import app.services.llm_provider as lp
+
+    monkeypatch.setattr(lp, "get_provider", lambda: pytest.fail("must not build a paid provider"))
+    monkeypatch.setattr(ev, "evaluate", lambda *a, **k: pytest.fail("must not evaluate"))
+    assert ev.main(["--mode", "both"]) == 2
+    assert ev.main(["--mode", "agent", "--fake-llm", "--live"]) == 2
+
+
+def test_agent_eval_reuses_one_event_loop():
+    from rag.eval import agent_eval as ev
+
+    async def loop_id():
+        return id(asyncio.get_running_loop())
+
+    assert ev._run_in_eval_loop(loop_id()) == ev._run_in_eval_loop(loop_id())
+
+
+# --------------------------------------------------------------------------- #
 #  6. 会话锚点多跳留在快路
 # --------------------------------------------------------------------------- #
 

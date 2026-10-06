@@ -1,7 +1,8 @@
 """rag/eval/agent_eval.py 的判分逻辑 + 用例数据完整性 + 无模型的小型端到端。
 
 端到端部分用"扫目录"的假检索器代替向量检索(不加载模型),只验证评测管线本身
-能跑通、判分口径正确;真实检索效果请跑 `python -m rag.eval.agent_eval`。
+能跑通、判分口径正确;真实检索效果请跑 `python -m rag.eval.agent_eval --mode fast`
+(智能体路径需显式 `--fake-llm` 或 `--live`)。
 """
 
 import json

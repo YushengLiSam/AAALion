@@ -18,7 +18,7 @@
 用法:
   python -m rag.eval.agent_eval --mode fast                 # 只跑快路(需要索引 + 模型)
   python -m rag.eval.agent_eval --mode agent --fake-llm     # 脚本化假 LLM,CI 可跑,无 key
-  python -m rag.eval.agent_eval --mode both --k 3           # 真 LLM(读 server/.env 的 key,花钱;给人跑)
+  python -m rag.eval.agent_eval --mode both --live --k 3    # 真 LLM(读 server/.env 的 key,花钱;给人跑)
   python -m rag.eval.agent_eval --mode both --fake-llm --fx-rate 7.1 --out /tmp/agent_eval.json
 
 注意:--fake-llm 验证的是"编排 + 工具 + 约束 + 回填"整条链路,脚本代替了模型的
@@ -215,6 +215,22 @@ def run_fast(case: dict) -> dict:
             "latency_ms": (time.perf_counter() - t0) * 1000, "llm_calls": 0, "tokens": 0, "trace": {}}
 
 
+_EVAL_LOOP: asyncio.AbstractEventLoop | None = None
+
+
+def _run_in_eval_loop(coro):
+    """所有用例共用**同一个**事件循环。
+
+    get_provider() 是进程级单例,内部的 AsyncOpenAI / httpx 连接池绑定在第一次
+    使用它的事件循环上;每例 asyncio.run() 一个新循环会复用上个(已关闭)循环里的
+    keep-alive 连接,本地 mock 服务实测每隔一例就 APIConnectionError——live 评测会
+    把这种连接错误算成智能体失败。"""
+    global _EVAL_LOOP
+    if _EVAL_LOOP is None or _EVAL_LOOP.is_closed():
+        _EVAL_LOOP = asyncio.new_event_loop()
+    return _EVAL_LOOP.run_until_complete(coro)
+
+
 def run_agent_case(case: dict, *, fake: bool, provider=None) -> dict:
     from app.agent.fake_llm import ScriptedToolLLM
     from app.agent.graph import AgentLimits, run_agent
@@ -234,7 +250,7 @@ def run_agent_case(case: dict, *, fake: bool, provider=None) -> dict:
         limits = AgentLimits(max_tool_rounds=limits.max_tool_rounds, timeout_s=max(limits.timeout_s, 120.0),
                              per_call_timeout_s=limits.per_call_timeout_s, recursion_limit=limits.recursion_limit)
     t0 = time.perf_counter()
-    res = asyncio.run(run_agent(q, provider=llm, ctx=ctx, route_reason=route.reason
+    res = _run_in_eval_loop(run_agent(q, provider=llm, ctx=ctx, route_reason=route.reason
                                 if route.use_agent else (case["kind"] if case["kind"] != "usd_anchor" else "multihop"),
                                 limits=limits))
     tr = res.trace
@@ -324,6 +340,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--mode", choices=["fast", "agent", "both"], default="both")
     ap.add_argument("--fake-llm", action="store_true", help="脚本化假 LLM(无 key、不花钱、CI 可跑)")
+    ap.add_argument("--live", action="store_true",
+                    help="显式确认用真实 LLM 跑智能体路径(读 server/.env 的 key,会花钱)")
     ap.add_argument("--k", type=int, default=1, help="agent 每例运行次数(pass^k)")
     ap.add_argument("--top-k", type=int, default=5)
     ap.add_argument("--cases", type=Path, default=CASES_PATH)
@@ -338,6 +356,14 @@ def main(argv: list[str] | None = None) -> int:
         _fix_fx(fx)
 
     provider = None
+    if args.mode in ("agent", "both") and not args.fake_llm and not args.live:
+        # 防手滑:不带参数直接跑不能默默花钱。真模型必须显式 --live。
+        print("agent 路径需要 --fake-llm(脚本化,免费)或 --live(真实 LLM,花钱)二选一;"
+              "只评快路用 --mode fast")
+        return 2
+    if args.fake_llm and args.live:
+        print("--fake-llm 与 --live 不能同时使用")
+        return 2
     if args.mode in ("agent", "both") and not args.fake_llm:
         try:
             from dotenv import load_dotenv
