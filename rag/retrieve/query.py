@@ -8,12 +8,35 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# P0.4 —— 进程级兜底计数。稠密检索出错时 query() 会悄悄退回关键词检索,用户照样有结果,
+# 所以"向量库挂了"在日志之外完全看不出来。这里累计次数并记下最近一次的错误,
+# 由 /ready 展示(以后 /metrics 也从这里取)。只增不减,进程重启归零。
+_fallback_lock = threading.Lock()
+_fallback_counts: dict[str, int] = {"dense_to_keyword": 0, "image_query_failed": 0}
+_fallback_last: dict[str, object] = {"kind": None, "error": None, "at": None}
+
+
+def _count_fallback(kind: str, exc: BaseException | None) -> None:
+    with _fallback_lock:
+        _fallback_counts[kind] = _fallback_counts.get(kind, 0) + 1
+        _fallback_last["kind"] = kind
+        _fallback_last["error"] = f"{type(exc).__name__}: {exc}"[:300] if exc is not None else None
+        _fallback_last["at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+
+def fallback_stats() -> dict:
+    """稠密→关键词兜底等降级的累计次数(本进程),供 /ready 展示。"""
+    with _fallback_lock:
+        return {**_fallback_counts, "last": dict(_fallback_last)}
 
 
 @dataclass
@@ -232,7 +255,8 @@ def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
     try:
         from rag.ingest.embed_text import embed_query
         from rag.store import query_text
-    except ImportError:
+    except ImportError as exc:
+        _count_fallback("dense_to_keyword", exc)
         return _keyword_fallback(text, k=k, f=f)
 
     try:
@@ -242,6 +266,7 @@ def query(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:
         # 向量库出错时退回关键词检索,保证可用;但必须留痕——否则换后端后
         # 即使 Milvus 整个挂掉,评测也可能靠关键词兜底"看起来还行"。
         print(f"[rag] dense query failed, falling back to keyword search: {type(exc).__name__}: {exc}", file=sys.stderr)
+        _count_fallback("dense_to_keyword", exc)
         return _keyword_fallback(text, k=k, f=f)
 
     products = _product_index()
@@ -271,6 +296,7 @@ def query_image(image_bytes: bytes, k: int = 5) -> list[Hit]:
     except Exception as e:
         import sys
         print(f"[rag] query_image failed: {e}", file=sys.stderr)
+        _count_fallback("image_query_failed", e)
         return []
 
     products = _product_index()
