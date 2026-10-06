@@ -113,6 +113,69 @@ def new_physical_name(
         name = f"{base}_{seq}"
     return name
 
+
+# ---------------------------------------------------------------------------
+# 读 RPC 超时(P1 审查补)
+#
+# pymilvus 3.0.2 对 UNAVAILABLE 默认重试 75 次、退避封顶 3 s,且不带 deadline。实测
+# (milvus-lite 服务进程被 SIGSTOP,模拟"端口还在、服务不应答"):一次 search 要 68 s
+# 才抛错。这期间 FallbackStore / 关键词兜底都接不住,聊天请求等于挂死。连接被拒
+# (容器停了)时 3.0.2 会立刻失败,不受影响。
+#
+# 所以服务模式下读路径的 RPC 默认带 ``RAG_MILVUS_TIMEOUT_S``(默认 5 s;1082 条时一次
+# 搜索是毫秒级,精确计算那一档 4096 条也在 0.5 s 内)。load_collection 单独用
+# ``RAG_MILVUS_LOAD_TIMEOUT_S``(默认 60 s)。写入(upsert / flush / 建删集合 / 别名)
+# 不加超时,保持原样。Lite 文件模式默认不加(本地压测跑大库时搜索可能超过 5 s),
+# 显式设置了环境变量才加。设为 0 = 不加超时(R15 的原始行为)。
+# ---------------------------------------------------------------------------
+_READ_METHODS = frozenset({
+    "search", "query", "get", "has_collection", "describe_collection", "list_aliases",
+    "describe_alias", "list_collections", "get_collection_stats",
+})
+
+
+def _rpc_timeouts(is_lite: bool) -> tuple[float | None, float | None]:
+    """(读超时, load 超时);None = 不加。"""
+
+    def one(name: str, default: float) -> float | None:
+        raw = os.getenv(name)
+        if raw is None or not raw.strip():
+            return None if is_lite else default
+        try:
+            v = float(raw)
+        except ValueError:
+            return None if is_lite else default
+        return v if v > 0 else None
+
+    return one("RAG_MILVUS_TIMEOUT_S", 5.0), one("RAG_MILVUS_LOAD_TIMEOUT_S", 60.0)
+
+
+class _TimeoutClient:
+    """给 MilvusClient 的读方法补上 ``timeout=``(调用方显式传了就不覆盖);其余原样转发。"""
+
+    def __init__(self, client, read_timeout: float | None, load_timeout: float | None) -> None:
+        self._raw = client
+        self._read_timeout = read_timeout
+        self._load_timeout = load_timeout
+
+    def __getattr__(self, name: str):
+        attr = getattr(self._raw, name)
+        if name in _READ_METHODS:
+            t = self._read_timeout
+        elif name == "load_collection":
+            t = self._load_timeout
+        else:
+            return attr
+        if t is None or not callable(attr):
+            return attr
+
+        def call(*args, **kwargs):
+            kwargs.setdefault("timeout", t)
+            return attr(*args, **kwargs)
+
+        return call
+
+
 _HNSW_PARAMS = {"M": 16, "efConstruction": 200}
 # 需要 faiss 的索引类型(见 milvus_lite/index/factory.py);FLAT / BRUTE_FORCE 是纯 numpy
 _FAISS_INDEX_TYPES = frozenset({"HNSW", "HNSW_SQ", "IVF_FLAT", "IVF_SQ8", "IVF_PQ", "AUTOINDEX"})
@@ -214,7 +277,13 @@ class MilvusStore:
                         self._warn_embedded_with_torch()
                     try:
                         kwargs = {"db_name": self._db_name} if self._db_name else {}
-                        self._client_obj = MilvusClient(uri=self._uri, token=self._token, **kwargs)
+                        read_t, load_t = _rpc_timeouts(self._is_lite)
+                        if read_t is not None:
+                            kwargs["timeout"] = read_t  # 建连超时;服务不应答时首次连接也不会无限等
+                        client = MilvusClient(uri=self._uri, token=self._token, **kwargs)
+                        if read_t is not None or load_t is not None:
+                            client = _TimeoutClient(client, read_t, load_t)
+                        self._client_obj = client
                     except Exception as exc:
                         if self._is_lite:
                             # R15 实测:两个进程同时打开同一个 Lite 数据库文件,后开的
@@ -526,7 +595,10 @@ class MilvusStore:
         key = (name, expr)
         now = _time.monotonic()
         hit = self._count_cache.get(key)
-        if hit is not None and now - hit[0] <= _COUNT_TTL:
+        # 缓存的 0 不用:_search 见到 0 会直接返回空结果,而别名可能已被别的进程(入库 /
+        # rag.store.alias)切到一份数据不同的物理集合——缓存键是逻辑名,感知不到切换。
+        # 非 0 的缓存只影响走哪一档(精确那档会用 上限+1 复核),不影响正确性。
+        if hit is not None and hit[1] > 0 and now - hit[0] <= _COUNT_TTL:
             return hit[1]
         res = self._call(name, self._client().query, name, filter=expr, output_fields=["count(*)"])
         n = int(res[0]["count(*)"]) if res else 0
