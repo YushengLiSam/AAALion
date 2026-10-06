@@ -285,6 +285,34 @@ class FakeClientAliasTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             st.switch_alias(TEXT_COLLECTION, "products_image__v2_202610061830")
 
+    def test_rebuild_after_rollback_keeps_the_good_version_not_the_rolled_back_one(self) -> None:
+        client = FakeMilvusClient()
+        st = self._store(client, versioned=True)
+        self._rebuild(st, 4, "a")
+        good = client.aliases[TEXT_COLLECTION]
+        self._rebuild(st, 6, "b")
+        bad = client.aliases[TEXT_COLLECTION]
+        with redirect_stderr(io.StringIO()):
+            st.rollback_alias(TEXT_COLLECTION)  # bad 版有问题,退回 good
+        self.assertEqual(client.aliases[TEXT_COLLECTION], good)
+        self._rebuild(st, 7, "c")
+        newest = client.aliases[TEXT_COLLECTION]
+        # retain 2:留"切换前在服务的" good,删掉被回滚掉的 bad
+        self.assertEqual(st.physical_collections(TEXT_COLLECTION), [good, newest])
+        self.assertNotIn(bad, client.collections)
+        with redirect_stderr(io.StringIO()):
+            self.assertEqual(st.rollback_alias(TEXT_COLLECTION), (newest, good))
+
+    def test_prune_retain_one_keeps_only_the_serving_collection(self) -> None:
+        client = FakeMilvusClient()
+        st = self._store(client, versioned=True)
+        self._rebuild(st, 4, "a")
+        first = client.aliases[TEXT_COLLECTION]
+        self._rebuild(st, 5, "b")
+        second = client.aliases[TEXT_COLLECTION]
+        self.assertEqual(st.prune(TEXT_COLLECTION, retain=1, protect=first), [first])
+        self.assertEqual(st.physical_collections(TEXT_COLLECTION), [second])
+
     def test_refuses_to_switch_to_an_empty_collection(self) -> None:
         client = FakeMilvusClient()
         st = self._store(client, versioned=True)

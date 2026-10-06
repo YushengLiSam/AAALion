@@ -757,7 +757,9 @@ class MilvusStore:
             )
         previous = self.switch_alias(logical, physical)
         self._staging.pop(logical, None)
-        dropped = self.prune(logical)
+        # 保留的那一版必须是"刚才在服务的":如果之前回滚过(别名指向较老的一版),
+        # 只按时间留最新的会把可回滚的好版本删掉、留下当初被回滚掉的坏版本
+        dropped = self.prune(logical, protect=previous)
         print(
             f"[milvus] alias {logical!r} -> {physical!r} ({n} rows); previous={previous!r}; "
             f"pruned={dropped}",
@@ -796,8 +798,9 @@ class MilvusStore:
         self._invalidate(logical)
         return previous
 
-    def prune(self, logical: str, retain: int | None = None) -> list[str]:
-        """按建表时间保留最新的 ``retain`` 个物理集合,其余删除;别名指向的那个永远不删。
+    def prune(self, logical: str, retain: int | None = None, protect: str | None = None) -> list[str]:
+        """保留 ``retain`` 个物理集合,其余删除。优先级:别名指向的那个(永远不删)>
+        ``protect``(切别名前在服务的那一版,回滚目标)> 按建表时间从新到旧。
 
         保留下来但不在服务的旧集合会 release 掉,省内存(回滚时 ``rag.store.alias`` 会先 load)。
         """
@@ -805,7 +808,12 @@ class MilvusStore:
         client = self._client()
         target = self.alias_target(logical)
         names = self.physical_collections(logical)
-        keep = set(names[-keep_n:])
+        keep: set[str] = set()
+        for name in [target, protect, *reversed(names)]:
+            if len(keep) >= keep_n:
+                break
+            if name and name in names:
+                keep.add(name)
         if target:
             keep.add(target)
         dropped = []
