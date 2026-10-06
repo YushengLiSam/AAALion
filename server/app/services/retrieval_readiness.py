@@ -255,7 +255,13 @@ def vector_store_gate(store=None, *, embed=None) -> dict:
 
 def gate_status(*, force: bool = False, ttl_s: float | None = None) -> dict:
     """带缓存的门控结果。同一时刻只跑一次;别人正在跑时返回上一次结果(或 pending)。"""
-    ttl = float(os.getenv("RAG_READY_GATE_TTL_S", "30")) if ttl_s is None else ttl_s
+    if ttl_s is None:
+        try:
+            ttl = float(os.getenv("RAG_READY_GATE_TTL_S", "30"))
+        except ValueError:
+            ttl = 30.0
+    else:
+        ttl = ttl_s
     now = time.monotonic()
     cached = _gate_cache["result"]
     if cached is not None and not force and now - _gate_cache["at"] < ttl:
