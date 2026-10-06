@@ -199,6 +199,23 @@ class ShadowStoreTests(unittest.TestCase):
         self.assertIs(unwrap(st), primary)
         self.assertIn("shadow", st.schema_info())
 
+    def test_summary_groups_by_collection_and_filter(self) -> None:
+        from rag.store.composite import summarize_shadow_log
+
+        st = self._make(FakeStore("chroma", ids=("a", "b")), FakeStore("milvus", ids=("a", "c")), timeout_ms=5000)
+        st.query_text([0.1], 2)
+        st.query_text([0.1], 2, where={"brand": "x"})
+        st.query_image([0.1], 2)
+        self.assertTrue(st.drain(5))
+        with self.log.open("a", encoding="utf-8") as fh:
+            fh.write("not json\n")
+        rep = summarize_shadow_log(self.log)
+        self.assertEqual(rep["bad_lines"], 1)
+        self.assertEqual(set(rep["groups"]), {"products_text|unfiltered", "products_text|filtered",
+                                              "products_image|unfiltered"})
+        g = rep["groups"]["products_text|filtered"]
+        self.assertEqual((g["lines"], g["overlap_mean"], g["overlap_lt_1"]), (1, 0.5, 1.0))
+
     def test_log_write_failure_is_swallowed(self) -> None:
         bad = Path(self.tmp) / "file"
         bad.write_text("x")

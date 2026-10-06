@@ -421,3 +421,77 @@ def _display(path: Path) -> str:
         return str(Path(path).resolve().relative_to(REPO_ROOT))
     except ValueError:
         return Path(path).name
+
+
+# ---------------------------------------------------------------------------
+# 影子日志汇总:python -m rag.store.composite --summarize data/.shadow/shadow.jsonl
+# ---------------------------------------------------------------------------
+
+
+def _pct(xs: list[float], q: float) -> float | None:
+    if not xs:
+        return None
+    s = sorted(xs)
+    return round(s[min(len(s) - 1, max(0, int(round(q / 100 * (len(s) - 1)))))], 2)
+
+
+def summarize_shadow_log(path: Path | str) -> dict:
+    """按 集合 × 是否带过滤 分组:条数、错误 / 超时、overlap@k 均值与 <1 的比例、两边 p50/p95。
+
+    带过滤和不带过滤分开看:正向影子期间主存储如果还是线上的旧 Chroma 索引
+    (没有 currency / brand_country 字段),带过滤的查询两边语义本就不同,overlap 低不代表 Milvus 有问题。
+    """
+    groups: dict[str, dict] = {}
+    bad_lines = 0
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        if not raw.strip():
+            continue
+        try:
+            rec = json.loads(raw)
+        except ValueError:
+            bad_lines += 1
+            continue
+        key = f"{rec.get('collection')}|{'filtered' if rec.get('where_hash') else 'unfiltered'}"
+        g = groups.setdefault(key, {"n": 0, "errors": 0, "timeouts": 0, "primary_errors": 0,
+                                    "overlaps": [], "primary_ms": [], "shadow_ms": []})
+        g["n"] += 1
+        err = rec.get("error")
+        if err:
+            g["timeouts" if str(err).startswith("timeout") else "errors"] += 1
+        if rec.get("primary_error"):
+            g["primary_errors"] += 1
+        if rec.get("overlap_at_k") is not None:
+            g["overlaps"].append(float(rec["overlap_at_k"]))
+        for side in ("primary_ms", "shadow_ms"):
+            if rec.get(side) is not None:
+                g[side].append(float(rec[side]))
+    out: dict = {"file": str(path), "bad_lines": bad_lines, "groups": {}}
+    for key, g in sorted(groups.items()):
+        ov = g["overlaps"]
+        out["groups"][key] = {
+            "lines": g["n"], "shadow_errors": g["errors"], "shadow_timeouts": g["timeouts"],
+            "primary_errors": g["primary_errors"],
+            "overlap_mean": round(sum(ov) / len(ov), 4) if ov else None,
+            "overlap_lt_1": round(sum(1 for x in ov if x < 1.0) / len(ov), 4) if ov else None,
+            "primary_p50_ms": _pct(g["primary_ms"], 50), "primary_p95_ms": _pct(g["primary_ms"], 95),
+            "shadow_p50_ms": _pct(g["shadow_ms"], 50), "shadow_p95_ms": _pct(g["shadow_ms"], 95),
+        }
+    return out
+
+
+def _main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="summarise a ShadowStore JSONL log")
+    ap.add_argument("--summarize", metavar="JSONL", default=str(DEFAULT_SHADOW_LOG))
+    args = ap.parse_args(argv)
+    path = Path(args.summarize)
+    if not path.exists():
+        print(f"no shadow log at {path}", file=sys.stderr)
+        return 2
+    print(json.dumps(summarize_shadow_log(path), ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main())
