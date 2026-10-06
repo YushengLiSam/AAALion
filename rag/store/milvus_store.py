@@ -320,7 +320,7 @@ class MilvusStore:
         if name in self._loaded:
             return True
         client = self._client()
-        if not self._locked(client.has_collection, name):
+        if not self._exists(name):
             return False
         self._locked(client.load_collection, name)
         self._loaded.add(name)
@@ -385,7 +385,7 @@ class MilvusStore:
             self._commit_staged(name, staged)
             return
         client = self._client()
-        if not self._locked(client.has_collection, name):
+        if not self._exists(name):
             return
         target = self.alias_target(name) or name
         try:
@@ -628,6 +628,13 @@ class MilvusStore:
         target = desc.get("collection_name") or desc.get("collection")
         return str(target) if target else None
 
+    def _exists(self, name: str) -> bool:
+        """集合或别名存在。Milvus Lite 与 Standalone 的 has_collection 都会解析别名(lite 读码确认,
+        Standalone 为文档 / 读码推断,未实测);这里再查一次别名兜底,免得读路径悄悄返回空。"""
+        if self._locked(self._client().has_collection, name):
+            return True
+        return self.alias_target(name) is not None
+
     def physical_collections(self, logical: str) -> list[str]:
         """某个逻辑集合名下的全部物理集合(版本化的 + 改名留下的 legacy),按建表时间升序。"""
         names = [
@@ -858,7 +865,7 @@ class MilvusStore:
 
     def index_properties(self, collection: str = TEXT_COLLECTION) -> dict:
         client = self._client()
-        if not self._locked(client.has_collection, collection):
+        if not self._exists(collection):
             return {}
         props = self._locked(client.describe_collection, collection).get("properties") or {}
         return {k[len(_PROP_PREFIX):]: v for k, v in props.items() if str(k).startswith(_PROP_PREFIX)}
@@ -866,7 +873,7 @@ class MilvusStore:
     def filterable_fields(self, collection: str = TEXT_COLLECTION) -> frozenset[str]:
         # 显式 schema:字段在不在,describe 一下就知道,不需要版本号戳
         client = self._client()
-        if not self._locked(client.has_collection, collection):
+        if not self._exists(collection):
             return frozenset()
         desc = self._locked(client.describe_collection, collection)
         present = {f.get("name") for f in desc.get("fields", [])}

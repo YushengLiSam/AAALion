@@ -311,6 +311,17 @@ class FakeClientAliasTests(unittest.TestCase):
             self.assertEqual(cli.main(["--switch", "products_text__v2_000000000000"], store=st), 1)
         self.assertEqual(st.text_count(), 4)
 
+    def test_reads_work_even_if_has_collection_ignores_aliases(self) -> None:
+        """Defensive: should a server's has_collection not resolve aliases, reads must not go empty."""
+        client = FakeMilvusClient()
+        st = self._store(client, versioned=True)
+        self._rebuild(st, 4, "a")
+        client.has_collection = lambda name: name in client.collections  # no alias resolution
+        reader = self._store(client, versioned=False)
+        self.assertEqual(reader.text_count(), 4)
+        self.assertIn("brand_country", reader.filterable_fields())
+        self.assertEqual(reader.index_properties(), {"origin_fp": "fp"})
+
     def test_default_mode_is_unversioned_and_unchanged(self) -> None:
         client = FakeMilvusClient()
         st = self._store(client, versioned=None)  # reads RAG_MILVUS_VERSIONED (unset → 0)
