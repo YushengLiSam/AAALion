@@ -157,3 +157,19 @@ def test_stream_chat_untouched_and_echo_has_no_tools():
     with pytest.raises(NotImplementedError):
         asyncio.run(EchoProvider().chat_tools([], _TOOLS))
     assert llm_provider.AnthropicProvider.supports_tools is False
+
+
+def test_agent_llm_model_override_only_affects_chat_tools(monkeypatch):
+    seen = []
+
+    def handler(request):
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json=_OK_BODY)
+
+    p = _provider(handler)
+    asyncio.run(p.chat_tools([{"role": "user", "content": "x"}], _TOOLS))
+    assert seen[-1]["model"] == "claude-haiku-4-5"            # 不设:沿用 provider 的模型
+    monkeypatch.setenv("AGENT_LLM_MODEL", "planner-model")
+    asyncio.run(p.chat_tools([{"role": "user", "content": "x"}], _TOOLS))
+    assert seen[-1]["model"] == "planner-model"
+    assert p._model == "claude-haiku-4-5"                      # 流式回答用的模型不变

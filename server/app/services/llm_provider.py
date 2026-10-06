@@ -174,7 +174,9 @@ class OpenAICompatibleProvider:
         """
         client = self._client.with_options(max_retries=0, timeout=timeout)
         kwargs: dict = {
-            "model": self._model,
+            # AGENT_LLM_MODEL:规划器可单独用更快的模型(如 claude-haiku-4-5);
+            # 不设时与流式回答同一个模型。只影响本方法。
+            "model": (os.getenv("AGENT_LLM_MODEL") or "").strip() or self._model,
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,

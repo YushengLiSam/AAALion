@@ -193,6 +193,21 @@ def test_agent_eval_reuses_one_event_loop():
 
 
 # --------------------------------------------------------------------------- #
+#  5. trace 轮转
+# --------------------------------------------------------------------------- #
+
+def test_trace_rotates_when_over_cap(tmp_path, monkeypatch):
+    path = tmp_path / "shadow.jsonl"
+    monkeypatch.setenv("AGENT_SHADOW_LOG", str(path))
+    monkeypatch.setenv("AGENT_TRACE_MAX_MB", "0.0001")      # ≈105 字节
+    runtime.append_trace({"pad": "x" * 200})
+    runtime.append_trace({"n": 2})
+    assert (tmp_path / "shadow.jsonl.1").exists()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert [json.loads(l) for l in lines] == [{"n": 2}]
+
+
+# --------------------------------------------------------------------------- #
 #  6. 会话锚点多跳留在快路
 # --------------------------------------------------------------------------- #
 

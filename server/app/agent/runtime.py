@@ -5,6 +5,7 @@
   AGENT_MAX_CONCURRENCY  同时在跑的智能体数上限(默认 2);满了直接走快路 / 跳过影子
   AGENT_TIMEOUT_S        智能体路径总时长上限(默认 8 秒),超时回退快路
   AGENT_SHADOW_LOG       影子 trace 路径(默认 data/.agent/shadow.jsonl)
+  AGENT_TRACE_MAX_MB     trace 文件体积上限(默认 50),超了轮转成 .1
 
 本模块的任何函数都不抛异常:智能体出任何问题,调用方都按"没有结果"处理、走快路。
 """
@@ -50,8 +51,17 @@ def append_trace(record: dict) -> None:
         path = shadow_log_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(record, ensure_ascii=False, default=str)
-        with _log_lock, open(path, "a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
+        # 体积上限(AGENT_TRACE_MAX_MB,默认 50):超了就把旧文件轮转成 .1(只留一份),
+        # 防止 shadow 长期开着把 VM 磁盘写满。
+        try:
+            max_bytes = float(os.getenv("AGENT_TRACE_MAX_MB", "50")) * 1024 * 1024
+        except ValueError:
+            max_bytes = 50 * 1024 * 1024
+        with _log_lock:
+            if max_bytes > 0 and path.exists() and path.stat().st_size >= max_bytes:
+                os.replace(path, path.with_name(path.name + ".1"))
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
     except Exception as e:  # noqa: BLE001
         log.warning(f"agent trace write failed: {e}")
 
