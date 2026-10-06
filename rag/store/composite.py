@@ -12,8 +12,8 @@ ShadowStore —— 迁移的"影子"阶段(PLAN P1 第 4 步)::
 结果比对后追加一行 JSONL 到 ``RAG_SHADOW_LOG``(默认 ``data/.shadow/shadow.jsonl``)。
 硬约束:影子永远不能抛进主路径、也不能拖慢主路径——
 
-* 线程数 1–2(``RAG_SHADOW_WORKERS``),排队上限 ``RAG_SHADOW_QUEUE``(默认 64),
-  满了直接丢弃并计数,不阻塞;
+* 线程数 1–2(``RAG_SHADOW_WORKERS``,daemon 线程,进程退出时不等影子任务),
+  在途上限 ``RAG_SHADOW_QUEUE``(默认 64),满了直接丢弃并计数,不阻塞;
 * 单次影子查询超过 ``RAG_SHADOW_TIMEOUT_MS``(默认 2000)记为 timeout。Python 线程
   杀不掉,所以超时的查询仍会在后台跑完——但它只占影子自己的线程,队列满了后续影子
   请求就被丢弃,主路径不受影响;
@@ -23,7 +23,8 @@ FallbackStore —— 运行时降级(PLAN 回滚 L3)::
 
     RAG_STORE=milvus RAG_STORE_FALLBACK=chroma RAG_STORE_FALLBACK_UNTIL=2026-11-01
 
-主存储抛异常时记日志 + 计数,改由兜底存储回答;过了 ``RAG_STORE_FALLBACK_UNTIL``
+主存储抛异常时记日志 + 计数,改由兜底存储回答,并在 ``RAG_STORE_FALLBACK_COOLDOWN_S``
+(默认 10)秒内跳过主存储直接走兜底(熔断:不应答的主存储每次都要等满 RPC 超时);过了 ``RAG_STORE_FALLBACK_UNTIL``
 那一天(含当天仍有效)兜底自动失效并告警——避免两份索引长期不同步还"看起来能用"。
 没写截止日期 = 不启用(强制限期)。兜底也失败时异常照常抛出,由
 ``rag.retrieve.query`` 退回关键词检索(那一层另有计数,见 ``/ready``)。
@@ -33,14 +34,15 @@ FallbackStore —— 运行时降级(PLAN 回滚 L3)::
 
 from __future__ import annotations
 
+import copy
 import datetime as _dt
 import hashlib
 import json
 import os
+import queue
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -129,7 +131,13 @@ class ShadowStore(_Delegating):
         n_workers = workers if workers is not None else _env_int("RAG_SHADOW_WORKERS", 1, 1, 2)
         self._queue_max = queue_max if queue_max is not None else _env_int("RAG_SHADOW_QUEUE", 64, 1, 10_000)
         self._max_log_bytes = _env_int("RAG_SHADOW_LOG_MAX_MB", 200, 1, 100_000) * 1024 * 1024
-        self._executor = ThreadPoolExecutor(max_workers=max(1, min(2, n_workers)), thread_name_prefix="rag-shadow")
+        # 不用 ThreadPoolExecutor:它的工作线程不是 daemon,解释器退出时会 join 并把排队的
+        # 任务全部跑完——影子库不应答时,64 个排队查询会把 systemctl restart 拖到被 SIGKILL。
+        # 这里自己起 daemon 线程,进程退出时影子任务直接丢弃(本来就是可丢的旁路数据)。
+        self._n_workers = max(1, min(2, n_workers))
+        self._tasks: queue.SimpleQueue = queue.SimpleQueue()
+        self._workers: list[threading.Thread] = []
+        self._workers_lock = threading.Lock()
         # 在途(排队 + 执行中)任务的计数器:超过上限就丢弃,不阻塞主路径
         self._slots = threading.BoundedSemaphore(self._queue_max)
         self._write_lock = threading.Lock()
@@ -167,9 +175,9 @@ class ShadowStore(_Delegating):
                 return
             try:
                 vec = list(embedding)
-                self._executor.submit(
-                    self._shadow_task, collection, vec, int(k), where, primary_ids, primary_ms, primary_error
-                )
+                where = copy.deepcopy(where)  # 调用方之后改了这个 dict 也不影响后台比对
+                self._ensure_workers()
+                self._tasks.put((collection, vec, int(k), where, primary_ids, primary_ms, primary_error))
             except Exception:
                 self._slots.release()
                 with self._stats_lock:
@@ -181,6 +189,22 @@ class ShadowStore(_Delegating):
             pass
 
     # -- 后台 -----------------------------------------------------------------
+
+    def _ensure_workers(self) -> None:
+        if len(self._workers) >= self._n_workers:
+            return
+        with self._workers_lock:
+            while len(self._workers) < self._n_workers:
+                t = threading.Thread(
+                    target=self._worker_loop, name=f"rag-shadow-{len(self._workers)}", daemon=True
+                )
+                t.start()
+                self._workers.append(t)
+
+    def _worker_loop(self) -> None:
+        while True:
+            task = self._tasks.get()
+            self._shadow_task(*task)  # 自带兜底:不抛异常,finally 里归还名额
 
     def _shadow(self):
         if self._shadow_obj is None:
@@ -317,6 +341,8 @@ class FallbackStore(_Delegating):
         fallback_name: str = "",
         until: _dt.date | None = None,
         today: Callable[[], _dt.date] = _dt.date.today,
+        cooldown_s: float | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         super().__init__(primary)
         self._fallback_factory = fallback_factory
@@ -326,7 +352,20 @@ class FallbackStore(_Delegating):
         self.until = until
         self._today = today
         self._warned_expired = False
-        self.stats = {"primary_errors": 0, "served_by_fallback": 0, "fallback_errors": 0, "expired_skips": 0}
+        # 熔断冷却:主存储失败一次后,接下来 cooldown 秒内直接由兜底回答、不再先试主存储。
+        # 主存储"不应答"时每次都要等满 RPC 超时(Milvus 读超时默认 5 s)才失败,
+        # 一次聊天请求里又有多次检索——不熔断的话整个故障期间每个请求都慢好几秒。
+        # 冷却期过后放一个请求去试主存储,成功即恢复。0 = 不熔断。
+        if cooldown_s is None:
+            try:
+                cooldown_s = float(os.getenv("RAG_STORE_FALLBACK_COOLDOWN_S", "10"))
+            except ValueError:
+                cooldown_s = 10.0
+        self._cooldown_s = max(0.0, cooldown_s)
+        self._clock = clock
+        self._skip_primary_until = 0.0
+        self.stats = {"primary_errors": 0, "served_by_fallback": 0, "fallback_errors": 0, "expired_skips": 0,
+                      "primary_skipped_cooldown": 0}
         self.last_error: str | None = None
 
     def active(self) -> bool:
@@ -340,12 +379,26 @@ class FallbackStore(_Delegating):
         return self._fallback_obj
 
     def _guard(self, call_primary, call_fallback):
+        if self._cooldown_s and self._clock() < self._skip_primary_until and self.active():
+            try:
+                out = call_fallback(self._fallback())
+            except Exception:
+                with self._lock:
+                    self.stats["fallback_errors"] += 1
+                # 兜底也不行:冷却期内也还是去试一次主存储,别让两边都"假装"挂了
+            else:
+                with self._lock:
+                    self.stats["primary_skipped_cooldown"] += 1
+                    self.stats["served_by_fallback"] += 1
+                return out
         try:
             return call_primary()
         except Exception as exc:
             with self._lock:
                 self.stats["primary_errors"] += 1
                 self.last_error = f"{type(exc).__name__}: {exc}"[:300]
+                if self._cooldown_s:
+                    self._skip_primary_until = self._clock() + self._cooldown_s
             if not self.active():
                 with self._lock:
                     self.stats["expired_skips"] += 1
@@ -360,7 +413,8 @@ class FallbackStore(_Delegating):
                 raise
             print(
                 f"[rag.store] primary {self.primary.backend} failed ({type(exc).__name__}: {exc}); "
-                f"answering from fallback {self.fallback_name}",
+                f"answering from fallback {self.fallback_name}"
+                + (f" (primary skipped for {self._cooldown_s:g}s)" if self._cooldown_s else ""),
                 file=sys.stderr,
             )
             try:
@@ -392,6 +446,8 @@ class FallbackStore(_Delegating):
             "fallback": self.fallback_name,
             "until": self.until.isoformat() if self.until else None,
             "active": self.active(),
+            "cooldown_s": self._cooldown_s,
+            "primary_skipped_now": bool(self._cooldown_s and self._clock() < self._skip_primary_until),
             "last_error": self.last_error,
             **stats,
         }

@@ -175,6 +175,20 @@ class ShadowStoreTests(unittest.TestCase):
         self.assertTrue(st.drain(5))
         self.assertEqual(len(_read_jsonl(self.log)), 2)
 
+    def test_stuck_shadow_never_blocks_interpreter_exit(self) -> None:
+        # ThreadPoolExecutor 的线程在解释器退出时会被 join、排队任务会跑完:影子库不应答时
+        # systemctl restart 会被拖住。影子线程必须是 daemon。
+        release = threading.Event()
+        st = self._make(FakeStore("chroma"), FakeStore("milvus", gate=release), workers=2, queue_max=8)
+        for _ in range(4):
+            st.query_text([0.1], 1)
+        shadow_threads = [t for t in threading.enumerate() if t.name.startswith("rag-shadow")]
+        self.assertTrue(shadow_threads)
+        self.assertTrue(all(t.daemon for t in shadow_threads))
+        self.assertLessEqual(len(st._workers), 2)
+        release.set()
+        self.assertTrue(st.drain(5))
+
     def test_primary_error_propagates_and_is_logged(self) -> None:
         st = self._make(FakeStore("milvus", fail=True), FakeStore("chroma"), timeout_ms=5000)
         with self.assertRaises(RuntimeError):
@@ -227,9 +241,10 @@ class ShadowStoreTests(unittest.TestCase):
 
 
 class FallbackStoreTests(unittest.TestCase):
-    def _make(self, primary, fallback, until, today):
+    def _make(self, primary, fallback, until, today, **kw):
+        kw.setdefault("cooldown_s", 0)  # 这些用例逐次检查主存储;熔断单独测
         return FallbackStore(primary, lambda: fallback, fallback_name=fallback.backend, until=until,
-                             today=lambda: today)
+                             today=lambda: today, **kw)
 
     def test_healthy_primary_never_touches_the_fallback(self) -> None:
         fb = FakeStore("chroma")
@@ -272,6 +287,52 @@ class FallbackStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "milvus down"):
             st.query_text([0.1], 1)
         self.assertEqual(st.stats["fallback_errors"], 1)
+
+
+    def test_cooldown_skips_a_failing_primary_then_retries_it(self) -> None:
+        now = [100.0]
+        primary = FakeStore("milvus", fail=True)
+        fb = FakeStore("chroma", ids=("x",))
+        st = self._make(primary, fb, dt.date(2026, 10, 20), dt.date(2026, 10, 6),
+                        cooldown_s=10, clock=lambda: now[0])
+        with patch("sys.stderr"):
+            for _ in range(5):
+                self.assertEqual(st.query_text([0.1], 1)[0].id, "x")
+        # 只有第一次真的去试了主存储(不应答的主存储每次都要等满超时)
+        self.assertEqual(len(primary.calls), 1)
+        self.assertEqual(st.stats["primary_errors"], 1)
+        self.assertEqual(st.stats["primary_skipped_cooldown"], 4)
+        self.assertEqual(st.stats["served_by_fallback"], 5)
+        self.assertTrue(st.describe()["primary_skipped_now"])
+        # 冷却期过后再试主存储;恢复了就回到主存储
+        now[0] += 11
+        primary.fail = False
+        self.assertEqual(st.query_text([0.1], 1)[0].id, "a")
+        self.assertEqual(len(primary.calls), 2)
+        self.assertFalse(st.describe()["primary_skipped_now"])
+
+    def test_cooldown_does_not_apply_after_expiry(self) -> None:
+        now = [100.0]
+        primary = FakeStore("milvus", fail=True)
+        st = self._make(primary, FakeStore("chroma"), dt.date(2026, 10, 20), dt.date(2026, 10, 21),
+                        cooldown_s=10, clock=lambda: now[0])
+        with patch("sys.stderr"):
+            for _ in range(2):
+                with self.assertRaises(RuntimeError):
+                    st.query_text([0.1], 1)
+        self.assertEqual(len(primary.calls), 2)
+
+    def test_fallback_failure_during_cooldown_still_tries_primary(self) -> None:
+        now = [100.0]
+        primary = FakeStore("milvus", fail=True)
+        fb = FakeStore("chroma", fail=True)
+        st = self._make(primary, fb, dt.date(2026, 10, 20), dt.date(2026, 10, 6),
+                        cooldown_s=10, clock=lambda: now[0])
+        with patch("sys.stderr"):
+            for _ in range(2):
+                with self.assertRaisesRegex(RuntimeError, "milvus down"):
+                    st.query_text([0.1], 1)
+        self.assertEqual(len(primary.calls), 2)
 
 
 class GetStoreWiringTests(unittest.TestCase):
