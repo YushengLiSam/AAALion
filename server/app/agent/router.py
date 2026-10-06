@@ -3,6 +3,7 @@
 走智能体(复杂多步):
   multihop        依赖另一件商品的问法(比 X 便宜 / 跟 X 同价位 / 同品牌 / 买了 X 配 Y),
                   直接复用 rag.retrieve.multihop.detect_multihop(锚点必须能落到目录);
+                  会话锚点("比刚才第二款便宜的")除外——留在快路,那里拿得到历史卡片;
   comparison      对比意图 + 点名 ≥2 个不同品牌 / 产品线;
   bundle          "N 元(内)配一套 / 配齐 / 搭配 …"这类预算配套;
   cross_currency  显式跨币种比较(美元 / 海外版 / 直邮 … 同时带比较词)。
@@ -23,9 +24,13 @@ _COMPARE_RE = re.compile(
     re.IGNORECASE,
 )
 # 预算配套:"3000元配一套跑步装备" / "预算2000配齐露营装备" / "5000以内搭配一套通勤穿搭"
+# 金额必须带**钱的标记**(前面的"预算/总共/¥",或后面的 元/块/rmb、千/万/k/w、以内/左右…),
+# 否则"适合30岁女生的一套护肤品""给18岁男生搭配一套衣服""50ml一套"里的数字会被当成
+# ¥30 / ¥18 / ¥50 的总预算——而预算在工具层是**硬上限**,会把检索压成空或压出低价凑数品。
 _BUNDLE_RE = re.compile(
-    r"(?P<amt>\d+(?:\.\d+)?)\s*(?P<unit>万|w|千|k)?\s*(?:元|块|rmb|¥|￥)?\s*"
-    r"(?:以内|以下|之内|内|左右|预算)?[^，。,;；]{0,10}?"
+    r"(?P<pre>预算|总共|一共|总价|不超过|¥|￥)?\s*"
+    r"(?P<amt>\d+(?:\.\d+)?)\s*(?P<unit>万|w|千|k)?\s*(?P<cur>元|块|rmb|¥|￥)?\s*"
+    r"(?P<lim>以内|以下|之内|内|左右|预算)?[^，。,;；]{0,10}?"
     r"(?:配一套|配齐|配一身|搭一套|搭配一套|搭配|一整套|一套|全套|套装)",
     re.IGNORECASE,
 )
@@ -67,12 +72,23 @@ def bundle_budget(text: str) -> float | None:
     """预算配套的总预算(人民币);不是配套问法返回 None。"""
     if not text:
         return None
-    for rx in (_BUNDLE_RE, _BUNDLE_RE_REV):
-        m = rx.search(text)
-        if m:
+    pos = 0
+    while True:
+        # 不用 finditer:匹配互不重叠,"给30岁的我 800元配一套"里 30 那次匹配会把
+        # "800元" 一起吞掉。没钱标记时从这个数字之后接着找。
+        m = _BUNDLE_RE.search(text, pos)
+        if m is None:
+            break
+        if m.group("pre") or m.group("unit") or m.group("cur") or m.group("lim"):
             v = _amount(m)
             if v >= 10:          # "1套" "2件" 之类的数字不是预算
                 return v
+        pos = m.end("amt")       # 没有钱的标记:年龄 / 容量 / 型号数字,不是预算
+    m = _BUNDLE_RE_REV.search(text)   # 反向写法本身就要求 元/块/rmb
+    if m:
+        v = _amount(m)
+        if v >= 10:
+            return v
     return None
 
 
@@ -120,7 +136,13 @@ def should_use_agent(text: str, history=None, *, has_history_cards: bool = False
     try:
         from rag.retrieve.multihop import detect_multihop
 
-        if detect_multihop(t, has_history_cards=has_history_cards) is not None:
+        plan = detect_multihop(t, has_history_cards=has_history_cards)
+        if plan is not None:
+            if plan.uses_history_anchor:
+                # "比刚才第二款便宜的":锚点是上一轮的第 N 张卡。快路的多跳块拿得到
+                # 历史卡片(确定性取第 N 张);智能体只看得到对话文字、没有卡片 ID,
+                # 只能猜锚点——留在快路。
+                return RouteDecision(False, "multihop_history")
             return RouteDecision(True, "multihop")
     except Exception:
         pass
