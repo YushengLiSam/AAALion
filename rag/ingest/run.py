@@ -29,6 +29,7 @@ from rag.store import (  # noqa: E402
     Doc,
     collection_count,
     get_store,
+    serving_collection,
     upsert_text,
     write_isolation_required,
 )
@@ -92,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(store, "seal"):
         store.seal(TEXT_COLLECTION)
     print(f"upserted; collection now has {collection_count()} docs")
+    # 版本化 Milvus(RAG_MILVUS_VERSIONED=1)下,这里显示别名此刻指向的物理集合
+    print(f"serving collection: {serving_collection(store, TEXT_COLLECTION)}")
     print(f"filterable fields: {sorted(store.filterable_fields(TEXT_COLLECTION))}")
     return 0
 

@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from rag.ingest.chunk import _meta as _chunk_meta  # noqa: E402
 from rag.ingest.embed_image import iter_product_images, embed_image_file  # noqa: E402
-from rag.store import IMAGE_COLLECTION, get_store, write_isolation_required  # noqa: E402
+from rag.store import IMAGE_COLLECTION, get_store, serving_collection, write_isolation_required  # noqa: E402
 from rag.store.load import ARTIFACT_DIR, save_artifact  # noqa: E402
 
 
@@ -84,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
         if hasattr(store, "seal"):
             store.seal(IMAGE_COLLECTION)
     print(f"[clip] upserted; collection now has {store.image_count()} vectors")
+    print(f"[clip] serving collection: {serving_collection(store, IMAGE_COLLECTION)}")
     return 0
 
 

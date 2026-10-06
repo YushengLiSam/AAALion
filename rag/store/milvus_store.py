@@ -11,12 +11,22 @@ Milvus 必须事先声明每个字段。这逼着我们把"会被怎么过滤"�
 
 pymilvus 只在选用本后端时才 import:线上自动部署脚本不装新依赖,
 默认的 Chroma 路径必须在没有 pymilvus 的机器上照常工作。
+
+P1 —— 版本化集合 + 别名(``RAG_MILVUS_VERSIONED=1``,默认 0 = 行为不变):
+业务只认逻辑名 ``products_text`` / ``products_image``;开启后每次 ``--rebuild``
+(入库 / ``rag.store.load`` / ``rag.store.migrate``)都写进一个新的物理集合
+``products_text__v2_<YYYYmmddHHMM>``,写完 ``seal()`` 时核对条数,再把别名
+``products_text`` 指过去(create / alter alias)。旧的物理集合保留做回滚
+(默认保留 2 个,永远不删别名正指向的那个),见 ``python -m rag.store.alias``。
+读路径始终用逻辑名,别名切换对正在服务的进程是透明的。
 """
 
 from __future__ import annotations
 
+import datetime as _dt
 import math
 import os
+import re
 import sys
 import threading
 from pathlib import Path
@@ -56,6 +66,52 @@ _IMAGE_COLUMNS: tuple[tuple[str, str, int | None], ...] = tuple(
 _INVERTED = ("product_id", "category", "sub_category", "brand", "brand_country", "currency")
 _TEXT_MAX = 65535  # Milvus VARCHAR 上限
 _PROP_PREFIX = "lionpick."
+
+# 物理集合命名:<逻辑名>__v<schema 版本>_<YYYYmmddHHMM>[_<序号>];
+# 首次启用别名时,原来那个"直接叫逻辑名"的老集合会被改名为 <逻辑名>__legacy_<时间戳>。
+_PHYSICAL_RE = re.compile(
+    r"^(?P<logical>[A-Za-z_][A-Za-z0-9_]*?)__(?:v(?P<ver>\d+)|legacy)_(?P<ts>\d{12})(?:_(?P<seq>\d+))?$"
+)
+LOGICAL_COLLECTIONS = (TEXT_COLLECTION, IMAGE_COLLECTION)
+
+
+def logical_name(name: str) -> str:
+    """物理集合名 → 逻辑名;本身就是逻辑名(或不认识的名字)时原样返回。"""
+    m = _PHYSICAL_RE.match(name or "")
+    return m.group("logical") if m else name
+
+
+def is_physical_name(name: str) -> bool:
+    return bool(_PHYSICAL_RE.match(name or ""))
+
+
+def physical_sort_key(name: str) -> tuple[str, int]:
+    """按建表时间(再按同一分钟内的序号)排序;不认识的名字排最前。
+
+    legacy 集合是在第一次切别名时才改名的,时间戳可能和同一分钟里新建的 v2 集合相同,
+    但它的数据一定更老,所以同一分钟内排在最前(序号记 0)。
+    """
+    m = _PHYSICAL_RE.match(name or "")
+    if not m:
+        return ("", 0)
+    seq = 0 if m.group("ver") is None else int(m.group("seq") or 1)
+    return (m.group("ts"), seq)
+
+
+def new_physical_name(
+    logical: str,
+    existing: set[str] | frozenset[str],
+    now: _dt.datetime | None = None,
+    kind: str | None = None,
+) -> str:
+    """生成一个不与现有集合 / 别名重名的物理集合名(同一分钟内重建时加序号)。"""
+    stamp = (now or _dt.datetime.now()).strftime("%Y%m%d%H%M")
+    base = f"{logical}__{kind or f'v{SCHEMA_VERSION}'}_{stamp}"
+    name, seq = base, 1
+    while name in existing:
+        seq += 1
+        name = f"{base}_{seq}"
+    return name
 
 _HNSW_PARAMS = {"M": 16, "efConstruction": 200}
 # 需要 faiss 的索引类型(见 milvus_lite/index/factory.py);FLAT / BRUTE_FORCE 是纯 numpy
@@ -108,15 +164,37 @@ def _adaptive_filter_on() -> bool:
 class MilvusStore:
     backend = "milvus"
 
-    def __init__(self, uri: str | None = None, token: str | None = None, index_type: str | None = None) -> None:
+    def __init__(
+        self,
+        uri: str | None = None,
+        token: str | None = None,
+        index_type: str | None = None,
+        *,
+        versioned: bool | None = None,
+        db_name: str | None = None,
+    ) -> None:
         self._uri = uri or os.getenv("RAG_MILVUS_URI") or DEFAULT_URI
         self._index_type = (index_type or os.getenv("RAG_MILVUS_INDEX_TYPE") or "HNSW").strip().upper()
         self._token = token if token is not None else os.getenv("RAG_MILVUS_TOKEN", "")
+        # 库名与一致性级别可配(PLAN P1)。1082 条、没有流式写入时一致性级别的差别可以忽略,
+        # 不当卖点;默认值保持 R15 的行为(默认库 + Strong)。
+        self._db_name = (db_name if db_name is not None else os.getenv("RAG_MILVUS_DB", "")).strip()
+        self._consistency = (os.getenv("RAG_MILVUS_CONSISTENCY") or "Strong").strip()
+        self._versioned = (
+            versioned if versioned is not None else os.getenv("RAG_MILVUS_VERSIONED", "0").strip() == "1"
+        )
+        try:
+            self._retain = max(1, int(os.getenv("RAG_MILVUS_RETAIN", "2")))
+        except ValueError:
+            self._retain = 2
+        # 版本化模式下 reset_collection 只登记"这次重建写进哪个新物理集合",真正切别名在 seal()
+        self._staging: dict[str, dict] = {}
         self._is_lite = "://" not in self._uri
         self._client_obj = None
         self._init_lock = threading.Lock()
         # Milvus Lite 是单进程嵌入式实现,串行化访问更稳妥;远端服务走 gRPC,可并发
-        self._op_lock: threading.Lock | None = threading.Lock() if self._is_lite else None
+        # 可重入:_create 在持锁状态下还要查别名(alias_target 自己也会加锁)
+        self._op_lock: threading.RLock | None = threading.RLock() if self._is_lite else None
         self._loaded: set[str] = set()
         self._totals: dict[str, int] = {}
         self._pending_props: dict[str, dict] = {}  # reset_collection 时给定,建集合时写入
@@ -135,7 +213,8 @@ class MilvusStore:
                         Path(self._uri).parent.mkdir(parents=True, exist_ok=True)
                         self._warn_embedded_with_torch()
                     try:
-                        self._client_obj = MilvusClient(uri=self._uri, token=self._token)
+                        kwargs = {"db_name": self._db_name} if self._db_name else {}
+                        self._client_obj = MilvusClient(uri=self._uri, token=self._token, **kwargs)
                     except Exception as exc:
                         if self._is_lite:
                             # R15 实测:两个进程同时打开同一个 Lite 数据库文件,后开的
@@ -175,10 +254,22 @@ class MilvusStore:
 
     @staticmethod
     def _columns(name: str) -> tuple[tuple[str, str, int | None], ...]:
-        return _TEXT_COLUMNS if name == TEXT_COLLECTION else _IMAGE_COLUMNS
+        return _TEXT_COLUMNS if logical_name(name) == TEXT_COLLECTION else _IMAGE_COLUMNS
+
+    @staticmethod
+    def _is_text(name: str) -> bool:
+        return logical_name(name) == TEXT_COLLECTION
 
     def _create(self, name: str, dim: int) -> None:
         from pymilvus import DataType, MilvusClient
+
+        # 绝不建一个与现有别名同名的物理集合:Milvus 会直接报错,Lite 会和别名解析搅在一起
+        if self.alias_target(name) is not None:
+            raise RuntimeError(
+                f"refusing to create collection {name!r}: an alias with that name already exists "
+                "(this index is versioned; rebuild with RAG_MILVUS_VERSIONED=1 or manage it with "
+                "`python -m rag.store.alias`)"
+            )
 
         schema = MilvusClient.create_schema(
             auto_id=False,
@@ -192,7 +283,7 @@ class MilvusStore:
                 schema.add_field(field, DataType.VARCHAR, max_length=length)
             else:
                 schema.add_field(field, DataType.DOUBLE)
-        if name == TEXT_COLLECTION:
+        if self._is_text(name):
             schema.add_field("text", DataType.VARCHAR, max_length=_TEXT_MAX)
         schema.add_field("extra", DataType.JSON)
 
@@ -208,7 +299,7 @@ class MilvusStore:
                 index_params.add_index(field_name=field, index_type="INVERTED")
 
         self._client().create_collection(
-            name, schema=schema, index_params=index_params, consistency_level="Strong"
+            name, schema=schema, index_params=index_params, consistency_level=self._consistency
         )
         props = self._pending_props.pop(name, None)
         if props:
@@ -218,8 +309,11 @@ class MilvusStore:
         self._loaded.add(name)
 
     def _ensure(self, name: str, dim: int) -> None:
-        if not self._locked(self._client().has_collection, name):
-            self._locked(self._create, name, dim)
+        if self._locked(self._client().has_collection, name):
+            return
+        if self.alias_target(name) is not None:
+            return  # 别名存在:写入经由别名落到它指向的物理集合
+        self._locked(self._create, name, dim)
 
     def _ensure_loaded(self, name: str) -> bool:
         """查询前确保集合已加载;集合不存在返回 False。"""
@@ -246,7 +340,7 @@ class MilvusStore:
                     row[field] = float(val) if val is not None else 0.0
                 except (TypeError, ValueError):
                     row[field] = 0.0
-        if name == TEXT_COLLECTION:
+        if self._is_text(name):
             body = text if text is not None else str(meta.get("text", ""))
             row["text"] = _truncate_utf8(body, _TEXT_MAX)
             declared.add("text")
@@ -255,7 +349,7 @@ class MilvusStore:
 
     def _output_fields(self, name: str) -> list[str]:
         fields = [f for f, _, _ in self._columns(name)]
-        if name == TEXT_COLLECTION:
+        if self._is_text(name):
             fields.append("text")
         fields.append("extra")
         return fields
@@ -281,14 +375,23 @@ class MilvusStore:
         milvus-lite 3.2.1 在写完立刻 release/load 时会读到后台线程尚未写完的段文件
         ("Not an Arrow file" / "File is too small"),FLAT 与 HNSW 都会出现,故放弃。
         落盘失败只告警,不让整次入库失败——数据已经写进去了。
+
+        版本化模式下,如果这个集合在本进程里刚被 ``reset_collection`` 过,seal 就是
+        "提交点":核对新物理集合的条数,无误后才把别名切过去,再按保留策略清理旧集合。
+        条数不符时**不切别名**并抛错,线上读到的仍是旧集合。
         """
+        staged = self._staging.get(name)
+        if staged is not None:
+            self._commit_staged(name, staged)
+            return
         client = self._client()
         if not self._locked(client.has_collection, name):
             return
+        target = self.alias_target(name) or name
         try:
-            self._locked(client.flush, name)
+            self._locked(client.flush, target)
         except Exception as exc:  # pragma: no cover - 取决于后端实现
-            print(f"[milvus] flush({name}) failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(f"[milvus] flush({target}) failed: {type(exc).__name__}: {exc}", file=sys.stderr)
 
     _warned_embedded_torch = False
 
@@ -454,12 +557,14 @@ class MilvusStore:
     def upsert_text(self, docs: Sequence[Doc], embeddings: Sequence[Sequence[float]]) -> None:
         if not docs:
             return
-        self._ensure(TEXT_COLLECTION, len(embeddings[0]))
+        target = self._write_target(TEXT_COLLECTION)
+        self._ensure(target, len(embeddings[0]))
         rows = [
-            self._row(TEXT_COLLECTION, d.id, e, d.metadata or {}, d.text)
+            self._row(target, d.id, e, d.metadata or {}, d.text)
             for d, e in zip(docs, embeddings)
         ]
-        self._upsert(TEXT_COLLECTION, rows)
+        self._upsert(target, rows)
+        self._note_staged(TEXT_COLLECTION, rows)
 
     def query_text(
         self,
@@ -483,18 +588,207 @@ class MilvusStore:
     ) -> None:
         if not ids:
             return
-        self._ensure(IMAGE_COLLECTION, len(embeddings[0]))
+        target = self._write_target(IMAGE_COLLECTION)
+        self._ensure(target, len(embeddings[0]))
         rows = [
-            self._row(IMAGE_COLLECTION, i, e, m or {}, None)
+            self._row(target, i, e, m or {}, None)
             for i, e, m in zip(ids, embeddings, metadatas)
         ]
-        self._upsert(IMAGE_COLLECTION, rows)
+        self._upsert(target, rows)
+        self._note_staged(IMAGE_COLLECTION, rows)
 
     def query_image(self, embedding: Sequence[float], k: int = 5) -> list[Hit]:
         return self._search(IMAGE_COLLECTION, embedding, k, "")
 
     def image_count(self) -> int:
         return self._count(IMAGE_COLLECTION)
+
+    # -- 版本化集合与别名(P1)--------------------------------------------------
+
+    def alias_target(self, alias: str) -> str | None:
+        """别名指向的物理集合;不是别名(或后端不支持别名接口)时返回 None。
+
+        先用 list_aliases 判断存不存在:对不存在的别名直接 describe_alias,pymilvus 会把
+        "alias does not exist" 当 RPC 错误连同堆栈打进日志(实测),/ready 每次探测都会刷屏。
+        """
+        try:
+            listed = self._locked(self._client().list_aliases)
+            names = listed.get("aliases") if isinstance(listed, dict) else listed
+            if names is not None and alias not in set(names):
+                return None
+        except Exception:
+            pass  # 列不出来就直接 describe,让下面的 try 兜住
+        try:
+            desc = self._locked(self._client().describe_alias, alias)
+        except Exception:
+            return None
+        if not isinstance(desc, dict):
+            return None
+        # pymilvus 返回 collection_name;Milvus Lite 内部实现用 collection,两种都认
+        target = desc.get("collection_name") or desc.get("collection")
+        return str(target) if target else None
+
+    def physical_collections(self, logical: str) -> list[str]:
+        """某个逻辑集合名下的全部物理集合(版本化的 + 改名留下的 legacy),按建表时间升序。"""
+        names = [
+            str(n) for n in (self._locked(self._client().list_collections) or [])
+            if is_physical_name(str(n)) and logical_name(str(n)) == logical
+        ]
+        return sorted(names, key=physical_sort_key)
+
+    def _write_target(self, logical: str) -> str:
+        staged = self._staging.get(logical)
+        return staged["physical"] if staged else logical
+
+    def _note_staged(self, logical: str, rows: list[dict]) -> None:
+        staged = self._staging.get(logical)
+        if staged is not None:
+            staged["ids"].update(r["id"] for r in rows)
+
+    def _physical_count(self, physical: str) -> int:
+        client = self._client()
+        self._locked(client.load_collection, physical)
+        res = self._locked(client.query, physical, filter="", output_fields=["count(*)"])
+        return int(res[0]["count(*)"]) if res else 0
+
+    def _commit_staged(self, logical: str, staged: dict) -> None:
+        client = self._client()
+        physical = staged["physical"]
+        expected = len(staged["ids"])
+        if not self._locked(client.has_collection, physical):
+            self._staging.pop(logical, None)
+            print(f"[milvus] nothing was written to {physical!r}; alias {logical!r} unchanged", file=sys.stderr)
+            return
+        try:
+            self._locked(client.flush, physical)
+        except Exception as exc:  # pragma: no cover - 取决于后端实现
+            print(f"[milvus] flush({physical}) failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        n = self._physical_count(physical)
+        if n <= 0 or n != expected:
+            # 不切别名:线上继续读旧集合。这个半成品从没服务过,直接删掉——留着的话它比
+            # 真正的上一版"更新",下次重建时会按保留策略把可回滚的那一版挤掉。
+            self._staging.pop(logical, None)
+            try:
+                self._locked(client.drop_collection, physical)
+            except Exception as exc:  # pragma: no cover - 尽力而为
+                print(f"[milvus] could not drop failed staging collection {physical!r}: {exc}", file=sys.stderr)
+            raise RuntimeError(
+                f"staged collection {physical!r} has {n} rows, expected {expected}; "
+                f"alias {logical!r} NOT switched"
+            )
+        previous = self.switch_alias(logical, physical)
+        self._staging.pop(logical, None)
+        dropped = self.prune(logical)
+        print(
+            f"[milvus] alias {logical!r} -> {physical!r} ({n} rows); previous={previous!r}; "
+            f"pruned={dropped}",
+            file=sys.stderr,
+        )
+
+    def _invalidate(self, logical: str) -> None:
+        self._loaded.discard(logical)
+        self._totals.pop(logical, None)
+        self._drop_counts(logical)
+
+    def switch_alias(self, logical: str, physical: str) -> str | None:
+        """把别名 ``logical`` 指向 ``physical``(没有别名就创建)。返回之前指向的物理集合。
+
+        首次启用别名时,如果库里已经有一个直接叫逻辑名的老集合(R15 的非版本化索引),
+        先把它改名为 ``<逻辑名>__legacy_<时间戳>``——保留下来做回滚,而不是删掉;
+        改名到建别名之间有毫秒级的窗口逻辑名解析不到,读路径会走关键词兜底(已计数)。
+        """
+        if logical_name(physical) != logical or physical == logical:
+            raise ValueError(f"{physical!r} is not a physical collection of {logical!r}")
+        client = self._client()
+        if not self._locked(client.has_collection, physical):
+            raise RuntimeError(f"collection {physical!r} does not exist")
+        current = self.alias_target(logical)
+        previous = current
+        if current is None:
+            if self._locked(client.has_collection, logical):
+                existing = set(self._locked(client.list_collections) or [])
+                legacy = new_physical_name(logical, existing, kind="legacy")
+                self._locked(client.rename_collection, logical, legacy)
+                previous = legacy
+                print(f"[milvus] renamed legacy collection {logical!r} -> {legacy!r}", file=sys.stderr)
+            self._locked(client.create_alias, physical, logical)
+        elif current != physical:
+            self._locked(client.alter_alias, physical, logical)
+        self._invalidate(logical)
+        return previous
+
+    def prune(self, logical: str, retain: int | None = None) -> list[str]:
+        """按建表时间保留最新的 ``retain`` 个物理集合,其余删除;别名指向的那个永远不删。
+
+        保留下来但不在服务的旧集合会 release 掉,省内存(回滚时 ``rag.store.alias`` 会先 load)。
+        """
+        keep_n = self._retain if retain is None else max(1, int(retain))
+        client = self._client()
+        target = self.alias_target(logical)
+        names = self.physical_collections(logical)
+        keep = set(names[-keep_n:])
+        if target:
+            keep.add(target)
+        dropped = []
+        for name in names:
+            if name in keep or name == logical or name == target:
+                continue
+            self._locked(client.drop_collection, name)
+            self._loaded.discard(name)
+            dropped.append(name)
+        for name in names:
+            if name in keep and name != target:
+                try:
+                    self._locked(client.release_collection, name)
+                except Exception:
+                    pass
+        return dropped
+
+    def rollback_alias(self, logical: str) -> tuple[str, str]:
+        """把别名退回到比当前目标更早的、最新的那个物理集合。返回 (原目标, 新目标)。"""
+        target = self.alias_target(logical)
+        if target is None:
+            raise RuntimeError(f"{logical!r} is not an alias; nothing to roll back")
+        older = [n for n in self.physical_collections(logical) if physical_sort_key(n) < physical_sort_key(target)]
+        if not older:
+            raise RuntimeError(f"no physical collection older than {target!r} is retained for {logical!r}")
+        new = older[-1]
+        self.activate(new)
+        return target, new
+
+    def activate(self, physical: str) -> str | None:
+        """把 ``physical`` 加载、校验(非空、字段齐全)后设为其逻辑名别名的目标。"""
+        logical = logical_name(physical)
+        if logical == physical or logical not in LOGICAL_COLLECTIONS:
+            raise ValueError(f"{physical!r} is not a LionPick physical collection name")
+        n = self._physical_count(physical)
+        if n <= 0:
+            raise RuntimeError(f"refusing to switch {logical!r} to empty collection {physical!r}")
+        desc = self._locked(self._client().describe_collection, physical)
+        present = {f.get("name") for f in desc.get("fields", [])}
+        declared = TEXT_SCALAR_FIELDS if logical == TEXT_COLLECTION else IMAGE_SCALAR_FIELDS
+        missing = [f for f in declared if f not in present]
+        if missing:
+            raise RuntimeError(f"{physical!r} lacks schema v{SCHEMA_VERSION} fields {missing}")
+        return self.switch_alias(logical, physical)
+
+    def alias_status(self) -> dict:
+        """供 ``rag.store.alias --list`` 展示:每个逻辑名的别名目标与保留的物理集合。"""
+        client = self._client()
+        out: dict = {}
+        for logical in LOGICAL_COLLECTIONS:
+            target = self.alias_target(logical)
+            rows = []
+            for name in self.physical_collections(logical):
+                try:
+                    stats = self._locked(client.get_collection_stats, name) or {}
+                    count = int(stats.get("row_count", 0))
+                except Exception:
+                    count = None
+                rows.append({"name": name, "rows": count, "serving": name == target})
+            plain = target is None and bool(self._locked(client.has_collection, logical))
+            out[logical] = {"alias_target": target, "unversioned_collection": plain, "physical": rows}
+        return out
 
     # -- 运维 -----------------------------------------------------------------
 
@@ -521,7 +815,7 @@ class MilvusStore:
                     ids.append(str(row["id"]))
                     vecs.append([float(x) for x in row["vector"]])
                     meta = self._to_meta({k: v for k, v in row.items() if k != "vector"})
-                    docs.append(meta.get("text") if collection == TEXT_COLLECTION else None)
+                    docs.append(meta.get("text") if self._is_text(collection) else None)
                     metas.append(meta)
                 yield ids, vecs, metas, docs
         finally:
@@ -529,6 +823,28 @@ class MilvusStore:
 
     def reset_collection(self, name: str, properties: dict | None = None) -> None:
         client = self._client()
+        if self._versioned and name in LOGICAL_COLLECTIONS:
+            # 版本化:不删任何东西,只登记这次重建要写入的新物理集合;别名在 seal() 时才切
+            existing = set(self._locked(client.list_collections) or [])
+            existing |= {st["physical"] for st in self._staging.values()}
+            existing |= set(LOGICAL_COLLECTIONS)
+            physical = new_physical_name(name, existing)
+            self._staging[name] = {"physical": physical, "ids": set()}
+            self._loaded.discard(physical)
+            self._totals.pop(physical, None)
+            if properties:
+                self._pending_props[physical] = dict(properties)
+            else:
+                self._pending_props.pop(physical, None)
+            print(f"[milvus] versioned rebuild of {name!r} -> staging collection {physical!r}", file=sys.stderr)
+            return
+        if self.alias_target(name) is not None:
+            # 非版本化模式下绝不能经由别名删集合:Milvus 会拒绝,而 Milvus Lite 会把别名
+            # 指向的物理集合(也就是线上正在读的那份)直接删掉(milvus_lite/db.py 先解析别名)。
+            raise RuntimeError(
+                f"{name!r} is an alias (versioned index). Rebuild with RAG_MILVUS_VERSIONED=1, "
+                "or roll back / switch with `python -m rag.store.alias`."
+            )
         if self._locked(client.has_collection, name):
             self._locked(client.drop_collection, name)
         self._loaded.discard(name)
@@ -563,7 +879,10 @@ class MilvusStore:
             "uri": _display_uri(self._uri) if self._is_lite else self._uri.split("@")[-1],
             "mode": "lite" if self._is_lite else "server",
             "index_type": self._index_type,
+            "versioned": self._versioned,
         }
+        if self._db_name:
+            out["db"] = self._db_name
         for label, name in (("text", TEXT_COLLECTION), ("image", IMAGE_COLLECTION)):
             try:
                 fields = self.filterable_fields(name)
@@ -572,6 +891,8 @@ class MilvusStore:
                     "schema_version": SCHEMA_VERSION if fields else None,
                     "filterable_fields": sorted(fields),
                     "properties": self.index_properties(name),
+                    # 别名指向的具体物理集合;没有别名(非版本化)时就是逻辑名本身
+                    "physical": self.alias_target(name) or name,
                 }
             except Exception as exc:  # pragma: no cover - 仅用于展示
                 out[label] = {"error": str(exc)}

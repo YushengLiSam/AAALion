@@ -5,6 +5,10 @@
 
 向量逐位相同,两个后端之间的检索结果才可以严格比对(见 ``rag.eval.store_parity``)。
 
+目标是 Milvus 且 ``RAG_MILVUS_VERSIONED=1`` 时,``--rebuild`` 写进一个新的物理集合
+(``products_text__v2_<时间戳>``),核对条数后才把别名 ``products_text`` 切过去,
+上一版保留做回滚(``python -m rag.store.alias --rollback``)。
+
 源索引必须是 schema v2(带 ``brand_country`` / ``currency``)。旧索引搬过去,
 目标库里这两列会全是空值,而 Milvus 的显式 schema 会让查询侧以为"字段齐全"。
 这种情况默认拒绝,需要显式加 ``--allow-legacy``。
@@ -22,6 +26,7 @@ from rag.store import (
     TEXT_COLLECTION,
     Doc,
     get_store,
+    serving_collection,
 )
 
 _COLLECTIONS = {"text": TEXT_COLLECTION, "image": IMAGE_COLLECTION}
@@ -66,7 +71,8 @@ def migrate(src_name: str, dst_name: str, collections: list[str], *, rebuild: bo
             dst.seal(name)  # 写完即封口:索引在本(无 torch)进程建好并落盘
         dt = time.perf_counter() - t0
         count = dst.text_count() if label == "text" else dst.image_count()
-        print(f"[{label}] {src_name} -> {dst_name}: copied {n} vectors in {dt:.1f}s; target now has {count}")
+        print(f"[{label}] {src_name} -> {dst_name}: copied {n} vectors in {dt:.1f}s; target now has {count}"
+              f" (serving collection: {serving_collection(dst, name)})")
         if count != n and rebuild:
             print(f"[{label}] WARNING: target count {count} != copied {n}", file=sys.stderr)
             return 4

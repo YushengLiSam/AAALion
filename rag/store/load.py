@@ -95,6 +95,9 @@ def main(argv: list[str] | None = None) -> int:
     count = store.text_count() if args.collection == "text" else store.image_count()
     print(f"[load] {store.backend}: upserted {len(ids)} {args.collection} vectors in "
           f"{time.perf_counter() - t0:.1f}s; collection now has {count}")
+    from rag.store import serving_collection
+
+    print(f"[load] serving collection: {serving_collection(store, name)}")
     return 0 if count >= len(ids) or not args.rebuild else 4
 
 
