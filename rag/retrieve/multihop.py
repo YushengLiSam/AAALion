@@ -221,12 +221,26 @@ def detect_multihop(text: str, *, has_history_cards: bool = False) -> HopPlan | 
     return None
 
 
+def _source_currency(product: dict) -> str:
+    """商品源币种;与 currency._product_currency 同规则(缺 provenance 视为 CNY)。"""
+    prov = product.get("provenance")
+    raw = prov.get("currency") if isinstance(prov, dict) else None
+    return str(raw or "CNY").upper().strip()
+
+
 def anchor_attrs(product: dict) -> dict:
-    """从锚点商品里提取结构化属性(不经过 LLM,因此可断言)。"""
+    """从锚点商品里提取结构化属性(不经过 LLM,因此可断言)。
+
+    price_cny **只接受人民币**:优先用已归一化的 price_cny;没有时仅当源币种
+    本身是 CNY 才回落到 base_price。外币商品若还没做汇率归一化,价格记为 None
+    (调用方 rag_client.multi_hop_retrieve 会先归一化锚点再调用本函数)。
+    旧实现直接拿外币 base_price 兜底——海外版 AirPods Pro 2 的 $249 被当成 ¥249,
+    "比它便宜"的上限被算错(多跳 Bug 1)。
+    """
     if not product:
         return {}
     price = product.get("price_cny")
-    if price is None:
+    if price is None and _source_currency(product) == "CNY":
         price = product.get("base_price")
     return {
         "product_id": product.get("product_id"),

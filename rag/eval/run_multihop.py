@@ -21,12 +21,13 @@ sys.path.insert(0, str(ROOT / "server"))
 
 from rag.retrieve.multihop import detect_multihop  # noqa: E402
 from app.services.rag_client import multi_hop_retrieve  # noqa: E402
+from app.services.currency import price_in_cny  # noqa: E402
 
 
 def _price(p: dict):
-    v = p.get("price_cny")
-    v = v if v is not None else p.get("base_price")
-    return float(v) if v is not None else None
+    # 只按人民币比较:外币商品按参考汇率换算,拿不到汇率就是 None(判不满足),
+    # 绝不拿外币 base_price 当人民币(多跳 Bug 1 在评测侧的同款错误)。
+    return price_in_cny(p)
 
 
 def check_relation(relation: str, anchor_price, anchor_brand, results) -> tuple[int, int]:

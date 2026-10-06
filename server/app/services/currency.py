@@ -122,6 +122,26 @@ def normalize_product_prices(products: Sequence[dict]) -> list[dict]:
     return [normalize_product_price(product) for product in products]
 
 
+def price_in_cny(product: dict) -> float | None:
+    """商品的人民币价格(用于**比较**:多跳关系断言、排序、智能体 price_of 工具)。
+
+    规则与 normalize_product_price 完全一致:
+      * 已有 price_cny → 直接用;
+      * 源币种就是 CNY → base_price;
+      * 外币 → 按同一份参考汇率换算;汇率拿不到时返回 None。
+    **绝不**把外币 base_price 当人民币用——那正是多跳 Bug 1 的根因
+    (海外版 AirPods Pro 2 的 $249 被当成 ¥249)。
+    """
+    if not isinstance(product, dict):
+        return None
+    cny = _amount(product.get("price_cny"))
+    if cny is not None:
+        return cny
+    if _amount(product.get("base_price")) is None:
+        return None
+    return _amount(normalize_product_price(product).get("price_cny"))
+
+
 def pricing_cache_token(products: Sequence[dict]) -> str:
     """构造稳定的缓存 token,使缓存命中的回答与当前展示的汇率报价保持一致。"""
     pieces: list[str] = []

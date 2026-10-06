@@ -681,11 +681,16 @@ def top_k(
     intent_text: str | None = None,
     user_id: str | None = None,
     relevance_gate: bool = True,
+    skip_topic_switch: bool = False,
 ) -> list[dict]:
     """混合检索 + (可选)改写 + 否定过滤 + 重排序 → top-k 商品。
 
     R9.B:给定 `user_id` 时,用一个温和的偏好先验(来自用户的 👍/👎
     历史)在截断前对最终列表重新排序。
+
+    `skip_topic_switch`(内部参数,只给多跳 hop2 / 智能体工具用):调用方传入的
+    conversation_filter 是**程序派生**的权威约束(锚点价格/品牌/品类),不是从
+    历史对话继承来的,因此不能被下面的话题切换检测丢掉。默认 False,单跳行为不变。
     """
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
@@ -721,8 +726,13 @@ def top_k(
     raw_message_for_anchor = intent_text or text or ""
     topic_switch = False
 
+    # 多跳 hop2 的派生 Filter 没有 category(只有价格/品牌/细分品类),而 hop2 的
+    # intent_text 是目标品类词("降噪耳机" → 数码电子),路径 B 必然判成类目冲突、
+    # 把派生约束整个丢掉(多跳 Bug 2)。派生约束是权威的,跳过检测。
+    if skip_topic_switch:
+        pass
     # 路径 A:显式的产品线锚点。
-    if raw_message_for_anchor and any(
+    elif raw_message_for_anchor and any(
         a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS
     ):
         topic_switch = True
@@ -732,7 +742,8 @@ def top_k(
     # (来自之前的 iPad 轮)即使新查询带有清晰的类目信号也继续过滤检索
     # ——这就是「iPad 轮之后 护肤品 / 鞋子 / 纸尿片 返回 0 条结果」
     # 那次故障。
-    if not topic_switch and isinstance(conversation_filter, Filter) and raw_message_for_anchor:
+    if (not topic_switch and not skip_topic_switch
+            and isinstance(conversation_filter, Filter) and raw_message_for_anchor):
         try:
             raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
         except Exception:
@@ -969,12 +980,21 @@ def multi_hop_retrieve(
         trace["fallback"] = "anchor_not_found"
         return None, [], trace
 
+    # Bug 1 修复:锚点先做汇率归一化,保证 anchor_attrs 拿到的是**人民币**价。
+    # 外币锚点(海外版 AirPods Pro 2,base_price=249 USD)不归一化就会被当成 ¥249。
+    from app.services.currency import normalize_product_price
+    anchor = normalize_product_price(anchor)
     attrs = anchor_attrs(anchor)
     trace["anchor"] = {
         "product_id": attrs.get("product_id"), "title": attrs.get("title"),
         "brand": attrs.get("brand"), "price_cny": attrs.get("price_cny"),
         "sub_category": attrs.get("sub_category"),
     }
+    # 价格类关系需要锚点人民币价;汇率不可用(外币且无旧报价)时没法做正确比较,
+    # 宁可放弃多跳、回退单跳,也不拿外币数字硬比。
+    if plan.relation in _PRICE_RELATIONS and attrs.get("price_cny") is None:
+        trace["fallback"] = "anchor_price_unknown"
+        return anchor, [], trace
 
     # ---- 目标品类:显式 target 优先;否则按关系推断 ----
     target_text = (plan.target_text or "").strip()
@@ -985,8 +1005,16 @@ def multi_hop_retrieve(
     if not target_text:
         # "比X便宜的" 没说品类 → 沿用锚点自己的品类
         target_text = attrs.get("sub_category") or attrs.get("category") or plan.anchor_text
+    # 目标词退化成锚点词本身时(锚点没有品类信息),不能把它的品牌信号并进 hop2
+    # ("比 AirPods 便宜的" ≠ "只要 Apple")。
+    target_is_anchor_text = target_text == plan.anchor_text
 
     hop2_filter = derive_filter(attrs, plan.relation, target_sub_categories=target_subs)
+    # 放宽品类:派生 filter 里的 sub_categories 可能过窄(如"真无线降噪耳机"
+    # 只有锚点自己),用兄弟品类一起召回,再由下面的断言把关。
+    if hop2_filter is not None and getattr(hop2_filter, "sub_categories", None):
+        hop2_filter.sub_categories = _sibling_sub_categories(hop2_filter.sub_categories)
+    hop2_filter = _merge_hop2_filter(hop2_filter, "" if target_is_anchor_text else target_text)
     trace["derived_filter"] = {
         "price_max_cny": getattr(hop2_filter, "price_max_cny", None) if hop2_filter else None,
         "price_min_cny": getattr(hop2_filter, "price_min_cny", None) if hop2_filter else None,
@@ -995,12 +1023,16 @@ def multi_hop_retrieve(
     }
 
     # ---- hop 2:带派生约束检索 ----
-    # 放宽品类:派生 filter 里的 sub_categories 可能过窄(如"真无线降噪耳机"
-    # 只有锚点自己),用兄弟品类一起召回,再由下面的断言把关。
-    if hop2_filter is not None and getattr(hop2_filter, "sub_categories", None):
-        hop2_filter.sub_categories = _sibling_sub_categories(hop2_filter.sub_categories)
+    # Bug 2 修复:skip_topic_switch=True。派生 Filter 不带 category,而 intent_text
+    # 是目标品类词,top_k 的话题切换检测必然判成"换话题"并把 conversation_filter
+    # 置空——派生的价格/品牌约束根本到不了 _heavy_retrieve,只能靠下面的断言事后剔除,
+    # 召回变少、频繁掉进 relaxed 兜底。
     results = top_k(target_text, k=k + 8, conversation_filter=hop2_filter,
-                    intent_text=target_text, user_id=user_id, relevance_gate=False)
+                    intent_text=target_text, user_id=user_id, relevance_gate=False,
+                    skip_topic_switch=True)
+    # Bug 1 修复:hop2 候选也统一归一化成人民币,断言/排序只比较 CNY。
+    from app.services.currency import normalize_product_prices
+    results = normalize_product_prices(results)
     # 排除锚点自身(product_id 优先;缺失时用标题兜底,避免锚点重复出现在结果里)
     anchor_id = attrs.get("product_id")
     anchor_title = (attrs.get("title") or "").strip()
@@ -1013,10 +1045,15 @@ def multi_hop_retrieve(
 
     results = [p for p in results if not _is_anchor(p)]
 
-    # **约束断言**:top_k 的硬过滤在结果为空时会 fail-soft 放行(对单跳是好的
-    # 兜底,对多跳是错的——"比X便宜"返回更贵的还不如说没有)。这里按派生约束
-    # 做一次确定性校验,不满足的直接剔除。这也是 relation_correctness 指标
-    # 能达到 1.000 的原因。
+    # **约束断言**(纵深防御,不是"top_k 会 fail-soft 放行"——_heavy_retrieve 第 5 步
+    # 对价格/品牌/品类是严格过滤,不会在结果为空时放行)。它真正防的是:
+    #   1) 派生约束没能进到检索:top_k 的话题切换检测曾把 hop2 Filter 整个丢掉
+    #      (Bug 2,现已用 skip_topic_switch 修复),RAG_HARD_FILTERS=0 时也会忽略它;
+    #   2) 价格口径:断言统一用人民币(price_in_cny),外币候选不会因汇率缺失或
+    #      未归一化而拿外币数字混进来(Bug 1);
+    #   3) 检索链路以后的任何改动(缓存、兜底、新过滤层)都不会让"比X便宜"悄悄
+    #      返回更贵的商品——这条不变量只在这里程序化地钉死一次。
+    # relation_correctness 指标衡量的正是这一层的输出。
     results = _assert_relation(results, attrs, plan.relation, hop2_filter)
     results = results[:k]
 
@@ -1028,11 +1065,14 @@ def multi_hop_retrieve(
                         user_id=user_id, relevance_gate=False)
         widened = [p for p in widened if not _is_anchor(p)]
         anchor_price = attrs.get("price_cny")
-        if anchor_price and plan.relation in ("cheaper", "pricier", "same_price"):
+        if anchor_price and plan.relation in _PRICE_RELATIONS:
+            # Bug 1 修复:按人民币距离排序(外币候选先归一化),不再拿外币 base_price 比
+            widened = normalize_product_prices(widened)
+
             def _pv(p):
-                v = p.get("price_cny")
-                v = v if v is not None else p.get("base_price")
-                return float(v) if v is not None else float("inf")
+                from app.services.currency import price_in_cny
+                v = price_in_cny(p)
+                return v if v is not None else float("inf")
             widened.sort(key=lambda p: abs(_pv(p) - anchor_price))
         results = widened[:k]
         relaxed = bool(results)
@@ -1067,22 +1107,87 @@ def _sibling_sub_categories(subs: list[str]) -> list[str]:
     return sorted(out)
 
 
+_PRICE_RELATIONS = ("cheaper", "pricier", "same_price")
+
+
+def _expand_brand_aliases_in_catalog(brands: list[str]) -> list[str]:
+    """把品牌扩成目录里所有同簇写法("Apple 苹果" → + "Apple" / "苹果")。
+
+    product_matches_filter 的 brand_include 是精确匹配(casefold),目录里同一品牌
+    存在多种写法,只用锚点自己的写法会漏掉同品牌其他商品("和 Apple 一样牌子的
+    笔记本"锚到 "Apple 苹果" 后找不到品牌写成 "Apple" 的 MacBook)。"""
+    out = list(dict.fromkeys(b for b in brands if b))
+    try:
+        from rag.retrieve.constraints import _catalog_brands
+        wanted: set[str] = set()
+        for b in out:
+            wanted |= _brand_match_terms(b)
+        for cb in _catalog_brands():
+            if cb not in out and (_brand_match_terms(cb) & wanted):
+                out.append(cb)
+    except Exception:
+        pass
+    return out
+
+
+def _merge_hop2_filter(derived, target_text: str):
+    """派生约束 ∧ 目标词约束 → hop2 的权威 Filter。
+
+    hop2 跳过了话题切换检测(派生约束不许被丢),那么目标词本身的品类信号
+    ("和 iPhone 一样牌子的**平板**")也得显式并进来,否则只剩 brand=Apple,
+    会把 iPhone/MacBook 一起召回。规则:价格/品牌以派生为准(只会更严);
+    细分品类两边都有时取交集(交集为空则保留派生的);派生没有细分品类时
+    才沿用目标词的 category / sub_categories;目标词里的排除条件照搬。
+    """
+    from rag.retrieve.query import Filter
+    try:
+        from rag.retrieve.constraints import build_retrieval_filter
+        text_f = build_retrieval_filter(target_text or "", None)
+    except Exception:
+        text_f = None
+    if derived is None and text_f is None:
+        return None
+    d = derived or Filter()
+    t = text_f or Filter()
+    merged = Filter(
+        price_max_cny=d.price_max_cny if d.price_max_cny is not None else t.effective_price_max_cny,
+        price_min_cny=d.price_min_cny if d.price_min_cny is not None else t.effective_price_min_cny,
+        brand_exclude=t.brand_exclude,
+        exclude_keywords=t.exclude_keywords,
+    )
+    if d.brand_include:
+        merged.brand_include = _expand_brand_aliases_in_catalog(list(d.brand_include))
+    elif t.brand_include:
+        merged.brand_include = list(t.brand_include)
+    d_subs = list(d.sub_categories or ([d.sub_category] if d.sub_category else []))
+    t_subs = list(t.sub_categories or ([t.sub_category] if t.sub_category else []))
+    if d_subs:
+        inter = [s for s in d_subs if s in set(t_subs)]
+        merged.sub_categories = inter or d_subs
+    elif t_subs:
+        merged.sub_categories = t_subs
+    elif t.category:
+        merged.category = t.category
+    return merged if merged.active else None
+
+
 def _assert_relation(products: list[dict], attrs: dict, relation: str, hop2_filter) -> list[dict]:
-    """确定性校验 hop2 结果是否真的满足派生约束。不满足的剔除。"""
+    """确定性校验 hop2 结果是否真的满足派生约束。不满足的剔除。
+
+    价格一律按人民币比较(price_in_cny:已归一化的 price_cny / CNY 商品的
+    base_price / 外币按参考汇率换算);拿不到人民币价的候选在有价格约束时剔除。
+    """
     if not products:
         return products
+    from app.services.currency import price_in_cny
+
     price_max = getattr(hop2_filter, "price_max_cny", None) if hop2_filter else None
     price_min = getattr(hop2_filter, "price_min_cny", None) if hop2_filter else None
     brands = getattr(hop2_filter, "brand_include", None) if hop2_filter else None
 
-    def price_of(p: dict):
-        v = p.get("price_cny")
-        return float(v) if v is not None else (
-            float(p.get("base_price")) if p.get("base_price") is not None else None)
-
     out = []
     for p in products:
-        pr = price_of(p)
+        pr = price_in_cny(p)
         if price_max is not None and (pr is None or pr > price_max):
             continue
         if price_min is not None and (pr is None or pr < price_min):

@@ -218,11 +218,18 @@
 
 **数字**:detect_rate / relation_accuracy / anchor_accuracy / hop2_nonempty **全 1.000**,
 **relation_correctness 34/34 = 1.000**(hop2 每个结果都真的满足派生约束)。主评测零回归。
+(注:34/34 是 Bug 1 修复前的口径——当时评测脚本自己也拿外币 base_price 比价;修复后见下。)
 
-**招牌故事(修 bug)**:实现时发现 `top_k` 的硬过滤在**结果为空时会 fail-soft 放行**——
-这对单跳是好兜底,对多跳却是错的("比X便宜"返回更贵的,还不如说没有)。于是加了
-`_assert_relation` 确定性校验 + 兄弟品类放宽;真的无货时走 relaxed 兜底取最接近的,
-并让 prompt 如实说"没有完全符合的"。**同一个机制在两种场景下一对一错,这个判断本身就是设计能力。**
+**招牌故事(修 bug)**:~~"`top_k` 的硬过滤在结果为空时会 fail-soft 放行"~~——这个说法
+**不准确**(2026-10 复核更正):`_heavy_retrieve` 对价格/品牌/品类是严格过滤,不会放行。
+`_assert_relation` 真正防的是两件事:① **派生约束根本没进检索**——hop2 的派生 Filter 不带
+category,而目标词("降噪耳机")带,`top_k` 的话题切换检测会把它整个丢掉(Bug 2,已用
+`skip_topic_switch` 修复);② **价格口径**——锚点/候选必须按人民币比较,旧代码拿外币
+`base_price` 兜底,海外版 AirPods Pro 2 的 $249 被当成 ¥249(Bug 1,已修,锚点和 hop2 候选
+都先走 `normalize_product_price(s)`)。所以断言是**纵深防御**:检索链路以后怎么改,
+"比X便宜"都不会悄悄返回更贵的。真的无货时走 relaxed 兜底(按人民币距离取最接近的),
+并让 prompt 如实说"没有完全符合的"。修复后本地多跳评测 relation_correctness 38/38
+(分母变大是因为 Bug 2 修好后 hop2 召回变多)。
 
 ### 8.2 RAGAS:三层评测体系(最高频追问)
 
