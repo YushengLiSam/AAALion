@@ -65,6 +65,74 @@ def test_bundle_skips_age_then_finds_budget_in_same_sentence():
 
 
 # --------------------------------------------------------------------------- #
+#  2. 会话约束的话题切换(与快路 top_k 同口径)
+# --------------------------------------------------------------------------- #
+
+def _msgs(*pairs):
+    return [ChatMessage(role=r, content=c) for r, c in pairs]
+
+
+def test_stale_budget_dropped_on_topic_switch():
+    msgs = _msgs(("user", "500元以内的耳机"), ("assistant", "推荐……"),
+                 ("user", "iPhone 和 小米 手机哪个好"))
+    conv = build_conversation_filter(msgs, None)
+    assert conv.effective_price_max_cny == 500.0          # 前提:继承下来了旧预算
+    ctx = runtime._build_ctx(user_text="iPhone 和 小米 手机哪个好", conversation_filter=conv,
+                             explicit_filters=None, user_id=None, bundle_budget_cny=None)
+    assert ctx.session.price_max_cny is None              # 换话题:旧预算不再是硬约束
+
+
+def test_stale_budget_does_not_cap_new_bundle():
+    msgs = _msgs(("user", "300元以内的洗面奶"), ("assistant", "推荐……"),
+                 ("user", "5000元配一套露营装备"))
+    conv = build_conversation_filter(msgs, None)
+    ctx = runtime._build_ctx(user_text="5000元配一套露营装备", conversation_filter=conv,
+                             explicit_filters=None, user_id=None, bundle_budget_cny=5000.0)
+    assert ctx.session.price_max_cny != 300.0
+    # 本轮原话里的约束保留(与 top_k 换话题后 build_retrieval_filter(原话) 同口径)
+    assert ctx.session.price_max_cny in (None, 5000.0)
+
+
+def test_session_kept_when_no_topic_switch(monkeypatch):
+    conv = Filter(price_max_cny=800.0, brand_exclude=["索尼"])
+    monkeypatch.setattr(rag_client, "detect_topic_switch", lambda f, t: False)
+    out = runtime.session_filter_for_turn("再便宜点的呢", conv)
+    assert out is conv
+
+
+def test_explicit_ios_filters_survive_topic_switch(monkeypatch):
+    monkeypatch.setattr(rag_client, "detect_topic_switch", lambda f, t: True)
+    ctx = runtime._build_ctx(user_text="iPhone 和 小米 手机哪个好",
+                             conversation_filter=Filter(price_max_cny=500.0),
+                             explicit_filters={"price_max": 6000, "exclude_brands": ["OPPO"]},
+                             user_id=None, bundle_budget_cny=None)
+    assert ctx.session.price_max_cny == 6000.0
+    assert "OPPO" in (ctx.session.brand_exclude or [])
+
+
+def test_topic_switch_detector_failure_keeps_session(monkeypatch):
+    def boom(f, t):
+        raise RuntimeError("x")
+    monkeypatch.setattr(rag_client, "detect_topic_switch", boom)
+    conv = Filter(price_max_cny=500.0)
+    assert runtime.session_filter_for_turn("随便", conv) is conv
+
+
+def test_top_k_uses_same_detector(monkeypatch):
+    """top_k 与智能体共用 detect_topic_switch;skip_topic_switch=True 时根本不调用它。"""
+    seen = []
+    monkeypatch.setattr(rag_client, "detect_topic_switch", lambda f, t: seen.append(t) or False)
+    monkeypatch.setattr(rag_client, "_heavy_retrieve", lambda *a, **k: [])
+    monkeypatch.setattr(rag_client, "_retrieval_cache_get", lambda key: None)
+    monkeypatch.setattr(rag_client, "_retrieval_cache_put", lambda *a, **k: None, raising=False)
+    rag_client.top_k("耳机", conversation_filter=Filter(price_max_cny=1.0), intent_text="耳机")
+    assert seen == ["耳机"]
+    rag_client.top_k("耳机", conversation_filter=Filter(price_max_cny=1.0), intent_text="耳机",
+                     skip_topic_switch=True)
+    assert seen == ["耳机"]
+
+
+# --------------------------------------------------------------------------- #
 #  6. 会话锚点多跳留在快路
 # --------------------------------------------------------------------------- #
 
@@ -81,3 +149,25 @@ def test_history_anchor_multihop_stays_on_fast_path():
 def test_named_anchor_multihop_still_routes_to_agent():
     assert should_use_agent("比 AirPods Pro 便宜的降噪耳机").reason == "multihop"
 
+
+def test_try_agent_products_threads_user_text_into_session(monkeypatch, tmp_path):
+    """接线测试:runtime 真的把本轮原话传给了话题切换检测(不只是 _build_ctx 单测)。"""
+    import app.agent.graph as graph
+    from app.agent.graph import AgentResult
+    from app.agent.router import RouteDecision
+
+    monkeypatch.setenv("AGENT_SHADOW_LOG", str(tmp_path / "t.jsonl"))
+    seen = {}
+
+    async def fake_run_agent(user_text, *, provider, ctx, prior_turns=None, route_reason="", limits=None):
+        seen["session"] = ctx.session
+        return AgentResult(error="no_citable_products", trace={})
+
+    monkeypatch.setattr(graph, "run_agent", fake_run_agent)
+    q = "iPhone 和 小米 手机哪个好"
+    conv = build_conversation_filter(_msgs(("user", "500元以内的耳机"), ("assistant", "…"), ("user", q)), None)
+    products, _trace = asyncio.run(runtime.try_agent_products(
+        q, route=RouteDecision(True, "comparison"), conversation_filter=conv,
+        explicit_filters=None, user_id=None, prior_turns=[], provider=object()))
+    assert products == []
+    assert seen["session"].price_max_cny is None

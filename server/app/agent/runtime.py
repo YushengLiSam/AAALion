@@ -56,11 +56,45 @@ def append_trace(record: dict) -> None:
         log.warning(f"agent trace write failed: {e}")
 
 
-def _build_ctx(*, conversation_filter, explicit_filters, user_id, bundle_budget_cny):
+def session_filter_for_turn(user_text: str, conversation_filter):
+    """本轮智能体可用的对话约束,与快路 top_k 的话题切换口径一致。
+
+    build_conversation_filter 会把上一话题的预算/排除带进来("500 元以内的耳机"
+    之后问"iPhone 和小米哪个好",继承 ¥500 上限)。快路靠 top_k 的话题切换检测丢掉
+    它;智能体工具用 skip_topic_switch=True 调 top_k,所以必须在这里先做同一个检测:
+    换话题时只保留**本轮原话**里的约束(与 top_k 换话题后 build_retrieval_filter(原话)
+    同口径)。"""
+    from app.services.rag_client import detect_topic_switch
+
+    try:
+        switched = detect_topic_switch(conversation_filter, user_text or "")
+    except Exception:  # noqa: BLE001
+        switched = False
+    if not switched:
+        return conversation_filter
+    try:
+        from rag.retrieve.constraints import build_retrieval_filter
+
+        return build_retrieval_filter(user_text or "", None)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _build_ctx(*, user_text="", conversation_filter, explicit_filters, user_id, bundle_budget_cny):
     from app.agent.tools import ToolContext, resolve_session_constraints
 
+    conv = session_filter_for_turn(user_text, conversation_filter)
+    if bundle_budget_cny is not None and conv is not None:
+        # 本轮原话给了配套总预算("5000元配一套露营装备"),它就是用户**最新**的预算表态;
+        # 现有约束解析器读不出"5000元配一套"里的预算,对话状态会继承上一轮的
+        # "300元以内",再经 tighten_filter 取 min → 每件 ≤¥300。这里丢掉继承来的价格
+        # 区间,单件上限交给 bundle_budget_cny;iOS 显式价格筛选仍由下面照搬。
+        import copy
+
+        conv = copy.copy(conv)
+        conv.price_max_cny = conv.price_min_cny = conv.price_max = conv.price_min = None
     return ToolContext(
-        session=resolve_session_constraints(conversation_filter, explicit_filters),
+        session=resolve_session_constraints(conv, explicit_filters),
         user_id=user_id,
         bundle_budget_cny=bundle_budget_cny,
     )
@@ -75,7 +109,8 @@ async def _run_locked(user_text, *, route, conversation_filter, explicit_filters
     async with sem:
         from app.agent.graph import run_agent
 
-        ctx = _build_ctx(conversation_filter=conversation_filter, explicit_filters=explicit_filters,
+        ctx = _build_ctx(user_text=user_text, conversation_filter=conversation_filter,
+                         explicit_filters=explicit_filters,
                          user_id=user_id, bundle_budget_cny=route.bundle_budget_cny)
         res = await run_agent(user_text, provider=provider, ctx=ctx,
                               prior_turns=prior_turns, route_reason=route.reason)

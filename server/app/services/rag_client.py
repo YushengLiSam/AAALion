@@ -672,67 +672,19 @@ def _heavy_retrieve(
     return candidates
 
 
-def top_k(
-    text: str,
-    k: int = 5,
-    filters: dict | None = None,
-    *,
-    conversation_filter=None,
-    intent_text: str | None = None,
-    user_id: str | None = None,
-    relevance_gate: bool = True,
-    skip_topic_switch: bool = False,
-) -> list[dict]:
-    """混合检索 + (可选)改写 + 否定过滤 + 重排序 → top-k 商品。
+def detect_topic_switch(conversation_filter, raw_message_for_anchor: str) -> bool:
+    """top_k 的话题切换检测(路径 A 产品线锚点 + 路径 B 类目/品牌/细分品类冲突)。
 
-    R9.B:给定 `user_id` 时,用一个温和的偏好先验(来自用户的 👍/👎
-    历史)在截断前对最终列表重新排序。
-
-    `skip_topic_switch`(内部参数,只给多跳 hop2 / 智能体工具用):调用方传入的
-    conversation_filter 是**程序派生**的权威约束(锚点价格/品牌/品类),不是从
-    历史对话继承来的,因此不能被下面的话题切换检测丢掉。默认 False,单跳行为不变。
+    从 top_k 里原样抽出来,供智能体路径复用同一口径:智能体的会话硬约束
+    (预算 / 排除)也必须在用户换话题时丢掉,否则"500 元以内的耳机"之后问
+    "iPhone 和小米哪个好",智能体会带着 ¥500 上限去搜手机。返回 True 表示换话题。
     """
-    synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
-    rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
-    rerank_on = os.getenv("RAG_RERANK", "1") == "1"
-    negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
-    price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
-    hard_filters_on = os.getenv("RAG_HARD_FILTERS", "1") == "1"
-
     from rag.retrieve.constraints import build_retrieval_filter
     from rag.retrieve.query import Filter
 
-    # R8.F.7 —— 话题切换检测(R8.F.8 中做了泛化)。
-    #
-    # 最初的窄版本只能捕获 Apple 产品线锚点(iPhone / iPad / MacBook /
-    # AirPods / ...)。用户反馈(以及「护肤之后接零食」那次回归)表明
-    # 这是在打地鼠:切换到 "我想买点零食" 或 "Nike 跑鞋" 时,继承下来的
-    # 美妆护肤 过滤器仍会让检索颗粒无收。
-    #
-    # 泛化为两个互补信号——任一命中都触发切换:
-    #
-    #   路径 A  硬编码的产品线锚点(iPhone / iPad 等)。这些 token 是
-    #           SKU 产品线名,build_retrieval_filter 不知道怎么把它们
-    #           映射到类目。保留这份显式列表当安全网。
-    #
-    #   路径 B  从当前用户的原始消息(intent_text,而不是经过上下文改写
-    #           的文本)重新提取一个 Filter。如果它携带的 category /
-    #           sub_category / brand_include 信号与继承的
-    #           conversation_filter 不同,说明用户明确点了新话题——重置。
-    #
-    # 任一路径触发都会丢弃 conversation_filter,并用原始消息替换改写后
-    # 的文本。"再便宜点的" 这类追问(自身没有类目/品牌信号)
-    # 仍然正常继承。
-    raw_message_for_anchor = intent_text or text or ""
     topic_switch = False
-
-    # 多跳 hop2 的派生 Filter 没有 category(只有价格/品牌/细分品类),而 hop2 的
-    # intent_text 是目标品类词("降噪耳机" → 数码电子),路径 B 必然判成类目冲突、
-    # 把派生约束整个丢掉(多跳 Bug 2)。派生约束是权威的,跳过检测。
-    if skip_topic_switch:
-        pass
     # 路径 A:显式的产品线锚点。
-    elif raw_message_for_anchor and any(
+    if raw_message_for_anchor and any(
         a in raw_message_for_anchor.lower() for a in _PRODUCT_LINE_ANCHORS
     ):
         topic_switch = True
@@ -742,8 +694,7 @@ def top_k(
     # (来自之前的 iPad 轮)即使新查询带有清晰的类目信号也继续过滤检索
     # ——这就是「iPad 轮之后 护肤品 / 鞋子 / 纸尿片 返回 0 条结果」
     # 那次故障。
-    if (not topic_switch and not skip_topic_switch
-            and isinstance(conversation_filter, Filter) and raw_message_for_anchor):
+    if not topic_switch and isinstance(conversation_filter, Filter) and raw_message_for_anchor:
         try:
             raw_filter = build_retrieval_filter(raw_message_for_anchor, None)
         except Exception:
@@ -840,6 +791,68 @@ def top_k(
 
         if cat_conflict or brand_conflict or category_vs_brand_conflict or sub_conflict:
             topic_switch = True
+
+    return topic_switch
+
+
+def top_k(
+    text: str,
+    k: int = 5,
+    filters: dict | None = None,
+    *,
+    conversation_filter=None,
+    intent_text: str | None = None,
+    user_id: str | None = None,
+    relevance_gate: bool = True,
+    skip_topic_switch: bool = False,
+) -> list[dict]:
+    """混合检索 + (可选)改写 + 否定过滤 + 重排序 → top-k 商品。
+
+    R9.B:给定 `user_id` 时,用一个温和的偏好先验(来自用户的 👍/👎
+    历史)在截断前对最终列表重新排序。
+
+    `skip_topic_switch`(内部参数,只给多跳 hop2 / 智能体工具用):调用方传入的
+    conversation_filter 是**程序派生**的权威约束(锚点价格/品牌/品类),不是从
+    历史对话继承来的,因此不能被下面的话题切换检测丢掉。默认 False,单跳行为不变。
+    """
+    synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
+    rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
+    rerank_on = os.getenv("RAG_RERANK", "1") == "1"
+    negation_on = (os.getenv("RAG_NEGATION", "1") == "1") and _negation_signals(text)
+    price_on = os.getenv("RAG_PRICE_INTENT", "1") == "1"
+    hard_filters_on = os.getenv("RAG_HARD_FILTERS", "1") == "1"
+
+    from rag.retrieve.constraints import build_retrieval_filter
+    from rag.retrieve.query import Filter
+
+    # R8.F.7 —— 话题切换检测(R8.F.8 中做了泛化)。
+    #
+    # 最初的窄版本只能捕获 Apple 产品线锚点(iPhone / iPad / MacBook /
+    # AirPods / ...)。用户反馈(以及「护肤之后接零食」那次回归)表明
+    # 这是在打地鼠:切换到 "我想买点零食" 或 "Nike 跑鞋" 时,继承下来的
+    # 美妆护肤 过滤器仍会让检索颗粒无收。
+    #
+    # 泛化为两个互补信号——任一命中都触发切换:
+    #
+    #   路径 A  硬编码的产品线锚点(iPhone / iPad 等)。这些 token 是
+    #           SKU 产品线名,build_retrieval_filter 不知道怎么把它们
+    #           映射到类目。保留这份显式列表当安全网。
+    #
+    #   路径 B  从当前用户的原始消息(intent_text,而不是经过上下文改写
+    #           的文本)重新提取一个 Filter。如果它携带的 category /
+    #           sub_category / brand_include 信号与继承的
+    #           conversation_filter 不同,说明用户明确点了新话题——重置。
+    #
+    # 任一路径触发都会丢弃 conversation_filter,并用原始消息替换改写后
+    # 的文本。"再便宜点的" 这类追问(自身没有类目/品牌信号)
+    # 仍然正常继承。
+    raw_message_for_anchor = intent_text or text or ""
+    # 多跳 hop2 的派生 Filter 没有 category(只有价格/品牌/细分品类),而 hop2 的
+    # intent_text 是目标品类词("降噪耳机" → 数码电子),路径 B 必然判成类目冲突、
+    # 把派生约束整个丢掉(多跳 Bug 2)。派生约束是权威的,跳过检测。
+    # 检测本体见 detect_topic_switch(路径 A / B 的完整说明在那里)。
+    topic_switch = (not skip_topic_switch) and detect_topic_switch(
+        conversation_filter, raw_message_for_anchor)
 
     if topic_switch:
         conversation_filter = None
