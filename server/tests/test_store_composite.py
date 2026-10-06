@@ -331,5 +331,19 @@ class GetStoreWiringTests(unittest.TestCase):
         self.assertEqual(self.fakes["chroma"].calls, [("text", 2, None)])
 
 
+class ChromaDirTests(unittest.TestCase):
+    def test_default_unchanged_and_override_resolves_against_repo_root(self) -> None:
+        from rag.store.chroma_store import CHROMA_DIR, REPO_ROOT as STORE_ROOT, ChromaStore, chroma_dir
+
+        with patch.dict(os.environ, {"RAG_CHROMA_DIR": ""}):
+            self.assertEqual(chroma_dir(), CHROMA_DIR)
+            self.assertEqual(ChromaStore()._path, CHROMA_DIR)
+        with patch.dict(os.environ, {"RAG_CHROMA_DIR": "data/.chroma_v2"}):
+            self.assertEqual(chroma_dir(), STORE_ROOT / "data" / ".chroma_v2")
+            self.assertEqual(ChromaStore()._path, STORE_ROOT / "data" / ".chroma_v2")
+        with patch.dict(os.environ, {"RAG_CHROMA_DIR": "/srv/x"}):
+            self.assertEqual(chroma_dir(), Path("/srv/x"))
+
+
 if __name__ == "__main__":
     unittest.main()

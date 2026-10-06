@@ -123,6 +123,8 @@ data/external/**
 data/.milvus/
 *.milvus.db
 data/.chroma_backup_*/
+# P1 — side-by-side Chroma copies (e.g. data/.chroma_v2 via RAG_CHROMA_DIR), rebuildable
+data/.chroma_*/
 # R15 — cached embedding artifacts written by rag.ingest.* (rebuildable)
 data/.embeddings/
 # Backups of .env files contain live keys — never commit (pre-existing server/.env.bak.* was untracked but not ignored)

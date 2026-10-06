@@ -43,7 +43,7 @@ from rag.store.base import (
     Hit,
     VectorStore,
 )
-from rag.store.chroma_store import CHROMA_DIR  # 兼容旧引用
+from rag.store.chroma_store import CHROMA_DIR, chroma_dir  # CHROMA_DIR:兼容旧引用
 
 SUPPORTED_BACKENDS = ("chroma", "milvus")
 
@@ -70,7 +70,7 @@ def _raw_store(backend: str) -> VectorStore:
     name = backend.strip().lower()
     if name not in SUPPORTED_BACKENDS:
         raise ValueError(f"RAG_STORE={name!r} is not supported; choose one of {SUPPORTED_BACKENDS}")
-    key = (name, os.getenv("RAG_MILVUS_URI", "") if name == "milvus" else str(CHROMA_DIR))
+    key = (name, os.getenv("RAG_MILVUS_URI", "") if name == "milvus" else str(chroma_dir()))
     store = _stores.get(key)
     if store is None:
         with _stores_lock:

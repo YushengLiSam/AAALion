@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 from pathlib import Path
 from typing import Iterator, Sequence
@@ -27,6 +28,19 @@ from rag.store.base import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CHROMA_DIR = REPO_ROOT / "data" / ".chroma"
 
+
+def chroma_dir() -> Path:
+    """Chroma 索引目录。默认 ``data/.chroma``;``RAG_CHROMA_DIR`` 可指向另一份(相对仓库根)。
+
+    P1 用途:VM 上线上那份旧索引一个字节都不动,另建一份 schema v2 的 Chroma
+    (例如 ``data/.chroma_v2``)给 migrate / store_parity / replay_gate 当参照。
+    """
+    raw = (os.getenv("RAG_CHROMA_DIR") or "").strip()
+    if not raw:
+        return CHROMA_DIR
+    p = Path(raw)
+    return p if p.is_absolute() else REPO_ROOT / p
+
 _SCHEMA_KEY = "lionpick_schema_version"
 _PROP_PREFIX = "lionpick_prop_"
 
@@ -34,8 +48,8 @@ _PROP_PREFIX = "lionpick_prop_"
 class ChromaStore:
     backend = "chroma"
 
-    def __init__(self, path: Path | str = CHROMA_DIR) -> None:
-        self._path = Path(path)
+    def __init__(self, path: Path | str | None = None) -> None:
+        self._path = Path(path) if path is not None else chroma_dir()
         self._lock = threading.Lock()
         self._client_obj = None
         self._fields_cache: dict[str, frozenset[str]] = {}
