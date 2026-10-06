@@ -333,5 +333,27 @@ python -m rag.bench.scale --calibrate --n 100000 --nq 100  # 校准分档参数
 - **外部评测**:Multi-CPR 电商(阿里,100 万条淘宝标题,1000 条人工标注 query,已下载),
   和论文基线并排比较(百万级语料上 BM25 的 MRR@10 是 0.225,最好的领域内 DPR 是 0.289)。
   这套标注每条 query 只有 1 个正例,分数会远低于我们自己那套的 0.947,两者不是一个量纲。
-- **生产部署**:VM(15G 内存、4 核)上用 docker-compose 起 Milvus Standalone,
-  `/ready` 加上 Milvus 健康检查。回滚就是把 `RAG_STORE` 切回 chroma。
+- **生产部署**:代码与部署资产已就绪,见 §9 与 [`RUNBOOK_MILVUS.md`](RUNBOOK_MILVUS.md);VM 上尚未执行。
+
+## 9. 上生产的配套(P1)
+
+只加开关、不改默认:不设任何新变量时,行为与上面各节完全相同。
+
+| 能力 | 入口 | 要点 |
+|---|---|---|
+| 就绪门控 | `server/app/services/retrieval_readiness.py` `vector_store_gate()`,`RAG_READY_GATE=off\|report\|enforce` | 绕开稠密→关键词兜底,直接查底层存储:条数 > 0、真实向量查询非空;Milvus 另要 schema v2。`enforce` 不过时 `/ready` 返回 503,autodeploy 据此回滚。`/ready` 另报 `fallbacks.dense_to_keyword` 计数 |
+| 影子查询 | `rag/store/composite.py` `ShadowStore`,`RAG_STORE_SHADOW=milvus\|chroma` | 主存储回答;有界后台线程(1–2 个,队列满即丢)查影子,写 JSONL(ids、overlap@k、两边延迟、错误);`python -m rag.store.composite --summarize` 汇总 |
+| 限期兜底 | `FallbackStore`,`RAG_STORE_FALLBACK=chroma` + `RAG_STORE_FALLBACK_UNTIL=YYYY-MM-DD` | 主存储抛错时由兜底回答并计数;没写日期不启用,过期自动失效 |
+| 版本化集合 + 别名 | `RAG_MILVUS_VERSIONED=1`,`python -m rag.store.alias --list\|--switch\|--rollback` | `--rebuild` 写 `products_text__v2_<时间戳>`,核对条数后才切别名;保留 2 个物理集合,不删正在服务的那个;非版本化模式拒绝经由别名 reset |
+| 回放门槛 | `python -m rag.eval.replay_gate` | ≥1000 次调用(golden + compositional ± 生产过滤、stress_e2e、145 张图),对精确解解释不一致;错误 > 0 或 < 0.99 即失败 |
+| 部署 | `deploy/milvus/`、`deploy/systemd/`、`tools/milvus_bootstrap.py`、`server/requirements-milvus-server.txt` | 显式钉 `milvusdb/milvus:v3.0.2`,端口只绑 127.0.0.1,鉴权开,最小权限账号;生产只装 pymilvus |
+
+两个本轮查到的外部事实(2026-10-06):
+
+- milvus-lite 3.2.1 支持 create / alter / describe / list alias 与 rename_collection,但它的 `drop_collection`
+  会**先解析别名**——对别名调用就把正在服务的物理集合删了(Standalone 则直接拒绝)。所以非版本化模式下
+  对别名做 `--rebuild` 一律报错。
+- `docker.io/minio/minio`(官方 compose 引用的镜像)已拉不到;部署默认改用 Milvus 本地磁盘存储,见 `deploy/README.md`。
+
+本地回放门槛(milvus-lite 服务模式,不是 Standalone):`docs/bench/replay_gate_local-lite-20261006.json`,
+1410 次调用、错误 0、top-10 一致率 0.9957、不一致的全部能用精确解解释(Milvus 更接近精确解)。
