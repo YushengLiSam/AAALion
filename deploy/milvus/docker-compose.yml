@@ -1,0 +1,120 @@
+# LionPick — Milvus Standalone, hardened for ONE Ubuntu VM (4 vCPU / 15 GB, shared with the API).
+#
+#   cd deploy/milvus && cp .env.example .env && chmod 600 .env && $EDITOR .env
+#   sudo mkdir -p /srv/milvus/{etcd,milvus,minio}
+#   sudo docker compose up -d                      # etcd + milvus, local-disk storage (default)
+#   sudo docker compose --profile minio up -d      # + MinIO object storage (needs MINIO_IMAGE, see below)
+#
+# Derived from the official compose at the v3.0.2 tag
+# (https://raw.githubusercontent.com/milvus-io/milvus/v3.0.2/deployments/docker/standalone/docker-compose.yml,
+# fetched 2026-10-06). Differences, and why:
+#   * milvusdb/milvus pinned to v3.0.2 explicitly — the official file at the v3.0.2 tag still says v3.0.1.
+#     Docker Hub manifest for v3.0.2 verified 2026-10-06 (multi-arch index sha256:5f13bf88e110…).
+#   * every published port is bound to 127.0.0.1 — ports published by Docker bypass ufw.
+#     etcd and MinIO publish nothing at all; only the API on this host talks to Milvus.
+#   * authentication on (user.yaml → common.security.authorizationEnabled), root password from .env.
+#   * restart: unless-stopped, mem_limit per container, log rotation, data under /srv/milvus.
+#   * storage: docker.io/minio/minio — the image the official file references — is no longer pullable
+#     (registry answers 401 for minio/minio, checked 2026-10-06; MinIO stopped publishing community
+#     images in late 2025). So the DEFAULT here is Milvus' local-disk storage (COMMON_STORAGETYPE=local,
+#     the same mode the official scripts/standalone_embed.sh uses); a MinIO service is kept behind the
+#     "minio" profile for when you have an image you trust (pin it by digest in MINIO_IMAGE).
+#     At 1082 + 145 vectors object storage buys nothing; vectors are rebuildable from the npz artifacts.
+
+name: lionpick-milvus
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.25   # same as upstream v3.0.2 compose; quay manifest verified 2026-10-06
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - /srv/milvus/etcd:/etcd
+    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    logging: *default-logging
+    # no ports: reachable only on the compose network
+
+  minio:
+    profiles: ["minio"]
+    container_name: milvus-minio
+    # NOT pullable as of 2026-10-06 (see header). Set MINIO_IMAGE to an image you have vetted, by digest.
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2024-05-28T17-19-04Z}
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+    volumes:
+      - /srv/milvus/minio:/minio_data
+    command: minio server /minio_data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    logging: *default-logging
+    # no ports and no console: debug with `docker exec` or an ssh tunnel if ever needed
+
+  standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v3.0.2
+    command: ["milvus", "run", "standalone"]
+    restart: unless-stopped
+    mem_limit: 4g
+    cpus: 2.0            # leave 2 vCPU to the API process (cross-encoder rerank is CPU-bound)
+    stop_grace_period: 60s
+    security_opt:
+      - seccomp:unconfined   # as upstream
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      # local (default) | minio — with "minio" also start the minio profile
+      COMMON_STORAGETYPE: ${MILVUS_STORAGE_TYPE:-local}
+      MINIO_ADDRESS: minio:9000
+      MINIO_REGION: us-east-1
+      # Milvus maps env keys by lower-casing and dropping "_" / "." (pkg/config formatKey, v3.0.2),
+      # so these override minio.accessKeyID / minio.secretAccessKey (also named in milvus.yaml comments).
+      MINIO_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-}
+      MINIO_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-}
+      # Only used when root is first created (fresh /srv/milvus). tools/milvus_bootstrap.py rotates it
+      # either way, so an existing deployment initialised with the factory password is handled too.
+      COMMON_SECURITY_DEFAULTROOTPASSWORD: ${MILVUS_ROOT_PASSWORD:?set MILVUS_ROOT_PASSWORD in deploy/milvus/.env}
+    volumes:
+      - /srv/milvus/milvus:/var/lib/milvus
+      - ./user.yaml:/milvus/configs/user.yaml:ro   # same mount point as upstream standalone_embed.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "127.0.0.1:19530:19530"   # gRPC — LionPick API on this host only
+      - "127.0.0.1:9091:9091"     # healthz + Prometheus metrics — local scrape only
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+        required: false           # absent unless the "minio" profile is enabled (compose >= 2.20)
+    logging: *default-logging
+
+networks:
+  default:
+    name: milvus

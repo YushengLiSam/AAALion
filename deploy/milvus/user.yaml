@@ -1,0 +1,8 @@
+# Overrides on top of the image's milvus.yaml. Mounted at /milvus/configs/user.yaml
+# (the mount point upstream scripts/standalone_embed.sh uses at the v3.0.2 tag).
+# Secrets do NOT go here — they come from deploy/milvus/.env via docker-compose.yml.
+common:
+  security:
+    # Default is false in v3.0.2 configs/milvus.yaml. With it on, every client must send
+    # user:password (RAG_MILVUS_TOKEN); /healthz on :9091 stays unauthenticated.
+    authorizationEnabled: true
