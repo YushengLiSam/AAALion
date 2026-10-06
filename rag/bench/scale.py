@@ -15,6 +15,21 @@ Milvus 另跑一遍 ``RAG_MILVUS_FILTER_STRATEGY=plain``(固定 ef、不分档),
 压测库在 ``data/.bench/``(已 gitignore),与生产索引完全隔离;
 本进程与查询子进程都不加载 torch,Milvus 以独立服务进程运行。
 结果摘要写到 ``docs/bench/``。
+
+P1 —— ``--milvus-uri`` 改测一台已有的 Milvus(例如临时 spot VM 上的 Standalone)而不是自己拉起 Lite::
+
+    RAG_MILVUS_TOKEN=root:... python -m rag.bench.scale --backends milvus --n 1000000 \
+        --milvus-uri http://127.0.0.1:19530 --milvus-db lionpick_bench
+
+今天这个脚本总是自己拉起一个空的 Lite,``reset_collection`` 删的是自己的库;接外部服务之后
+它会 drop 目标库里的 ``products_text``——指错地方就是删生产索引。所以硬性拒绝:
+
+* 库名必须显式且不是 ``default``(生产在 default 库);
+* 目标库里已有的 ``products_text`` 必须是本脚本建的(集合属性 ``dataset=kuaisearch``),
+  是别名(版本化的生产索引)或没有这个标记一律拒绝;
+* URI + 库名与当前环境的 ``RAG_MILVUS_URI`` / ``RAG_MILVUS_DB`` 完全相同也拒绝。
+
+外部模式下测不到服务进程的内存与磁盘(不在本机),冷启动改为 release 后重新 load 的耗时。
 """
 
 from __future__ import annotations
@@ -43,6 +58,8 @@ OUT_DIR = REPO_ROOT / "docs" / "bench"
 K = 60  # 生产稠密检索取 k*3 = 60
 TOP = 10
 BATCH = 5000
+BENCH_DB_DEFAULT = "lionpick_bench"
+BENCH_MARK = ("dataset", "kuaisearch")  # ingest() 写进集合属性,用来认"这是压测自己建的"
 
 
 # ---------------------------------------------------------------------------
@@ -162,10 +179,46 @@ def _docs(ids, metas, texts, s, e):
     return [Doc(id=ids[i], text=(texts[i] if texts else metas[i].get("text", "")), metadata=metas[i]) for i in range(s, e)]
 
 
+def check_external_target(store, uri: str, db: str) -> None:
+    """``--milvus-uri`` 模式下,确认 reset 不会碰到任何不是本脚本建的数据;不安全就抛 RuntimeError。"""
+    from rag.store import TEXT_COLLECTION
+
+    if not db or db.strip().lower() == "default":
+        raise RuntimeError("refusing to benchmark in the 'default' database (production lives there); "
+                           f"pass --milvus-db <dedicated name>, e.g. {BENCH_DB_DEFAULT}")
+    prod_uri = (os.getenv("RAG_MILVUS_URI") or "").rstrip("/")
+    prod_db = (os.getenv("RAG_MILVUS_DB") or "").strip()
+    if prod_uri and uri.rstrip("/") == prod_uri and db == (prod_db or "default"):
+        raise RuntimeError(f"refusing: {uri} db={db} is this environment's RAG_MILVUS_URI/RAG_MILVUS_DB")
+    if store.alias_target(TEXT_COLLECTION) is not None:
+        raise RuntimeError(f"refusing to reset {TEXT_COLLECTION!r} in db {db!r}: it is an alias "
+                           "(a versioned, production-style index)")
+    if store._exists(TEXT_COLLECTION):
+        props = store.index_properties(TEXT_COLLECTION)
+        if props.get(BENCH_MARK[0]) != BENCH_MARK[1]:
+            raise RuntimeError(f"refusing to reset {TEXT_COLLECTION!r} in db {db!r}: it was not created by "
+                               f"this benchmark (properties {props})")
+
+
+def _ensure_bench_db(uri: str, db: str) -> None:
+    from pymilvus import MilvusClient
+
+    client = MilvusClient(uri=uri, token=os.getenv("RAG_MILVUS_TOKEN", ""))
+    try:
+        if db not in set(client.list_databases() or []):
+            client.create_database(db)
+            print(f"[scale] milvus: created database {db!r}", flush=True)
+    finally:
+        try:
+            client.close()
+        except Exception:
+            pass
+
+
 def ingest(store, ids, vecs, metas, texts) -> float:
     from rag.store import TEXT_COLLECTION
 
-    store.reset_collection(TEXT_COLLECTION, properties={"dataset": "kuaisearch", "n": str(len(ids))})
+    store.reset_collection(TEXT_COLLECTION, properties={BENCH_MARK[0]: BENCH_MARK[1], "n": str(len(ids))})
     t0 = time.perf_counter()
     for s in range(0, len(ids), BATCH):
         e = min(s + BATCH, len(ids))
@@ -291,8 +344,9 @@ def cmd_run(args) -> int:
     report = {"dataset": "KuaiSearch items_lite (first N, file order)", "n": n, "dim": int(vecs.shape[1]),
               "milvus_params": {"hnsw_ef": _ms._hnsw_ef(0), "filter_brute_max": _ms._BRUTE_MAX,
                                 "filter_ef_factor": _ms._EF_FACTOR, "hnsw_ef_max": _ms._EF_MAX,
-                                "index": "HNSW M=16 efConstruction=200", "mode": "milvus-lite 3.2.1 server"},
-              "machine": "MacBook Air M4 (Mac16,12), 24 GB",
+                                "index": "HNSW M=16 efConstruction=200",
+                                "mode": "external server (--milvus-uri)" if args.milvus_uri else "milvus-lite 3.2.1 server"},
+              "machine": args.machine,
               "queries": len(queries), "k": K, "filters": [{"name": f["name"], "where": f["where"],
               "selectivity": round(sel[f["name"]], 5)} for f in filters], "backends": {}}
     backends = [b.strip() for b in args.backends.split(",") if b.strip()]
@@ -318,7 +372,11 @@ def cmd_run(args) -> int:
         if not args.keep:
             shutil.rmtree(path, ignore_errors=True)
 
-    if "milvus" in backends:
+    if "milvus" in backends and args.milvus_uri:
+        rc = _run_external_milvus(args, report, ids, vecs, metas, texts, qfile, ffile, queries, truth, filters)
+        if rc:
+            return rc
+    elif "milvus" in backends:
         data_dir = BENCH_DIR / f"milvus_{tag}"
         side = BENCH_DIR / f"milvus_{tag}.ingest.json"
         port = _free_port()
@@ -366,6 +424,48 @@ def cmd_run(args) -> int:
     out.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     print_report(report)
     print(f"\n[scale] saved {out.relative_to(REPO_ROOT)}")
+    return 0
+
+
+def _run_external_milvus(args, report, ids, vecs, metas, texts, qfile, ffile, queries, truth, filters) -> int:
+    from rag.store import TEXT_COLLECTION
+    from rag.store.milvus_store import MilvusStore
+
+    uri, db = args.milvus_uri, args.milvus_db
+
+    def store():
+        # versioned=False:压测不建别名;库名显式传,不吃环境里的 RAG_MILVUS_DB
+        return MilvusStore(uri=uri, index_type="HNSW", versioned=False, db_name=db)
+
+    try:
+        if not db or db.strip().lower() == "default":
+            check_external_target(None, uri, db)  # 先拒绝,别为 default 库去建库
+        _ensure_bench_db(uri, db)
+        st = store()
+        check_external_target(st, uri, db)
+    except RuntimeError as exc:
+        print(f"[scale] {exc}", file=sys.stderr)
+        return 2
+    print(f"[scale] milvus (external {uri.split('@')[-1]}, db={db}): ingest", flush=True)
+    t_ing = ingest(st, ids, vecs, metas, texts)
+    client = st._client()
+    client.release_collection(TEXT_COLLECTION)
+    t = time.perf_counter()
+    store()._ensure_loaded(TEXT_COLLECTION)
+    cold = time.perf_counter() - t
+    print(f"[scale] milvus: ingest {t_ing:.1f}s, release→load {cold:.1f}s; serving …", flush=True)
+    env = {"RAG_MILVUS_DB": db, "RAG_MILVUS_VERSIONED": "0"}
+    res = _serve("milvus", uri=uri, qfile=qfile, ffile=ffile, nq=len(queries), env_extra=env)
+    res_plain = _serve("milvus", uri=uri, qfile=qfile, ffile=ffile, nq=len(queries),
+                       env_extra={**env, "RAG_MILVUS_FILTER_STRATEGY": "plain"})
+    # cold_load_s 在外部模式下是 release → load 的耗时(重启不了别人的服务),见 "external"
+    report["backends"]["milvus"] = {"ingest_s": round(t_ing, 1), "cold_load_s": round(cold, 1),
+                                    "disk_mb": None, "server_rss_mb": None, "external": True, "db": db,
+                                    "filters": _summarize(res, truth, filters),
+                                    "filters_plain_ef": _summarize(res_plain, truth, filters)}
+    if not args.keep:
+        check_external_target(st, uri, db)  # 删之前再核一次标记
+        client.drop_collection(TEXT_COLLECTION)
     return 0
 
 
@@ -452,7 +552,10 @@ def print_report(r: dict) -> None:
     print("|---|---:|---:|---:|---:|")
     for b, v in r["backends"].items():
         mem = v.get("serving_rss_mb", v.get("server_rss_mb"))
-        print(f"| {b} | {v['ingest_s']:,.0f} s | {v['cold_load_s']:,.1f} s | {v['disk_mb']:,} MB | {mem:,} MB |")
+        disk = "—" if v.get("disk_mb") is None else f"{v['disk_mb']:,} MB"
+        mem_s = "—" if mem is None else f"{mem:,} MB"
+        label = f"{b}(外部,release→load)" if v.get("external") else b
+        print(f"| {label} | {v['ingest_s']:,.0f} s | {v['cold_load_s']:,.1f} s | {disk} | {mem_s} |")
     sel = {f["name"]: f["selectivity"] for f in r["filters"]}
     print("\n| 过滤 | 选择性 | 后端 | p50 | p95 | p99 | recall@10 | 最低 recall@10 |")
     print("|---|---:|---|---:|---:|---:|---:|---:|")
@@ -488,7 +591,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--keep", action="store_true", help="keep the bench stores in data/.bench/")
     ap.add_argument("--calibrate", action="store_true", help="Milvus only: recall/latency vs ef and vs exact")
     ap.add_argument("--reuse", action="store_true", help="reuse existing data/.bench stores (skip ingest; ingest time read from the sidecar)")
+    ap.add_argument("--milvus-uri", default=None,
+                    help="benchmark an existing Milvus server instead of a local Lite (refuses to touch non-bench data)")
+    ap.add_argument("--milvus-db", default=BENCH_DB_DEFAULT, help="dedicated database for --milvus-uri (never 'default')")
+    ap.add_argument("--machine", default="MacBook Air M4 (Mac16,12), 24 GB", help="hardware label for the report")
     args = ap.parse_args(argv)
+    if args.milvus_uri and (args.reuse or args.calibrate):
+        ap.error("--milvus-uri does not support --reuse / --calibrate")
     if args.cmd == "serve":
         return cmd_serve(args)
     if args.calibrate:
