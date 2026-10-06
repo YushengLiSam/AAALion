@@ -818,6 +818,15 @@ def _strip_negation(text: str) -> str:
 _augment_english = augment_english_query
 
 
+def _agent_mode() -> str:
+    """AGENT_PATH 开关(off|shadow|on);智能体模块导入失败时一律视为 off。"""
+    try:
+        from app.agent.runtime import agent_mode
+        return agent_mode()
+    except Exception:
+        return "off"
+
+
 # 主路由:POST /chat/stream → SSE 流式响应。**整个后端最重要的函数**。
 # 流程见文件顶部 docstring 的 7 步。本函数把这 7 步串起来:
 #   503 ready 检查 → 提取文本/图片 → 检索(CLIP or hybrid+rerank) →
@@ -934,7 +943,43 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # 这类**跳间依赖**的问法时,先检索锚点、再用锚点的结构化属性(价格/品牌/
     # 品类)派生 hop2 硬约束。未命中则完全走下面的单跳流程(零改动)。
     hop_trace: dict | None = None
-    if clarify_dims is None and not empty_query and not out_of_domain and not _has_image(req.messages):
+    # P2 智能体路径 —— AGENT_PATH=off|shadow|on(默认 off:下面整段直接跳过,行为零变化)。
+    # 只接纯文本、规则路由判为"复杂多步"的请求;on 模式下智能体只负责**选商品**,
+    # 回答仍由下面现有的流式生成阶段基于这些商品生成(SSE 协议 / 卡片先于文字 /
+    # 来源标签 / 缓存 / 重试规则全部不变);任何错误或超时都静默回退快路。
+    agent_mode = _agent_mode()
+    agent_route = None
+    agent_trace: dict | None = None
+    agent_used = False
+    if (agent_mode != "off" and clarify_dims is None and not empty_query and not out_of_domain
+            and not _has_image(req.messages) and _detect_cart_intent(user_text) is None):
+        try:
+            from app.agent.router import should_use_agent
+            agent_route = should_use_agent(
+                user_text, req.messages,
+                has_history_cards=bool(_history_product_cards(req.messages)))
+        except Exception:
+            agent_route = None
+    if agent_mode == "on" and agent_route is not None and agent_route.use_agent:
+        try:
+            from app.agent.runtime import try_agent_products
+            _explicit = req.filters.model_dump(exclude_none=True) if req.filters else None
+            _conv = build_conversation_filter(req.messages, _explicit)
+            _agent_products, agent_trace = await try_agent_products(
+                user_text, route=agent_route, conversation_filter=_conv,
+                explicit_filters=_explicit, user_id=req.user_id,
+                prior_turns=_prior_text_turns(req.messages), provider=get_provider(),
+            )
+            if _agent_products:
+                products = await asyncio.to_thread(normalize_product_prices, _agent_products)
+                conversation_filter = _conv
+                agent_used = True
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"agent path failed, falling back to fast path: {type(e).__name__}")
+            agent_used = False
+            products = []
+    if (not agent_used and clarify_dims is None and not empty_query and not out_of_domain
+            and not _has_image(req.messages)):
         try:
             from rag.retrieve.multihop import detect_multihop
             _hist_cards = _history_product_cards(req.messages)
@@ -1032,6 +1077,22 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             no_match = not products and exclusion_note is None and not budget_relaxed
     t_retrieval = time.perf_counter()
 
+    # P2 影子模式:快路结果已定,再在后台跑一次智能体,只写 JSONL trace
+    # (data/.agent/shadow.jsonl),绝不影响本次响应。并发闸满了就跳过。
+    if agent_mode == "shadow" and agent_route is not None and agent_route.use_agent:
+        try:
+            from app.agent.runtime import schedule_shadow
+            _explicit = req.filters.model_dump(exclude_none=True) if req.filters else None
+            schedule_shadow(
+                user_text, route=agent_route,
+                conversation_filter=build_conversation_filter(req.messages, _explicit),
+                explicit_filters=_explicit, user_id=req.user_id,
+                prior_turns=_prior_text_turns(req.messages), provider=get_provider(),
+                fast_product_ids=[p.get("product_id") for p in products],
+            )
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"agent shadow scheduling failed: {type(e).__name__}")
+
     # 购物车意图检测 -------------------------------------------------------------
     # 反问澄清轮绝不会是购物车操作 —— 跳过检测,
     # 避免模糊的"帮我挑个东西"被误读。
@@ -1056,8 +1117,11 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 pref_token = json.dumps(_w, sort_keys=True, ensure_ascii=False)
         except Exception:
             pref_token = ""
+    # 智能体路径的响应带上 path 标签,绝不与同一请求的快路响应共用缓存条目;
+    # 快路的 key 保持原样(默认 off 时缓存行为零变化)。
+    path_token = "|path=agent" if agent_used else ""
     cache_key = make_key(
-        system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}|pref={pref_token}",
+        system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}|pref={pref_token}{path_token}",
         messages_json=req.model_dump_json(),
         image_sha=hash_image_bytes_list(img_bytes_list),
     )
@@ -1109,6 +1173,23 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             addendum += (
                 "注意:**没有完全符合该条件的商品**,下面是目录里最接近的,"
                 "请如实说明这一点,不要谎称完全符合。"
+            )
+
+    # P2 智能体路径:候选由多步检索选出。只补结构化事实(参照商品 / 总预算),
+    # 不把智能体自己的文字说明塞进 prompt(那是 LLM 生成的,不是目录事实)。
+    if agent_used and products:
+        _anchor_ids = set((agent_trace or {}).get("anchor_ids") or [])
+        _first = products[0]
+        if _first.get("product_id") in _anchor_ids:
+            addendum += (
+                f"\n\n9. **本轮是多步检索**: 第一张卡是**参照商品**「{_first.get('title', '')}」"
+                f"(¥{_first.get('price_cny')}),其余是基于它筛出的结果。回复时先用一句话确认参照商品,"
+                "再逐条说明每个推荐**与它的关系**(价格一律按人民币比较),价格与品牌用 [目录✓] 标注。"
+            )
+        if agent_route is not None and agent_route.bundle_budget_cny:
+            addendum += (
+                f"\n\n9. **本轮是预算配套(总预算 ¥{agent_route.bundle_budget_cny:g})**: 下面几件来自不同品类,"
+                "逐件说明用途,并给出按人民币计算的合计价;合计超出预算时如实说明。"
             )
 
     if budget_relaxed:
@@ -1260,6 +1341,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 cache_hit=True,
                 user_text=user_text,
                 retrieval_query=retrieval_query,
+                path="agent" if agent_used else None,
             )
             return
 
@@ -1338,6 +1420,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             cache_hit=False,
             user_text=user_text,
             retrieval_query=retrieval_query,
+            path="agent" if agent_used else None,
         )
 
     return StreamingResponse(generator(), media_type="text/event-stream")
@@ -1357,6 +1440,7 @@ def _log_timing(
     cache_hit: bool,
     user_text: str,
     retrieval_query: str,
+    path: str | None = None,
 ) -> None:
     record = {
         "event": "chat_stream",
@@ -1368,6 +1452,8 @@ def _log_timing(
     }
     if retrieval_query != user_text:
         record["retrieval_query_preview"] = retrieval_query[:100]
+    if path:
+        record["path"] = path
     # uvicorn 默认不把 named logger 的 info 输出到 stdout;用 print
     # 让耗时日志无需额外配置就出现在 access log 旁边。
     print(json.dumps(record, ensure_ascii=False), flush=True)

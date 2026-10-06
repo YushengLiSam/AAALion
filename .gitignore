@@ -134,3 +134,5 @@ data/.embeddings/
 data/.bench/
 # P1 — shadow-query comparison logs written by rag.store.composite.ShadowStore
 data/.shadow/
+# P2 智能体路径的 shadow / on 模式 trace(本地 JSONL)
+data/.agent/
