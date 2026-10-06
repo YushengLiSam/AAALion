@@ -1,0 +1,11 @@
+# Production (Milvus Standalone server): client only.
+# The API talks to Milvus over gRPC (RAG_MILVUS_URI=http://127.0.0.1:19530), so it needs
+# pymilvus but NOT milvus-lite (the embedded engine — dev / benchmarks / local tests only,
+# keep using server/requirements-milvus.txt for those).
+#
+#   pip install --dry-run -r server/requirements.txt -r server/requirements-milvus-server.txt   # check first
+#   pip install -r server/requirements-milvus-server.txt
+#
+# Resolver check against the server/requirements.txt pins on Python 3.10 (VM) and 3.11
+# (Dockerfile / CI), linux x86_64: see docs/RUNBOOK_MILVUS.md §1.
+pymilvus==3.0.2
