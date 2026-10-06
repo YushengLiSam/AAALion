@@ -204,6 +204,17 @@ def test_hop2_same_brand_keeps_brand_and_target_category(heavy_spy):
     assert hop2.sub_categories == ["平板电脑"]             # 目标词的品类没丢
 
 
+def test_hop2_explicit_target_category_wins_for_price_relations(heavy_spy):
+    """"跟神仙水同价位的化妆水":锚点在目录里标成"精华水",但用户点名要化妆水。"""
+    anchor = {"product_id": "a", "title": "SK-II 神仙水", "brand": "SK-II", "category": "美妆护肤",
+              "sub_category": "精华水", "base_price": 1990, "provenance": {"currency": "CNY"}}
+    plan = HopPlan(relation="same_price", anchor_text="", target_text="化妆水", anchor_ordinal=1)
+    rag_client.multi_hop_retrieve(plan, history_products=[anchor], k=4)
+    hop2 = heavy_spy[0]["filter"]
+    assert "化妆水" in hop2.sub_categories and "化妆水/精华水" in hop2.sub_categories
+    assert (hop2.price_min_cny, hop2.price_max_cny) == (1592.0, 2388.0)
+
+
 def test_single_hop_topic_switch_unchanged(heavy_spy):
     """默认(skip_topic_switch=False)行为不变:继承来的无类目 Filter 遇到新类目词仍被丢弃。"""
     inherited = Filter(price_max_cny=500, sub_categories=["洁面"])

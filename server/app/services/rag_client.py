@@ -1014,7 +1014,10 @@ def multi_hop_retrieve(
     # 只有锚点自己),用兄弟品类一起召回,再由下面的断言把关。
     if hop2_filter is not None and getattr(hop2_filter, "sub_categories", None):
         hop2_filter.sub_categories = _sibling_sub_categories(hop2_filter.sub_categories)
-    hop2_filter = _merge_hop2_filter(hop2_filter, "" if target_is_anchor_text else target_text)
+    hop2_filter = _merge_hop2_filter(
+        hop2_filter, "" if target_is_anchor_text else target_text,
+        prefer_target_subs=plan.relation in _PRICE_RELATIONS and bool((plan.target_text or "").strip()),
+    )
     trace["derived_filter"] = {
         "price_max_cny": getattr(hop2_filter, "price_max_cny", None) if hop2_filter else None,
         "price_min_cny": getattr(hop2_filter, "price_min_cny", None) if hop2_filter else None,
@@ -1130,14 +1133,20 @@ def _expand_brand_aliases_in_catalog(brands: list[str]) -> list[str]:
     return out
 
 
-def _merge_hop2_filter(derived, target_text: str):
+def _merge_hop2_filter(derived, target_text: str, *, prefer_target_subs: bool = False):
     """派生约束 ∧ 目标词约束 → hop2 的权威 Filter。
 
     hop2 跳过了话题切换检测(派生约束不许被丢),那么目标词本身的品类信号
     ("和 iPhone 一样牌子的**平板**")也得显式并进来,否则只剩 brand=Apple,
-    会把 iPhone/MacBook 一起召回。规则:价格/品牌以派生为准(只会更严);
-    细分品类两边都有时取交集(交集为空则保留派生的);派生没有细分品类时
-    才沿用目标词的 category / sub_categories;目标词里的排除条件照搬。
+    会把 iPhone/MacBook 一起召回。规则:
+      * 价格 / 品牌以派生为准(只会更严),目标词里的排除条件照搬;
+      * `prefer_target_subs`(价格类关系 + 用户点名了目标品类):品类以目标词为准。
+        derive_filter 给价格类关系填的是**锚点自己的**品类,那只是"没说品类时"的
+        默认值;用户说了"跟神仙水同价位的**化妆水**"就该找化妆水,而不是锚点在
+        目录里被标成的"精华水";
+      * 否则两边都有时取交集(不相交以目标词为准);只有一边有就用那一边;
+        都没有细分品类时沿用目标词的 category。
+    目标词的细分品类也按同族兄弟扩展,与派生一侧口径一致。
     """
     from rag.retrieve.query import Filter
     try:
@@ -1161,9 +1170,18 @@ def _merge_hop2_filter(derived, target_text: str):
         merged.brand_include = list(t.brand_include)
     d_subs = list(d.sub_categories or ([d.sub_category] if d.sub_category else []))
     t_subs = list(t.sub_categories or ([t.sub_category] if t.sub_category else []))
-    if d_subs:
+    if t_subs:
+        t_subs = _sibling_sub_categories(t_subs)
+    if prefer_target_subs and (t_subs or t.category):
+        if t_subs:
+            merged.sub_categories = t_subs
+        else:
+            merged.category = t.category
+    elif d_subs and t_subs:
         inter = [s for s in d_subs if s in set(t_subs)]
-        merged.sub_categories = inter or d_subs
+        merged.sub_categories = inter or t_subs
+    elif d_subs:
+        merged.sub_categories = d_subs
     elif t_subs:
         merged.sub_categories = t_subs
     elif t.category:
