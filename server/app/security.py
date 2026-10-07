@@ -244,6 +244,15 @@ def log_security_posture() -> None:
     """启动时打一行安全状态(布尔值)。默认密钥 + enforce 时打 ERROR。"""
     p = posture()
     log.warning("security_posture %s", json.dumps(p, sort_keys=True))
+    if p["demo_mode"]:
+        # DEMO_MODE=1 时验证码随响应返回:知道手机号/邮箱的人都能拿到 phone:… 账号的
+        # 合法 JWT(phone/start → verify),或重置 pw:… 账号的密码(reset/start → verify)。
+        # 越权校验只验"JWT sub == user_id",管不了这条路——别让 enforce 给人虚假安全感。
+        log.warning(
+            "DEMO_MODE=1 — SMS/reset codes are returned in API responses; anyone who knows a "
+            "phone number / email can obtain that phone:/pw: account's session. AUTH_ENFORCE_MODE "
+            "does NOT protect those accounts while DEMO_MODE=1."
+        )
     if p["jwt_secret_is_default"]:
         if p["auth_enforce_mode"] == "enforce":
             log.error(

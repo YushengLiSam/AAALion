@@ -22,7 +22,11 @@ import os
 import time
 
 _DEFAULT_SECRET = "lionpick-demo-secret-change-in-prod"
-_SECRET = os.environ.get("LIONPICK_JWT_SECRET", _DEFAULT_SECRET).encode()
+# 设了但为空/全是空白(例如 drop-in 里写成 `Environment=LIONPICK_JWT_SECRET=`)等同于没设:
+# 否则会用空密钥签名——同样任何人可伪造,却躲过了下面的"默认密钥"检测和 enforce 的失效保护。
+# 注意只在判空时 strip,真实密钥按原样使用(不改变已签发 token 的有效性)。
+_RAW_SECRET = os.environ.get("LIONPICK_JWT_SECRET", "")
+_SECRET = (_RAW_SECRET if _RAW_SECRET.strip() else _DEFAULT_SECRET).encode()
 _TTL = int(os.environ.get("LIONPICK_JWT_TTL_SEC", str(7 * 24 * 3600)))
 _ALG = "HS256"
 

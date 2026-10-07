@@ -208,8 +208,13 @@ async def phone_verify_endpoint(req: PhoneVerifyRequest, request: Request) -> di
 
 
 @router.post("/register")
-async def password_register_endpoint(req: PasswordRegisterRequest) -> dict:
+async def password_register_endpoint(req: PasswordRegisterRequest, request: Request) -> dict:
     """R10.bugfix — email/phone + password registration (no SMS)."""
+    # 注册会回答"账号已存在"(可枚举账号),且每次都跑一遍 PBKDF2(单进程下可被刷满
+    # CPU / 线程池)。单独一个每 IP 桶,不占登录额度。
+    limited = ratelimit.check([("register_ip", security.client_ip(request))])
+    if limited is not None:
+        return limited
     store = get_user_store()
     try:
         user = await asyncio.to_thread(
