@@ -35,8 +35,15 @@ def _captions(tmp_path, rows):
 
 
 def test_sku_text_dedupes_values_in_order():
-    assert chunk_mod.sku_text(_PRODUCT) == "可选规格:尺码:S码、M码;颜色:黑色、白色"
+    assert chunk_mod.sku_text(_PRODUCT) == "测试T恤|可选规格:尺码:S码、M码;颜色:黑色、白色"
     assert chunk_mod.sku_text({"skus": []}) is None
+
+
+def test_trivial_sku_is_skipped():
+    # "规格:标准" 这种所有商品都一样的规格不生成块(否则大量完全相同的向量会搞乱 HNSW)
+    assert chunk_mod.sku_text({"title": "x", "skus": [{"properties": {"规格": "标准"}}]}) is None
+    assert chunk_mod.sku_text({"title": "x", "skus": [{"properties": {"规格": "标准"}},
+                                                      {"properties": {"规格": "加大"}}]}) == "x|可选规格:规格:标准、加大"
 
 
 def test_caption_chunk_from_file(tmp_path, monkeypatch):
@@ -78,4 +85,4 @@ def test_bm25_extra_fields_opt_in(tmp_path, monkeypatch):
     monkeypatch.setenv("RAG_IMAGE_CAPTIONS_PATH", str(p))
     monkeypatch.setenv("RAG_BM25_EXTRA_FIELDS", "sku,caption")
     doc = bm25_mod._document_text(_PRODUCT)
-    assert "可选规格:尺码:S码、M码;颜色:黑色、白色" in doc and "外观:白色短袖" in doc
+    assert "测试T恤|可选规格:尺码:S码、M码;颜色:黑色、白色" in doc and "外观:白色短袖" in doc

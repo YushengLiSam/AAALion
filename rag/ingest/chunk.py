@@ -109,6 +109,9 @@ def image_caption_text(product_id: str) -> str | None:
     return ";".join(parts) or None
 
 
+_TRIVIAL_SKU_VALUES = frozenset({"标准", "默认", "均码", "通用", "常规", "标准装", "标准款", "默认规格", "单品", "单件"})
+
+
 def sku_text(product: dict) -> str | None:
     """把 SKU 规格汇总成一段文字:"可选规格:颜色:黑色、白色;尺码:S码、M码"。
 
@@ -123,8 +126,15 @@ def sku_text(product: dict) -> str | None:
                 values[k].append(v)
     if not values:
         return None
+    # 没有信息量的规格不生成块:45 个商品的规格只有一条"规格:标准",文本一模一样,
+    # 45 个完全相同的向量会占满泛化查询的结果,还让 Milvus HNSW 只返回 45 条(2026-10-07 VM 上
+    # store_parity 抓到,当即别名回滚)。
+    if all(len(vs) == 1 and vs[0] in _TRIVIAL_SKU_VALUES for vs in values.values()):
+        return None
     body = ";".join(f"{k}:{'、'.join(vs[:12])}" for k, vs in values.items())
-    return f"可选规格:{body}"
+    # 带上商品标题:每个商品的规格块各不相同,"iPhone 17 Pro 宇宙橙 256GB"这类问法也能直接命中。
+    title = str(product.get("title") or "").strip()[:40]
+    return f"{title}|可选规格:{body}" if title else f"可选规格:{body}"
 
 
 def chunks_from_product(product: dict) -> Iterator[Chunk]:
