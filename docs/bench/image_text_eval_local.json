@@ -1,0 +1,251 @@
+{
+  "label": "local",
+  "generated_at": "2026-10-07T01:43:22-0400",
+  "config": {
+    "IMAGE_MIN_SIM": 0.51,
+    "IMAGE_RECALL_N": 20,
+    "IMAGE_TOP_K": 3,
+    "IMAGE_TEXT_WEIGHT": 0.1,
+    "IMAGE_CROSS_CAT_MARGIN": 0.03,
+    "n_catalog_images": 145,
+    "n_aug_per_image": 3,
+    "augmentation": "crop 70-90% side, rotate ±10°, brightness/contrast ±20%, saturation ±25%, downscale long edge 224-448, JPEG q55-65",
+    "seed": 20261007,
+    "fx": "USD→CNY 7.10 fixed",
+    "store": {
+      "backend": "chroma",
+      "image_count": 145,
+      "text_count": 1082
+    },
+    "llm_calls": 0,
+    "cases_b_c_use": "augmentation #0 of each image",
+    "old_path": "raw CLIP top-3 (same top-N recall list truncated to 3), text ignored, no floor"
+  },
+  "calibration": {
+    "positives": {
+      "n": 435,
+      "top1_sim": {
+        "min": 0.5077,
+        "p01": 0.5921,
+        "p05": 0.695,
+        "p50": 0.8051
+      },
+      "self_sim": {
+        "min": 0.5077,
+        "p05": 0.6841,
+        "p50": 0.8051
+      },
+      "self_is_top1": 0.9586,
+      "self_missing_from_topN": 0
+    },
+    "negatives": {
+      "n": 50,
+      "top1_sim": {
+        "max": 0.4835,
+        "p95": 0.4807,
+        "p50": 0.4373,
+        "min": 0.2605
+      },
+      "hardest": [
+        {
+          "name": "gradient_5",
+          "top1": 0.4835,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "pattern_4",
+          "top1": 0.482,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "gradient_2",
+          "top1": 0.4807,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "noise_cloud_1",
+          "top1": 0.4744,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "shapes_3",
+          "top1": 0.4738,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "noise_cloud_3",
+          "top1": 0.4737,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "shapes_6",
+          "top1": 0.4694,
+          "top1_product": "p_digital_012"
+        },
+        {
+          "name": "shapes_7",
+          "top1": 0.4671,
+          "top1_product": "p_digital_012"
+        }
+      ]
+    },
+    "suggested_floor(max_neg+0.02)": 0.51,
+    "configured_floor": 0.51,
+    "positive_retention_at_configured_floor": 0.9977,
+    "negative_rejection_at_configured_floor": 1.0,
+    "positive_retention_at_suggested_floor": 0.9977
+  },
+  "results": {
+    "a_image_only": {
+      "old": {
+        "n": 435,
+        "self_hit@3": 1.0,
+        "same_cat_precision": 0.872,
+        "same_cat_precision_excl_self": 0.808,
+        "mean_cards": 3
+      },
+      "new": {
+        "n": 435,
+        "self_hit@3": 0.9977,
+        "same_cat_precision": 0.9935,
+        "same_cat_precision_excl_self": 0.9851,
+        "mean_cards": 2.2598
+      }
+    },
+    "b_cheaper": {
+      "old": {
+        "n": 145,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.6598,
+        "same_category_rate": 0.869,
+        "same_sub_category_rate": 0.5632,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 145,
+        "violation_rate(any card)": 0.0207,
+        "card_violation_rate": 0.0152,
+        "same_category_rate": 0.9785,
+        "same_sub_category_rate": 0.4747,
+        "no_card_rate": 0.0897
+      },
+      "new_status_counts": {
+        "constraints_emptied": 92,
+        "visual": 52,
+        "below_floor": 1
+      },
+      "new_violation_examples": [
+        {
+          "pid": "p_beauty_003",
+          "text": "这个有没有便宜点的",
+          "bad": [
+            "p_beauty_003"
+          ],
+          "status": "visual"
+        },
+        {
+          "pid": "p_digital_006",
+          "text": "这个有没有便宜点的",
+          "bad": [
+            "p_digital_006"
+          ],
+          "status": "visual"
+        },
+        {
+          "pid": "p_clothes_013",
+          "text": "这个有没有便宜点的",
+          "bad": [
+            "p_clothes_013"
+          ],
+          "status": "visual"
+        }
+      ]
+    },
+    "b_budget_80pct": {
+      "old": {
+        "n": 142,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.7418,
+        "same_category_rate": 0.8685,
+        "same_sub_category_rate": 0.5634,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 142,
+        "violation_rate(any card)": 0.0,
+        "card_violation_rate": 0.0,
+        "same_category_rate": 0.981,
+        "same_sub_category_rate": 0.4621,
+        "no_card_rate": 0.1338
+      },
+      "new_status_counts": {
+        "constraints_emptied": 100,
+        "visual": 41,
+        "below_floor": 1
+      },
+      "new_violation_examples": []
+    },
+    "c_exclude_own_brand": {
+      "old": {
+        "n": 139,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.5132,
+        "same_category_rate": 0.8753,
+        "same_sub_category_rate": 0.5707,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 139,
+        "violation_rate(any card)": 0.0,
+        "card_violation_rate": 0.0,
+        "same_category_rate": 0.9638,
+        "same_sub_category_rate": 0.6413,
+        "no_card_rate": 0.0072
+      },
+      "new_status_counts": {
+        "constraints_emptied": 71,
+        "visual": 67,
+        "below_floor": 1
+      },
+      "new_violation_examples": []
+    },
+    "c_exclude_own_country": {
+      "old": {
+        "n": 73,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.6393,
+        "same_category_rate": 0.8813,
+        "same_sub_category_rate": 0.5342,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 73,
+        "violation_rate(any card)": 0.0,
+        "card_violation_rate": 0.0,
+        "same_category_rate": 0.9421,
+        "same_sub_category_rate": 0.5301,
+        "no_card_rate": 0.0137
+      },
+      "new_status_counts": {
+        "constraints_emptied": 43,
+        "visual": 29,
+        "below_floor": 1
+      },
+      "new_violation_examples": []
+    },
+    "d_synthetic_negatives": {
+      "old": {
+        "n": 50,
+        "rejection_rate": 0.0
+      },
+      "new": {
+        "n": 50,
+        "rejection_rate": 1.0,
+        "status_counts": {
+          "below_floor": 50
+        }
+      }
+    }
+  },
+  "elapsed_s": 258.3
+}

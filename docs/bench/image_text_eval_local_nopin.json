@@ -1,0 +1,182 @@
+{
+  "label": "local_nopin",
+  "generated_at": "2026-10-07T01:47:00-0400",
+  "config": {
+    "IMAGE_MIN_SIM": 0.51,
+    "IMAGE_RECALL_N": 20,
+    "IMAGE_TOP_K": 3,
+    "IMAGE_TEXT_WEIGHT": 0.1,
+    "IMAGE_CROSS_CAT_MARGIN": -1.0,
+    "n_catalog_images": 145,
+    "n_aug_per_image": 3,
+    "augmentation": "crop 70-90% side, rotate ±10°, brightness/contrast ±20%, saturation ±25%, downscale long edge 224-448, JPEG q55-65",
+    "seed": 20261007,
+    "fx": "USD→CNY 7.10 fixed",
+    "store": {
+      "backend": "chroma",
+      "image_count": 145,
+      "text_count": 1082
+    },
+    "llm_calls": 0,
+    "cases_b_c_use": "augmentation #0 of each image",
+    "old_path": "raw CLIP top-3 (same top-N recall list truncated to 3), text ignored, no floor"
+  },
+  "calibration": {
+    "configured_floor": 0.51,
+    "positive_retention_at_configured_floor": 0.9977,
+    "negative_rejection_at_configured_floor": 1.0
+  },
+  "results": {
+    "a_image_only": {
+      "old": {
+        "n": 435,
+        "self_hit@3": 1.0,
+        "same_cat_precision": 0.8728,
+        "same_cat_precision_excl_self": 0.8092,
+        "mean_cards": 3
+      },
+      "new": {
+        "n": 435,
+        "self_hit@3": 0.9977,
+        "same_cat_precision": 0.9455,
+        "same_cat_precision_excl_self": 0.8824,
+        "mean_cards": 2.3356
+      }
+    },
+    "b_cheaper": {
+      "old": {
+        "n": 145,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.6598,
+        "same_category_rate": 0.8713,
+        "same_sub_category_rate": 0.5655,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 145,
+        "violation_rate(any card)": 0.0207,
+        "card_violation_rate": 0.0138,
+        "same_category_rate": 0.911,
+        "same_sub_category_rate": 0.3634,
+        "no_card_rate": 0.0828
+      },
+      "new_status_counts": {
+        "constraints_emptied": 65,
+        "visual": 79,
+        "below_floor": 1
+      },
+      "new_violation_examples": [
+        {
+          "pid": "p_beauty_003",
+          "text": "这个有没有便宜点的",
+          "bad": [
+            "p_beauty_003"
+          ],
+          "status": "visual"
+        },
+        {
+          "pid": "p_digital_006",
+          "text": "这个有没有便宜点的",
+          "bad": [
+            "p_digital_006"
+          ],
+          "status": "visual"
+        },
+        {
+          "pid": "p_clothes_013",
+          "text": "这个有没有便宜点的",
+          "bad": [
+            "p_clothes_013"
+          ],
+          "status": "visual"
+        }
+      ]
+    },
+    "b_budget_80pct": {
+      "old": {
+        "n": 142,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.7418,
+        "same_category_rate": 0.8709,
+        "same_sub_category_rate": 0.5657,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 142,
+        "violation_rate(any card)": 0.0,
+        "card_violation_rate": 0.0,
+        "same_category_rate": 0.9016,
+        "same_sub_category_rate": 0.3438,
+        "no_card_rate": 0.1056
+      },
+      "new_status_counts": {
+        "constraints_emptied": 75,
+        "visual": 66,
+        "below_floor": 1
+      },
+      "new_violation_examples": []
+    },
+    "c_exclude_own_brand": {
+      "old": {
+        "n": 139,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.5156,
+        "same_category_rate": 0.8777,
+        "same_sub_category_rate": 0.5731,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 139,
+        "violation_rate(any card)": 0.0,
+        "card_violation_rate": 0.0,
+        "same_category_rate": 0.8889,
+        "same_sub_category_rate": 0.4795,
+        "no_card_rate": 0.0072
+      },
+      "new_status_counts": {
+        "constraints_emptied": 51,
+        "visual": 87,
+        "below_floor": 1
+      },
+      "new_violation_examples": []
+    },
+    "c_exclude_own_country": {
+      "old": {
+        "n": 73,
+        "violation_rate(any card)": 1.0,
+        "card_violation_rate": 0.6393,
+        "same_category_rate": 0.8813,
+        "same_sub_category_rate": 0.5342,
+        "no_card_rate": 0.0
+      },
+      "new": {
+        "n": 73,
+        "violation_rate(any card)": 0.0,
+        "card_violation_rate": 0.0,
+        "same_category_rate": 0.875,
+        "same_sub_category_rate": 0.4421,
+        "no_card_rate": 0.0137
+      },
+      "new_status_counts": {
+        "constraints_emptied": 34,
+        "visual": 38,
+        "below_floor": 1
+      },
+      "new_violation_examples": []
+    },
+    "d_synthetic_negatives": {
+      "old": {
+        "n": 50,
+        "rejection_rate": 0.0
+      },
+      "new": {
+        "n": 50,
+        "rejection_rate": 1.0,
+        "status_counts": {
+          "below_floor": 50
+        }
+      }
+    }
+  },
+  "elapsed_s": 215.9
+}
