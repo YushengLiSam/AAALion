@@ -299,6 +299,11 @@ def query_image(image_bytes: bytes, k: int = 5) -> list[Hit]:
         _count_fallback("image_query_failed", e)
         return []
 
+    return _image_hits(raw)
+
+
+def _image_hits(raw) -> list[Hit]:
+    """store 层的原始命中 → 商品级 Hit(product 是目录共享 dict,调用方要改先拷贝)。"""
     products = _product_index()
     hits: list[Hit] = []
     for raw_hit in raw:
@@ -306,6 +311,37 @@ def query_image(image_bytes: bytes, k: int = 5) -> list[Hit]:
         if pid in products:
             hits.append(Hit(product_id=pid, score=raw_hit.score, product=products[pid]))
     return hits
+
+
+def query_images(images: list[bytes], k: int = 20) -> list[Hit]:
+    """多图视觉召回(拍照找货 + 文字融合用):每张图各取 CLIP top-k,
+    按商品取**最大**相似度合并,按分数降序返回。
+
+    score 是余弦相似度(Chroma 的 1-distance / Milvus COSINE,两个后端同口径),
+    下游的视觉相关性下限 IMAGE_MIN_SIM 就是按这个分数定的。
+    单张图失败只记一次 image_query_failed 并跳过;全部失败返回 []。
+    """
+    if not images:
+        return []
+    try:
+        from rag.ingest.embed_image import embed_image_bytes
+        from rag.store import query_image as store_query_image
+    except ImportError:
+        return []
+    best: dict[str, Hit] = {}
+    for data in images:
+        try:
+            vec = embed_image_bytes(data)
+            raw = store_query_image(vec, k=k)
+        except Exception as e:
+            print(f"[rag] query_images failed on one image: {e}", file=sys.stderr)
+            _count_fallback("image_query_failed", e)
+            continue
+        for h in _image_hits(raw):
+            prev = best.get(h.product_id)
+            if prev is None or h.score > prev.score:
+                best[h.product_id] = h
+    return sorted(best.values(), key=lambda h: h.score, reverse=True)
 
 
 def _keyword_fallback(text: str, k: int = 5, f: Filter | None = None) -> list[Hit]:

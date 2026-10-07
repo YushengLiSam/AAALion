@@ -918,13 +918,103 @@ def top_k(
 
 
 def top_k_image(image_bytes: bytes, k: int = 3) -> list[dict]:
-    """用 CLIP 找视觉相似的 top-k。CLIP 不可用时返回空列表。"""
+    """用 CLIP 找视觉相似的 top-k。CLIP 不可用时返回空列表。
+
+    这是 IMAGE_TEXT_FUSION=0(或融合路径出异常)时的旧行为:只看第一张图、
+    不看文字、没有相关性下限。新路径见 image_text_retrieve。"""
     try:
         from rag.retrieve.query import query_image
         hits = query_image(image_bytes, k=k)
         return [h.product for h in hits]
     except Exception:
         return []
+
+
+def image_text_retrieve(
+    images: list[bytes],
+    text: str,
+    *,
+    turn_filter=None,
+    conversation_filter=None,
+    user_id: str | None = None,
+    k: int | None = None,
+):
+    """拍照找货 + 文字(IMAGE_TEXT_FUSION=1)。全程不调 LLM。
+
+    1. 多图 CLIP 召回(每张 top-IMAGE_RECALL_N,按商品取最大相似度);
+    2. rag.retrieve.image_fusion 做相关性下限 / 硬约束 / 文字融合排序;
+    3. 约束把视觉候选全部筛掉时,在锚点(视觉最相似商品)的品类里按同一组约束
+       走文字检索(top_k,skip_topic_switch——回退 Filter 是程序派生的权威约束),
+       细分品类里没有就放宽到大类再试一次;结果再过一遍严格的本地否定规则。
+
+    返回 ImageFusionResult。status="below_floor" / "no_visual" 时 products 为空,
+    由 chat.py 决定走普通文字检索还是如实说没有相似商品。异常向上抛,
+    由 chat.py 捕获后回退旧行为。
+    """
+    from rag.retrieve import image_fusion as F
+    from rag.retrieve.query import query_images
+
+    hits = query_images(list(images)[: F.max_query_images()], k=F.recall_n())
+    return image_text_fuse_hits(
+        hits, text,
+        turn_filter=turn_filter, conversation_filter=conversation_filter, user_id=user_id, k=k,
+    )
+
+
+def image_text_fuse_hits(
+    hits,
+    text: str,
+    *,
+    turn_filter=None,
+    conversation_filter=None,
+    user_id: str | None = None,
+    k: int | None = None,
+    rerank_fn=None,
+):
+    """image_text_retrieve 的后半段:给定已召回的视觉命中,做融合 + 约束清空时的文字回退。
+    拆出来是为了让离线评测(rag/eval/image_text_eval.py)复用同一份代码,
+    而不必为每个文字变体重复跑 CLIP。"""
+    from rag.retrieve import image_fusion as F
+    from rag.retrieve.query import Filter
+    from app.services.currency import normalize_product_prices
+
+    k = k or F.image_top_k()
+    res = F.fuse_image_candidates(
+        hits, text,
+        turn_filter=turn_filter,
+        conversation_filter=conversation_filter,
+        k=k,
+        normalize_fn=normalize_product_prices,
+        rerank_fn=rerank_fn,
+    )
+    if res.status != "constraints_emptied" or res.fallback_filter is None:
+        return res
+
+    def _search(flt) -> list[dict]:
+        found = top_k(
+            res.fallback_query or "",
+            k=max(k, 5),
+            conversation_filter=flt,
+            intent_text=res.fallback_intent,
+            user_id=user_id,
+            skip_topic_switch=True,
+        )
+        found = normalize_product_prices(found)
+        # 兜底检索层里 国产 / X以外 是 fail-soft 的,这里再严格过一遍,保证卡片不违反约束
+        found = F.apply_local_negation(found, res.negation)
+        return F.apply_constraints(found, flt, F.LocalNegation())
+
+    fb = res.fallback_filter
+    products = _search(fb)
+    res.trace["fallback"] = "sub_category"
+    if not products and (fb.sub_categories or fb.sub_category) and fb.category:
+        wider = Filter(**{name: getattr(fb, name) for name in fb.__dataclass_fields__})
+        wider.sub_categories = None
+        wider.sub_category = None
+        products = _search(wider)
+        res.trace["fallback"] = "category"
+    res.products = products[:k]
+    return res
 
 
 stub_top_k = top_k

@@ -2,7 +2,8 @@
 
 处理流程:
   1. 提取最后一条用户文本 + 可选的图片字节。
-  2. 检索 top 候选商品(带图走 CLIP;否则走 hybrid+rerank)。
+  2. 检索 top 候选商品(带图走 CLIP 视觉召回 + 文字约束融合,见 docs/IMAGE_SEARCH.md;
+     否则走 hybrid+rerank)。
   3. 构建商品目录文本 + system prompt;组装 messages。
   4. 缓存检查(对 system + messages + 图片 sha 做哈希)→ 命中则回放。
   5. 调用 LLM provider 流式生成,上游出错时按退避策略重试。
@@ -476,7 +477,7 @@ def _prior_text_turns(messages, *, limit: int = 8, max_chars: int = 600) -> list
         if m.role not in ("user", "assistant"):
             continue
         text = message_text(m)
-        if not text or text == "(image-only query)":
+        if not text or text == _IMAGE_ONLY_PLACEHOLDER:
             continue
         text = text[:max_chars]
         if turns and turns[-1]["role"] == m.role:
@@ -493,6 +494,40 @@ def _prior_text_turns(messages, *, limit: int = 8, max_chars: int = 600) -> list
 # content 可能是字符串(老格式)或 list[ContentPart](多模态新格式),两种都要处理。
 # 用途:(1) 给 _detect_cart_intent 看是不是要加购/下单;(2) 拼日志 query_preview;
 # (3) 作为 LLM 的纯文本 fallback。纯图请求返回 "(image-only query)" 占位。
+# 注意占位串本身是英文:任何"按文字判断语言/意图"的地方都要先把它当空串处理
+# (见 _real_user_text / _reply_language),否则纯图消息会被判成英文提问。
+_IMAGE_ONLY_PLACEHOLDER = "(image-only query)"
+
+
+def _real_user_text(user_text: str) -> str:
+    """去掉纯图占位后的用户真实文字(纯图消息 → 空串)。"""
+    return "" if user_text == _IMAGE_ONLY_PLACEHOLDER else user_text
+
+
+def _reply_language(req_language: str | None, real_text: str, messages) -> str:
+    """回复语言:UI 选了英文 → en;有文字 → 按文字判断(R13);
+    纯图消息没有文字可判断 → 沿用上一条带文字的 user 轮的语言,都没有就默认中文。
+    (修复前纯图消息的占位串 "(image-only query)" 被 looks_english 判成英文,
+    中文用户拍照得到英文回答。)"""
+    if (req_language or "").lower().startswith("en"):
+        return "en"
+    if real_text.strip():
+        return "en" if looks_english(real_text) else "zh"
+    if not _has_image(messages):
+        return "zh"
+    seen_last_user = False
+    for m in reversed(messages):
+        if getattr(m, "role", None) != "user":
+            continue
+        if not seen_last_user:
+            seen_last_user = True
+            continue
+        prev = message_text(m)
+        if prev and prev != _IMAGE_ONLY_PLACEHOLDER:
+            return "en" if looks_english(prev) else "zh"
+    return "zh"
+
+
 def _extract_user_text(messages) -> str:
     for m in reversed(messages):
         if m.role != "user":
@@ -504,7 +539,7 @@ def _extract_user_text(messages) -> str:
         for part in content:
             if hasattr(part, "type") and part.type == "text" and getattr(part, "text", None):
                 text_chunks.append(part.text)
-        return "\n".join(text_chunks) or "(image-only query)"
+        return "\n".join(text_chunks) or _IMAGE_ONLY_PLACEHOLDER
     return ""
 
 
@@ -827,6 +862,108 @@ def _agent_mode() -> str:
         return "off"
 
 
+# ---------------------------------------------------------------------------
+# 拍照找货 + 文字(IMAGE_TEXT_FUSION,默认开)。检索与约束全在本地完成,不调 LLM;
+# 细节见 rag/retrieve/image_fusion.py 与 docs/IMAGE_SEARCH.md。
+# ---------------------------------------------------------------------------
+
+
+def _with_last_user_text(messages, text: str) -> list:
+    """把最后一条 user 消息换成只含(规整过的)文字的副本,供 build_conversation_filter 用:
+    图片 part 对约束解析没有意义,"是不是苹果的" 这类问句要先折叠成 "是苹果的"。"""
+    out = list(messages)
+    for i in range(len(out) - 1, -1, -1):
+        if getattr(out[i], "role", None) == "user":
+            out[i] = ChatMessage(role="user", content=text or "")
+            break
+    return out
+
+
+async def _image_fusion_retrieve(req: "ChatRequest", images: list[bytes], real_text: str):
+    """融合路径入口。开关关闭或出任何异常都返回 None,调用方回退旧的纯 CLIP top-3。"""
+    try:
+        from rag.retrieve import image_fusion as fusion
+
+        if not fusion.fusion_enabled():
+            return None
+        from app.services import rag_client as _rc
+        from rag.retrieve.constraints import build_retrieval_filter
+
+        text_n = fusion.normalize_question_forms(real_text)
+        explicit = req.filters.model_dump(exclude_none=True) if req.filters else None
+        turn_filter = build_retrieval_filter(text_n, explicit)
+        conv_filter = build_conversation_filter(_with_last_user_text(req.messages, text_n), explicit)
+        # 传原文:融合层自己规整问句,并且要先用原文判断"是不是X的"这类辨认式提问。
+        return await asyncio.to_thread(
+            _rc.image_text_retrieve, images, real_text,
+            turn_filter=turn_filter, conversation_filter=conv_filter, user_id=req.user_id,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"image+text fusion failed, falling back to plain CLIP: {type(e).__name__}: {e}")
+        return None
+
+
+def _image_text_searchable(real_text: str) -> bool:
+    """图片低于视觉下限时,配的文字值不值得单独拿去做文字检索:要么有描述性内容
+    ("黑色双肩包"),要么带硬约束信号(品类 / 品牌 / 预算)。"这是什么 / 多少钱"
+    这种纯指代问句检不出东西,只会拿上一轮的话题凑卡,不如如实说没有相似商品。"""
+    if not real_text.strip():
+        return False
+    try:
+        from rag.retrieve import image_fusion as fusion
+        from rag.retrieve.constraints import build_retrieval_filter
+
+        text_n = fusion.normalize_question_forms(real_text)
+        return fusion.has_descriptive_intent(text_n) or build_retrieval_filter(text_n) is not None
+    except Exception:
+        return True
+
+
+def _image_addendum(outcome, products: list[dict]) -> str:
+    """拍照找货的 prompt 附加段:告诉 LLM 卡片是怎么来的、强制执行了哪些条件,
+    让文字回答不和卡片打架(例如卡片已按"500 以内"筛过,文字就不能说超预算)。"""
+    if outcome is None:
+        return ""
+    status = getattr(outcome, "status", None)
+    enforced = "；".join(getattr(outcome, "enforced", None) or [])
+    anchor = getattr(outcome, "anchor", None) or {}
+    a_title = (anchor.get("title") or "")[:40]
+    a_price = anchor.get("price_cny")
+    a_price_txt = f"(¥{a_price})" if a_price is not None else ""
+    if status == "visual":
+        s = ("\n\n11. **本轮是拍照找货**: 下面的商品卡是按图片的**视觉相似度**从目录里检索的"
+             + (",并结合了用户的文字描述排序" if getattr(outcome, "reordered_by_text", False) else "")
+             + "。图中商品不一定在目录里:只有你的视觉判断(品牌+品类)确实与某张卡一致时才确认是同款,"
+             "否则说『目录里最相似的是…』。")
+        if enforced:
+            s += (f"\n已在商品卡上**强制执行**用户的条件:{enforced}。每张卡都已满足这些条件——"
+                  "回复里**不要**说某张卡超预算、属于被排除的品牌/产地或不符合条件。")
+        if getattr(outcome, "anchor_excluded", False) and a_title:
+            s += (f"\n视觉上最相似的「{a_title}」{a_price_txt}不满足上述条件,已从卡片中排除;"
+                  "如果用户问的就是它,如实说明它不符合条件。")
+        return s
+    if status == "constraints_emptied":
+        s = (f"\n\n11. **拍照找货:视觉相似的商品不满足用户条件**: 图片在目录里视觉最相似的是"
+             f"「{a_title}」{a_price_txt},但视觉相似的商品都不满足用户提出的条件"
+             + (f"({enforced})" if enforced else "") + "。")
+        if products:
+            s += ("下面的商品卡是在**同一品类**里按这些条件重新检索的结果。回复时先如实说明图中那款"
+                  "(以及视觉相似的几款)不符合条件,再介绍这些符合条件的替代品;不要声称卡片就是图中商品。")
+        else:
+            s += ("在同一品类里也没有找到满足条件的商品,本轮没有商品卡。请如实说明这一点,"
+                  "并询问用户是否放宽条件。不要编造商品。(此为纪律第二条的例外)")
+        return s
+    if status == "below_floor":
+        if products:
+            return ("\n\n11. **拍照找货:没有找到与图片相似的商品**: 目录里没有和图片视觉上相似的商品"
+                    "(相似度低于阈值),下面的商品卡是**按用户的文字**检索的结果。回复时先如实说明没有找到"
+                    "与图片相似的商品,再介绍这些按文字找到的候选;不要声称卡片就是图中商品。")
+        return ("\n\n11. **拍照找货:目录里没有与图片相似的商品**: 本轮没有商品卡。请如实说明目录里没有找到"
+                "与图片相似的商品,可以简要描述你在图中看到了什么,并请用户用文字说说想找哪类商品。"
+                "不要推荐或编造任何商品。(此为纪律第二条的例外)")
+    return ""
+
+
 # 主路由:POST /chat/stream → SSE 流式响应。**整个后端最重要的函数**。
 # 流程见文件顶部 docstring 的 7 步。本函数把这 7 步串起来:
 #   503 ready 检查 → 提取文本/图片 → 检索(CLIP or hybrid+rerank) →
@@ -877,7 +1014,9 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # R13 — 用户明显在打英文时,以**消息**语言为准:英文提问被中文回答,
     # 不管 UI 开关怎么设都很违和
     # (而且 API 探针基本不会传 `language`)。
-    lang = "en" if ((req.language or "").lower().startswith("en") or looks_english(user_text)) else "zh"
+    # 拍照找货 — 纯图消息的占位串不参与语言判断(见 _reply_language)。
+    real_user_text = _real_user_text(user_text)
+    lang = _reply_language(req.language, real_user_text, req.messages)
     retrieval_query = _augment_english(build_retrieval_query(req.messages), user_text)
     # R11.fix — 不带图的空/纯空白输入:跳过检索**和** LLM。
     # 空 user 消息会让 provider 返回 400(还会把原始上游错误漏给客户端),
@@ -999,14 +1138,29 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         except Exception:
             hop_trace = None  # 任何异常静默回退单跳
 
+    # 拍照找货 + 文字 —— IMAGE_TEXT_FUSION=1(默认)时的融合结果(ImageFusionResult);
+    # None 表示没走融合(纯文字请求 / 开关关闭 / 融合出异常回退了旧行为)。
+    image_outcome = None
     if clarify_dims is None and not empty_query and not out_of_domain:
         if _has_image(req.messages):
             img_bytes_list = _extract_image_bytes_list(req.messages)
-            # CLIP 检索器是单图的;用第一张附件作为视觉查询。
             # LLM 仍能通过 content 数组看到全部图片。
             if img_bytes_list:
-                products = await asyncio.to_thread(top_k_image, img_bytes_list[0], k=3)
-        if not products:
+                image_outcome = await _image_fusion_retrieve(req, img_bytes_list, real_user_text)
+                if image_outcome is None:
+                    # 旧行为(开关关闭或融合异常):只用第一张图做 CLIP top-3。
+                    products = await asyncio.to_thread(top_k_image, img_bytes_list[0], k=3)
+                else:
+                    products = list(image_outcome.products)
+        # 融合路径已经给出结论时不再走下面的文字兜底:有视觉卡 / 约束清空后已在同类里
+        # 按条件检索过 / 低于视觉下限且没有可检索的文字(如实说没有相似商品,不出随机卡)。
+        # 低于下限但文字有内容 → 照常走下面的文字检索。no_visual(CLIP 不可用)也照旧兜底。
+        image_handled = image_outcome is not None and (
+            image_outcome.status in ("visual", "constraints_emptied")
+            or (image_outcome.status == "below_floor"
+                and not _image_text_searchable(real_user_text))
+        )
+        if not products and not image_handled:
             explicit_filters = req.filters.model_dump(exclude_none=True) if req.filters else None
             conversation_filter = build_conversation_filter(req.messages, explicit_filters)
             products = await asyncio.to_thread(
@@ -1120,6 +1274,9 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # 智能体路径的响应带上 path 标签,绝不与同一请求的快路响应共用缓存条目;
     # 快路的 key 保持原样(默认 off 时缓存行为零变化)。
     path_token = "|path=agent" if agent_used else ""
+    # 拍照找货:融合路径与旧纯 CLIP 路径(开关切换)的响应不能互相回放。
+    if image_outcome is not None:
+        path_token += f"|img={image_outcome.status}"
     cache_key = make_key(
         system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}|pref={pref_token}{path_token}",
         messages_json=req.model_dump_json(),
@@ -1234,6 +1391,8 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             "请用一两句话如实说明目录暂时没有该类商品,并引导用户换一个品类"
             "(美妆/数码/服饰/食品等)。不要编造商品,也不要硬塞无关推荐。(此为纪律第二条的例外)"
         )
+    # 拍照找货 + 文字 —— 告诉 LLM 卡片的来源与已强制执行的条件(见 _image_addendum)。
+    addendum += _image_addendum(image_outcome, products)
     # R10 #5 — 反问澄清轮换用反问 prompt(不带目录,
     # 也不带对比/场景附加段),让 LLM 反问而不是推荐。
     if clarify_dims:
