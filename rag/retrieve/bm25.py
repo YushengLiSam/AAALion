@@ -32,6 +32,17 @@ def _iter_products() -> Iterable[dict]:
             continue
 
 
+def _extra_fields() -> set[str]:
+    """RAG_BM25_EXTRA_FIELDS=sku,caption —— 运行时开关,默认空(= 行为与以前完全相同)。
+
+    BM25 是每次进程启动时从种子 JSON 现建的,不经过向量库重建;改文档文本会在下一次重启
+    立刻影响线上,所以必须显式打开,并先过评测门禁。"""
+    import os
+
+    raw = os.getenv("RAG_BM25_EXTRA_FIELDS", "")
+    return {x.strip() for x in raw.split(",") if x.strip()}
+
+
 def _document_text(p: dict) -> str:
     rag = p.get("rag_knowledge", {}) or {}
     parts = [
@@ -41,6 +52,14 @@ def _document_text(p: dict) -> str:
         p.get("sub_category", ""),
         (rag.get("marketing_description") or "")[:400],
     ]
+    extra = _extra_fields()
+    if extra:
+        from rag.ingest.chunk import image_caption_text, sku_text
+
+        if "sku" in extra:
+            parts.append(sku_text(p) or "")
+        if "caption" in extra:
+            parts.append(image_caption_text(p.get("product_id") or "") or "")
     return " ".join([s for s in parts if s])
 
 
