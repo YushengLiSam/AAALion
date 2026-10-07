@@ -213,6 +213,30 @@ def is_identification_question(text: str) -> bool:
     return bool(text and _IDENT_RE.search(text))
 
 
+_CLAUSE_SPLIT_RE = re.compile(r"[，。,;；!！?？\n]+")
+
+
+def identification_brands(text: str) -> list[str]:
+    """辨认式提问**所在分句**里点名的品牌(canonical 名,与 build_retrieval_filter 同口径)。
+    只有这些品牌不当 brand_include:"这是什么?我只要华为的" 里 "华为" 是真要求,
+    不能因为同一句话里有个 "这是什么" 就被一起丢掉。"""
+    if not text:
+        return []
+    try:
+        from rag.retrieve.constraints import build_retrieval_filter
+    except Exception:
+        return []
+    out: list[str] = []
+    for clause in _CLAUSE_SPLIT_RE.split(text):
+        if not clause.strip() or not is_identification_question(clause):
+            continue
+        f = build_retrieval_filter(normalize_question_forms(clause))
+        for b in (f.brand_include if f else None) or []:
+            if b not in out:
+                out.append(b)
+    return out
+
+
 _NEG_TRIGGERS = (
     "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不买", "不选",
     "不含", "不带", "除了", "排除", "就算了", "就不看", "不用了",
@@ -281,24 +305,36 @@ def _country_words() -> list[str]:
 
 
 # 相对价格:以视觉最相似商品为基准。"太贵" 是嫌贵 → 要更便宜的;"太便宜" 对称。
+# 注意 "好一点 / 质量好点" 说的是品质不是价格,不能翻译成"价格高于锚点"的硬约束
+# ("降噪效果好一点的" 曾被误判成 pricier,把同价位/更便宜的好耳机全筛掉)。
 _CHEAPER_RE = re.compile(
     r"便宜(?:一?点|一些|些|的)|更便宜|再便宜|太贵|嫌贵|平价一?点|低价一?点"
     r"|\bcheaper\b|\bless expensive\b|\btoo expensive\b|\blower price\b",
     re.IGNORECASE,
 )
 _PRICIER_RE = re.compile(
-    r"贵(?:一?点|一些|些)|更贵|更高端|高端一?点|好一点的?|太便宜|嫌便宜"
+    r"贵(?:一?点|一些|些)|更贵|更高端|高端一?点|太便宜|嫌便宜"
     r"|\bpricier\b|\bmore expensive\b|\bhigher[- ]end\b|\btoo cheap\b",
     re.IGNORECASE,
 )
+# 紧挨在前面的否定("不要便宜的 / 别买便宜货 / 不是要更贵的")把方向取消掉。
+# "不要太贵 / 不要太便宜" 不在此列:"太X" 本身就是嫌 X,前面加"不要"意思不变。
+_REL_NEG_BEFORE_RE = re.compile(r"(?:不要|别要|不想要|不需要|别买|不买|不是|别)[^，。,;；!！?？]{0,2}$")
+
+
+def _rel_hit(regex: re.Pattern, text: str) -> bool:
+    for m in regex.finditer(text):
+        if m.group(0).startswith("太") or not _REL_NEG_BEFORE_RE.search(text[: m.start()]):
+            return True
+    return False
 
 
 def relative_price_direction(text: str) -> str | None:
     """'cheaper' / 'pricier' / None。两个方向同时出现时不猜,返回 None。"""
     if not text:
         return None
-    cheap = bool(_CHEAPER_RE.search(text))
-    pricey = bool(_PRICIER_RE.search(text))
+    cheap = _rel_hit(_CHEAPER_RE, text)
+    pricey = _rel_hit(_PRICIER_RE, text)
     if "太贵" in text and "太便宜" not in text:
         return "cheaper"
     if "太便宜" in text and "太贵" not in text:
@@ -421,18 +457,21 @@ def effective_filter(
     anchor: dict | None,
     *,
     drop_turn_brands: bool = False,
+    asked_brands: Iterable[str] | None = None,
 ) -> tuple[Filter | None, bool]:
     """视觉路径用的硬约束:默认沿用会话约束(与文字路径一致,预算/排除跨轮生效);
     但**照片本身就是本轮的话题锚点**——会话里继承的品类 / 细分品类与图中最相似
     商品对不上、且本轮文字没有重新指定品类时,视为换话题:丢掉继承的品类、细分
     品类、预算和点名品牌,只保留跨轮排除(品牌 / 国别)。返回 (filter, 是否丢了历史)。
 
-    drop_turn_brands:本轮是辨认式提问("是不是苹果的")时,本轮文字里点名的品牌
-    不作为 brand_include。
+    asked_brands:辨认式提问("是不是苹果的")里被问到的品牌(identification_brands),
+    不作为 brand_include。drop_turn_brands=True 是更粗的旧口径:本轮点名的品牌全部丢掉。
     """
     flt, dropped = _effective_filter(turn_filter, conversation_filter, anchor)
-    if drop_turn_brands and flt is not None and turn_filter is not None and turn_filter.brand_include:
-        asked = {b.casefold() for b in turn_filter.brand_include}
+    asked = {b.casefold() for b in (asked_brands or [])}
+    if drop_turn_brands and turn_filter is not None and turn_filter.brand_include:
+        asked |= {b.casefold() for b in turn_filter.brand_include}
+    if asked and flt is not None and flt.brand_include:
         kept = [b for b in (flt.brand_include or []) if b.casefold() not in asked]
         flt = Filter(**{k: getattr(flt, k) for k in flt.__dataclass_fields__})
         flt.brand_include = kept or None
@@ -644,8 +683,17 @@ def fuse_scores(sims: dict[str, float], text_scores: dict[str, float], weight: f
 
     文字分最多贡献 λ,所以只能在视觉相似度相差 < λ 的候选之间调整先后——
     视觉上明显更像的商品不会被文字翻盘。缺文字分的候选按 0 计。
+    文字分先截到 [0,1]:换了一个不带 sigmoid 的交叉编码器(输出 logit)时,
+    "文字最多贡献 λ" 这条保证也不会被打破。
     """
-    return {pid: s + weight * float(text_scores.get(pid, 0.0)) for pid, s in sims.items()}
+    def _clip01(v) -> float:
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return 0.0
+        return 0.0 if v != v else min(1.0, max(0.0, v))
+
+    return {pid: s + weight * _clip01(text_scores.get(pid, 0.0)) for pid, s in sims.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -731,8 +779,8 @@ def build_fallback(
 ) -> tuple[Filter, str, str]:
     """约束清空视觉候选时的文字检索回退:同一组约束 + 锚点的品类 / 细分品类
     (本轮文字自己指定了品类时以文字为准)。返回 (filter, 检索 query, intent_text)。
-    query / intent 里**不放否定词**——排除条件已经在 Filter 里,这样 top_k 不会
-    触发 extract_negation(配了 key 时那一步会调 LLM)。"""
+    query / intent 里**不放否定词**——排除条件已经在 Filter 里。调用方另外以
+    top_k(llm_free=True) 检索,两层一起保证不会走到 extract_negation 的 LLM 分支。"""
     has_own_cat = bool(flt is not None and (flt.category or _subs(flt)))
     if has_own_cat:
         category, subs = flt.category, (_subs(flt) or None)
@@ -760,12 +808,34 @@ def build_fallback(
             or category or (anchor.get("title") or "")[:16])
     residual = descriptive_residual(text)
     query = " ".join(x for x in (head, residual, "国产" if neg.requires_domestic else "") if x).strip()
+    # descriptive_residual 会删掉单字("是/个/的"…),删完可能**拼出**新的否定词
+    # ("我不是要这个颜色" → "不要颜色")。回退检索的 top_k 已经是 llm_free,这里再兜一层:
+    # query 里绝不留否定触发词,免得本地否定把拼出来的词当成排除条件。
+    query = strip_negation_triggers(query)
     intent = query
     if relative == "cheaper":
         intent = f"{query} 更便宜"
     elif relative == "pricier":
         intent = f"{query} 更高端"
-    return fb, query, intent
+    return fb, query, strip_negation_triggers(intent)
+
+
+# 与 rag_client._negation_signals / negation.extract_negation 的触发词保持一致
+# (中文按子串;英文 "no " / "without" 按整词)。
+_EN_NEG_TRIGGER_RE = re.compile(r"\bwithout\b|\bno\s", re.IGNORECASE)
+
+
+def strip_negation_triggers(text: str) -> str:
+    """反复删除否定触发词,直到一个都不剩(删掉一个可能又拼出另一个)。"""
+    s = text or ""
+    for _ in range(10):
+        before = s
+        for w in _NEG_TRIGGERS:
+            s = s.replace(w, "")
+        s = _EN_NEG_TRIGGER_RE.sub(" ", s)
+        if s == before:
+            break
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def _catalog_brands_matching(names: Sequence[str]) -> list[str]:
@@ -822,7 +892,7 @@ def fuse_image_candidates(
     anchor = products[0]
     relative = relative_price_direction(text_n)
     flt, dropped = effective_filter(turn_filter, conversation_filter, anchor,
-                                    drop_turn_brands=is_identification_question(text or ""))
+                                    asked_brands=identification_brands(text or ""))
     rel_max, rel_min = relative_bounds(relative, anchor, flt)
     wants_alternative = bool(relative or neg.active or (flt is not None and flt.active))
     products = pin_to_anchor_category(products, sims, anchor, flt, strict_kind=wants_alternative)

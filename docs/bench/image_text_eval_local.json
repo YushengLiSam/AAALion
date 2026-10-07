@@ -1,6 +1,6 @@
 {
   "label": "local",
-  "generated_at": "2026-10-07T01:43:22-0400",
+  "generated_at": "2026-10-07T02:08:54-0400",
   "config": {
     "IMAGE_MIN_SIM": 0.51,
     "IMAGE_RECALL_N": 20,
@@ -18,6 +18,7 @@
       "text_count": 1082
     },
     "llm_calls": 0,
+    "network_calls_blocked": 0,
     "cases_b_c_use": "augmentation #0 of each image",
     "old_path": "raw CLIP top-3 (same top-N recall list truncated to 3), text ignored, no floor"
   },
@@ -247,5 +248,5 @@
       }
     }
   },
-  "elapsed_s": 258.3
+  "elapsed_s": 252.9
 }

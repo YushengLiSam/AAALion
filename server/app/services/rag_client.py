@@ -146,6 +146,20 @@ def _lexical_overlap(query: str, candidates: list[dict], top_n: int = 5) -> bool
     return False
 
 
+def _local_only_negation(text: str) -> dict:
+    """extract_negation 的纯本地版本(与它没配 key 时的返回完全一致),绝不调 LLM。
+    拍照找货路径(llm_free=True)用。"""
+    try:
+        from rag.retrieve.negation import _local_brand_mentions, _local_country_keywords
+        return {
+            "exclude_brands": _local_brand_mentions(text),
+            "exclude_categories": [],
+            "exclude_keywords": _local_country_keywords(text),
+        }
+    except Exception:
+        return {"exclude_brands": [], "exclude_categories": [], "exclude_keywords": []}
+
+
 def _negation_signals(text: str) -> bool:
     return any(s in text for s in (
         "不要", "别要", "别给我", "不想要", "不需要", "不考虑", "不买", "不选",
@@ -397,8 +411,12 @@ def _heavy_retrieve(
     negation_on: bool,
     price_on: bool,
     relevance_gate: bool = True,
+    llm_free: bool = False,
 ) -> list[dict]:
     """昂贵且与偏好无关的检索流水线(第 1-6 步)。
+
+    llm_free=True(拍照找货路径用):不做 LLM 多查询改写,否定抽取只用本地规则
+    (_local_only_negation),保证这条检索绝不调用任何 LLM。
 
     从 top_k 中抽取出来(R10 方案 A),以便结果能被检索缓存 memoize。
     输出完全由输入决定,唯一例外是按用户 👍/👎 历史做的偏好重排——
@@ -417,7 +435,7 @@ def _heavy_retrieve(
             queries = expand_query(text) or [text]
         except Exception:
             queries = [text]
-    if rewrite_on:
+    if rewrite_on and not llm_free:
         try:
             from rag.retrieve.rewrite import rewrite_query
 
@@ -468,7 +486,7 @@ def _heavy_retrieve(
         try:
             from rag.retrieve.negation import apply_negation, extract_negation
             if negation_on:
-                neg = extract_negation(text)
+                neg = _local_only_negation(text) if llm_free else extract_negation(text)
                 # 把继承的关键词并进来,使之前轮次的否定仍然生效。
                 if inherited_keywords:
                     existing = set(neg.get("exclude_keywords", []) or [])
@@ -805,6 +823,7 @@ def top_k(
     user_id: str | None = None,
     relevance_gate: bool = True,
     skip_topic_switch: bool = False,
+    llm_free: bool = False,
 ) -> list[dict]:
     """混合检索 + (可选)改写 + 否定过滤 + 重排序 → top-k 商品。
 
@@ -814,6 +833,9 @@ def top_k(
     `skip_topic_switch`(内部参数,只给多跳 hop2 / 智能体工具用):调用方传入的
     conversation_filter 是**程序派生**的权威约束(锚点价格/品牌/品类),不是从
     历史对话继承来的,因此不能被下面的话题切换检测丢掉。默认 False,单跳行为不变。
+
+    `llm_free`(内部参数,只给拍照找货路径用):强制不调 LLM——不做 LLM 改写
+    (无视 RAG_REWRITE),否定抽取只走本地规则。默认 False,文字路径行为不变。
     """
     synonyms_on = os.getenv("RAG_SYNONYMS", "1") == "1"
     rewrite_on = os.getenv("RAG_REWRITE", "0") == "1"
@@ -880,8 +902,11 @@ def top_k(
     # ——那是延迟的大头,英文链路尤甚。廉价、用户相关的偏好重排
     # (第 7 步)留在下面、缓存之外,
     # 这样 👍/👎 仍能实时调整顺序,提案 #12 也得以保留。
+    # llm_free 的结果(本地否定 / 不改写)不能和普通请求共用缓存条目;
+    # 默认 False 时 key 保持原样。
     _rc_key = _retrieval_cache_key(
-        text, k, retrieval_filter, f"{preference_text}|gate={relevance_gate}"
+        text, k, retrieval_filter,
+        f"{preference_text}|gate={relevance_gate}" + ("|llm_free" if llm_free else ""),
     )
     candidates = _retrieval_cache_get(_rc_key)
     if candidates is None:
@@ -896,6 +921,7 @@ def top_k(
             negation_on=negation_on,
             price_on=price_on,
             relevance_gate=relevance_gate,
+            llm_free=llm_free,
         )
         _retrieval_cache_put(_rc_key, candidates)
 
@@ -944,7 +970,8 @@ def image_text_retrieve(
     1. 多图 CLIP 召回(每张 top-IMAGE_RECALL_N,按商品取最大相似度);
     2. rag.retrieve.image_fusion 做相关性下限 / 硬约束 / 文字融合排序;
     3. 约束把视觉候选全部筛掉时,在锚点(视觉最相似商品)的品类里按同一组约束
-       走文字检索(top_k,skip_topic_switch——回退 Filter 是程序派生的权威约束),
+       走文字检索(top_k,skip_topic_switch——回退 Filter 是程序派生的权威约束;
+       llm_free——不做 LLM 改写、否定只走本地规则),
        细分品类里没有就放宽到大类再试一次;结果再过一遍严格的本地否定规则。
 
     返回 ImageFusionResult。status="below_floor" / "no_visual" 时 products 为空,
@@ -998,6 +1025,7 @@ def image_text_fuse_hits(
             intent_text=res.fallback_intent,
             user_id=user_id,
             skip_topic_switch=True,
+            llm_free=True,
         )
         found = normalize_product_prices(found)
         # 兜底检索层里 国产 / X以外 是 fail-soft 的,这里再严格过一遍,保证卡片不违反约束

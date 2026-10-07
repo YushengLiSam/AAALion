@@ -65,16 +65,25 @@ def _ids(res):
 
 @pytest.fixture(autouse=True)
 def _no_llm(monkeypatch):
-    """任何代码路径敢发 HTTP 请求(LLM / 汇率)就直接失败。"""
+    """任何代码路径敢发 HTTP 请求(LLM / 汇率)就让测试失败。
+
+    只抛异常不够:extract_negation / rewrite_query / _heavy_retrieve 都把异常吞掉了
+    (fail-soft),抛出去的 AssertionError 会被静默吃掉。所以同时**记录**每次调用,
+    测试结束时断言一次都没有。"""
     import urllib.request
 
+    calls = []
+
     def _boom(*a, **k):
+        calls.append(getattr(a[0], "full_url", a[0]) if a else k)
         raise AssertionError("network/LLM call attempted in image fusion test")
 
     monkeypatch.setattr(urllib.request, "urlopen", _boom)
     monkeypatch.delenv("IMAGE_TEXT_FUSION", raising=False)
     monkeypatch.delenv("IMAGE_MIN_SIM", raising=False)
     monkeypatch.delenv("IMAGE_CROSS_CAT_MARGIN", raising=False)
+    yield calls
+    assert not calls, f"network/LLM call attempted (swallowed by fail-soft code): {calls}"
 
 
 # ---------------------------------------------------------------------------
@@ -659,3 +668,132 @@ def test_chat_passes_raw_text_and_normalized_filters(client, monkeypatch):
     assert kw["turn_filter"].brand_exclude is None      # "是不是" 已折叠,不会被读成"不是苹果"
     assert kw["conversation_filter"].price_max_cny == 500
     assert len(images) == 1 and isinstance(images[0], bytes)
+
+
+# ---------------------------------------------------------------------------
+# 复审补充:LLM 零调用的硬保证 / 规则误判
+# ---------------------------------------------------------------------------
+
+
+def _fake_hybrid(monkeypatch, ids):
+    from rag.retrieve import hybrid
+    from rag.retrieve.hybrid import HybridHit
+
+    monkeypatch.setattr(
+        hybrid, "hybrid_topk",
+        lambda text, k=10, f=None, **kw: [HybridHit(i, 1.0 / (n + 1), n, n, CAT[i]) for n, i in enumerate(ids)])
+
+
+def test_top_k_llm_free_never_calls_llm_even_with_key_and_rewrite(monkeypatch, _no_llm):
+    from app.services import rag_client
+
+    monkeypatch.setenv("TOKENROUTER_API_KEY", "sk-test-not-real")
+    monkeypatch.setenv("RAG_REWRITE", "1")
+    monkeypatch.setenv("RAG_RERANK", "0")
+    monkeypatch.setenv("RAG_PREFERENCES", "0")
+    monkeypatch.setattr(rag_client, "_RETRIEVAL_CACHE_ON", False)
+    _fake_hybrid(monkeypatch, [AIRPODS3, FREEBUDS, SONY])
+    q = "推荐几款耳机,不要苹果的"
+    out = rag_client.top_k(q, k=5, relevance_gate=False, llm_free=True)
+    ids = [p["product_id"] for p in out]
+    assert AIRPODS3 not in ids and FREEBUDS in ids      # 本地否定照样排除苹果
+    assert _no_llm == []
+    # 对照:同一请求不带 llm_free 时确实会去调 LLM(否定抽取 / 改写)——上面的断言不是空转
+    rag_client.top_k(q, k=5, relevance_gate=False)
+    assert _no_llm, "control: the default text path is expected to attempt an LLM call here"
+    _no_llm.clear()
+
+
+def test_llm_free_results_do_not_share_retrieval_cache_with_default_path(monkeypatch):
+    from app.services import rag_client
+
+    seen = []
+    monkeypatch.setattr(rag_client, "_RETRIEVAL_CACHE_ON", True)
+    monkeypatch.setattr(rag_client, "_retrieval_cache", {})
+
+    def spy(text, retrieval_filter, preference_text, k, **kw):
+        seen.append(kw.get("llm_free"))
+        return []
+
+    monkeypatch.setattr(rag_client, "_heavy_retrieve", spy)
+    rag_client.top_k("复审缓存隔离探针 耳机", k=5, llm_free=True)
+    rag_client.top_k("复审缓存隔离探针 耳机", k=5)
+    rag_client.top_k("复审缓存隔离探针 耳机", k=5, llm_free=True)
+    assert seen == [True, False]      # 第二次没吃到 llm_free 的缓存;第三次命中自己的条目
+
+
+def test_fallback_query_never_contains_negation_triggers():
+    # "我不是考虑这个颜色" 删掉单字("我/是/这个")后会拼出 "不考虑颜色"——修复前这句会让
+    # 回退检索的 top_k 触发 extract_negation(配了 key 就调 LLM)。回退 query 里必须一个否定触发词都没有
+    from app.services.rag_client import _negation_signals
+
+    assert _negation_signals(F.descriptive_residual("我不是考虑这个颜色,有没有500元以内的"))
+    res = _fuse("我不是考虑这个颜色,有没有500元以内的")
+    assert res.status == "constraints_emptied"
+    assert not _negation_signals(res.fallback_query or "")
+    assert not _negation_signals(res.fallback_intent or "")
+    assert F.strip_negation_triggers("不不要要 no logo without box Nokia") == "logo box Nokia"
+
+
+def test_identification_brand_scope_is_its_own_clause():
+    hits = _hits((FREEBUDS, 0.80), (AIRPODS3, 0.78), (AIRPODS_US, 0.76))
+    # "这是什么" 是辨认式提问,但 "我只要苹果的" 是真要求,不能一起丢掉
+    assert _ids(_fuse("这是什么?我只要苹果的", hits=hits)) == [AIRPODS3, AIRPODS_US]
+    # 同一句里被问的品牌(苹果)不当要求,另一分句点名的品牌(华为)照常执行
+    assert _ids(_fuse("这是不是苹果的?我只要华为的", hits=hits)) == [FREEBUDS]
+    assert F.identification_brands("这是什么?我只要苹果的") == []
+
+
+def test_quality_words_and_negated_price_words_are_not_price_constraints():
+    assert F.relative_price_direction("降噪效果好一点的") is None
+    assert F.relative_price_direction("质量好点的") is None
+    assert F.relative_price_direction("不要便宜的") is None
+    assert F.relative_price_direction("不是要更贵的") is None
+    assert F.relative_price_direction("不要太贵的") == "cheaper"      # "太X" 前加"不要"意思不变
+    assert F.relative_price_direction("不要太便宜") == "pricier"
+    res = _fuse("有没有降噪效果好一点的", k=5)
+    assert res.status == "visual" and AIRPODS3 in _ids(res)            # 锚点不会被"更贵"条件筛掉
+    assert not any("更贵" in s for s in res.enforced)
+
+
+def test_fuse_scores_clamps_text_score():
+    fused = F.fuse_scores({"a": 0.80, "b": 0.50}, {"b": 7.5, "a": -3.0}, 0.1)
+    assert fused == pytest.approx({"a": 0.80, "b": 0.60})               # 文字最多贡献 λ
+
+
+def test_chat_image_text_fallback_is_llm_free_text_path_unchanged(client, monkeypatch):
+    from app.routes import chat as chat_route
+
+    kws = []
+
+    def capture_top_k(text, k=5, filters=None, **kw):
+        kws.append(kw)
+        return [dict(CAT["p_digital_016"])]
+
+    monkeypatch.setattr(chat_route, "top_k", capture_top_k)
+    _patch_outcome(monkeypatch, _outcome("below_floor", top_sim=0.3))
+    _post(client, "有没有适合拍照的手机,不要苹果的")
+    assert kws and kws[-1]["llm_free"] is True
+    # 融合关闭(旧行为)时文字兜底保持原样
+    monkeypatch.setenv("IMAGE_TEXT_FUSION", "0")
+    monkeypatch.setattr(chat_route, "top_k_image", lambda b, k=3: [])
+    _post(client, "有没有适合拍照的手机")
+    assert kws[-1]["llm_free"] is False
+
+
+def test_constraints_emptied_fallback_with_real_top_k_makes_no_llm_call(monkeypatch, fixed_fx, _no_llm):
+    # 端到端走真实的 rag_client.top_k(只把混合检索换成固定结果、关掉交叉编码器),
+    # 配了 key、开了 RAG_REWRITE:回退检索也不能发出任何 LLM 请求。
+    from app.services import rag_client
+
+    monkeypatch.setenv("TOKENROUTER_API_KEY", "sk-test-not-real")
+    monkeypatch.setenv("RAG_REWRITE", "1")
+    monkeypatch.setenv("RAG_RERANK", "0")
+    monkeypatch.setattr(rag_client, "_RETRIEVAL_CACHE_ON", False)
+    _fake_hybrid(monkeypatch, [FREEBUDS, AIRPODS3, SONY])
+    res = rag_client.image_text_fuse_hits(
+        _hits((AIRPODS3, 0.8), (AIRPODS_US, 0.76)), "我不是考虑这个颜色,有没有500元以内的",
+        turn_filter=build_retrieval_filter("我不是考虑这个颜色,有500元以内的"), rerank_fn=lambda q, p: {})
+    assert res.status == "constraints_emptied"
+    assert all(p["price_cny"] <= 500 for p in res.products)
+    assert _no_llm == []

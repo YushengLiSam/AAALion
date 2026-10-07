@@ -1172,6 +1172,9 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 intent_text=user_text,
                 user_id=req.user_id,
                 relevance_gate=not scene_kw,
+                # 拍照找货请求(融合开着)的文字兜底同样不调 LLM:否定只走本地规则、不做 LLM 改写。
+                # 纯文字请求 / 融合关闭时 llm_free=False,行为不变。
+                llm_free=image_outcome is not None,
             )
         products = await asyncio.to_thread(normalize_product_prices, products)
         # R11.demo-fix — 绝不把空目录交给 LLM。硬性价格/品牌约束可能把结果

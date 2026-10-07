@@ -58,9 +58,28 @@ COUNTRY_WORD = {"JP": "日系", "KR": "韩系", "US": "美系", "FR": "法系", 
 # ---------------------------------------------------------------------------
 
 
+# 评测期间被拦下的出网请求数(LLM / 汇率 / 任何 urllib 调用);写进结果 JSON 的
+# config.llm_calls / network_calls_blocked,是**实测**值而不是写死的 0。
+_BLOCKED_NET_CALLS = {"n": 0}
+
+
 def _hermetic_env() -> None:
+    # 先让 app.config 把 server/.env 读进来(若存在),再清 key:否则之后有模块
+    # import app.config 时 load_dotenv 会把刚清掉的 TOKENROUTER_API_KEY 又放回来。
+    try:
+        import app.config  # noqa: F401
+    except Exception:
+        pass
     for key in ("TOKENROUTER_API_KEY", "DOUBAO_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"):
         os.environ.pop(key, None)
+    # 兜底:任何 urllib 出网请求(LLM 抽取 / 改写 / 汇率)直接拒绝并计数。
+    import urllib.request
+
+    def _blocked_urlopen(*_a, **_k):
+        _BLOCKED_NET_CALLS["n"] += 1
+        raise RuntimeError("network disabled in image_text_eval (no LLM / FX calls allowed)")
+
+    urllib.request.urlopen = _blocked_urlopen  # type: ignore[assignment]
     os.environ["RAG_REWRITE"] = "0"
     os.environ.setdefault("RAG_STORE", "chroma")
     os.environ.setdefault("CHROMA_TELEMETRY", "False")
@@ -450,7 +469,8 @@ def run(label: str, n_aug: int = 3, calibrate: bool = False, limit: int | None =
             "seed": SEED,
             "fx": "USD→CNY 7.10 fixed",
             "store": _store_summary(),
-            "llm_calls": 0,
+            "llm_calls": _BLOCKED_NET_CALLS["n"],
+            "network_calls_blocked": _BLOCKED_NET_CALLS["n"],
             "cases_b_c_use": "augmentation #0 of each image",
             "old_path": "raw CLIP top-3 (same top-N recall list truncated to 3), text ignored, no floor",
         },
