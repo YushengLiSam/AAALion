@@ -15,7 +15,7 @@
 PR ──► CI(pytest py3.10 + py3.11,检索评测门禁)──► 合并 main ──► main 上再跑一次 CI
                                                                   │
 lionpick-autodeploy.timer(每 2 分钟)── tools/cloud-autodeploy.sh ◄┘
-  1. git fetch;origin/main == HEAD → 结束
+  1. git fetch;origin/main == HEAD → 只读比对 drop-in,和仓库不一致就打一次 WARNING(§3),结束
   2. origin/main 是已知坏 SHA(~/.lionpick-autodeploy-bad-sha)→ 结束
   3. 查 GitHub check-runs(公开 API,无 token):
        全部必需 job completed+success → 继续
@@ -24,6 +24,7 @@ lionpick-autodeploy.timer(每 2 分钟)── tools/cloud-autodeploy.sh ◄┘
        API 不通 / 限流(403)           → 本轮跳过,**绝不盲部署**
   4. git reset --hard <sha>
   5. 同步 drop-in(§3),有变化就 daemon-reload
+     同步失败(多半是 sudo 权限)→ 代码和 drop-in 退回部署前,**不重启**(线上仍是旧进程),写坏 SHA 标记,退出码 1
   6. systemctl restart lionpick;150 s 内等 /ready 返回 2xx
   7. 不就绪 → 代码和 drop-in 一起回滚到部署前,daemon-reload,restart,写坏 SHA 标记
 ```
@@ -45,6 +46,8 @@ journalctl -u lionpick-autodeploy --no-pager -n 50
 | `... http=403` | 未认证 API 限流(每 IP 每小时 60 次)。脚本只在 main 领先且不是坏 SHA 时才查,pending 期间每 2 分钟 1 次 = 30 次/小时,正常不会触发 |
 | `deploy FAILED ready-check — rolling back` | 新版本 150 s 内没就绪。`journalctl -u lionpick -n 200` 看启动报错 |
 | `WARNING: AUTODEPLOY_REQUIRE_CI=0` | 有人用了紧急开关 |
+| `drop-in sync FAILED (sudo rights? ...)` | `install` / `rm` / `mkdir` / `daemon-reload` 的 sudo 不允许(脚本用 `sudo -n`,要密码就直接失败)。按 §3 修 sudoers,然后 `rm ~/.lionpick-autodeploy-bad-sha` |
+| `WARNING: installed drop-ins differ from the repo (...)` | `/etc/systemd/system/lionpick.service.d/` 和当前 HEAD 的 drop-in 不一致(自举、或有人手改了 /etc)。确认后跑 `bash tools/cloud-autodeploy.sh --resync-dropins`(§7);同样的差异只提示一次 |
 
 **紧急部署(跳过 CI 检查)**:只在 CI 本身坏了(GitHub 故障等)而线上必须修时用,用完即止:
 
@@ -109,6 +112,10 @@ golden recall@5 0.929 / MRR 0.863 / 命中 77/80;compositional recall@5 0.821 / 
 - 装过的文件名记在 `~/.lionpick-autodeploy-dropins`。仓库里删掉一个 drop-in,只有它在这个清单里才会从 `/etc` 删除。
 - 部署前给相关文件拍快照,**回滚时按快照恢复**(内容、有 / 无都恢复)。稳态下快照就是上一个 SHA 树里的 drop-in;
   第一次接管手工装的 05 / 10 / 20 时,如果部署失败,它们会恢复成手工版本而不是被删掉。
+- 仓库里的符号链接 drop-in 一律拒绝(sudo install 会以 root 读链接目标再装成 644,等于泄露机密)。
+- **只在部署新 SHA 时同步**。HEAD 已是最新时只做只读比对、有差异打 WARNING,不会自己去改 /etc;
+  要立即应用当前 HEAD 的 drop-in(不等下一个提交)用 `bash tools/cloud-autodeploy.sh --resync-dropins`:
+  同步 → daemon-reload → restart → 等 /ready,不就绪就恢复旧 drop-in 再重启(不写坏 SHA 标记)。
 
 核对线上实际生效的配置:
 
@@ -118,7 +125,7 @@ systemctl show lionpick -p Environment       # 合并后的环境变量(会显�
 ls -l /etc/systemd/system/lionpick.service.d/ && cat ~/.lionpick-autodeploy-dropins
 ```
 
-sudo 权限:脚本需要无密码执行 `systemctl restart lionpick`、`systemctl daemon-reload`、`install`、`rm -f`、`mkdir -p`
+sudo 权限(脚本用 `sudo -n`,需要密码时立即失败,不会卡住 timer):脚本需要无密码执行 `systemctl restart lionpick`、`systemctl daemon-reload`、`install`、`rm -f`、`mkdir -p`
 (目标都在 drop-in 目录下)。GCP 默认把登录用户放进 `google-sudoers`(全权限无密码),先用 `sudo -l` 看现状;如果是收紧过的 sudoers,
 补上(`visudo -f /etc/sudoers.d/lionpick-autodeploy`):
 
@@ -132,7 +139,8 @@ yushengli ALL=(root) NOPASSWD: /usr/bin/systemctl restart lionpick, /usr/bin/sys
 (sudoers 参数里的 `*` 匹配很宽,这几行本质上等于"能改 lionpick 的 unit 配置"——这和"能合并到 main"是同一个信任边界。)
 
 验证:`server/tests/test_cloud_autodeploy.py` 用临时 git 仓库 + 假 curl / systemctl 跑真实脚本,覆盖
-绿 / pending / 缺 job / cancelled / 失败 / API 不通 / 限流 / 紧急开关 / 就绪失败回滚(代码 + drop-in)/ 删除受管 drop-in / 拒绝 jwt.conf。
+绿 / pending / 缺 job / cancelled / 失败 / API 不通 / 限流 / 紧急开关 / 就绪失败回滚(代码 + drop-in)/ 删除受管 drop-in / 拒绝 jwt.conf /
+拒绝符号链接 / sudo 失败时不重启只退回 / up-to-date 时的漂移提示(只提示一次)/ `--resync-dropins` 成功与失败恢复。
 
 ## 4. SQLite 备份与恢复演练
 
@@ -184,21 +192,27 @@ sudo systemctl start lionpick
 
 ## 5. uvicorn 只监听本机 + 不重启 tunnel 的验证方法
 
-`30-bind-localhost.conf` 把 `--host 0.0.0.0` 改成 `--host 127.0.0.1`。**合并即生效**(autodeploy 同步 + 重启)。
+`30-bind-localhost.conf` 把 `--host 0.0.0.0` 改成 `--host 127.0.0.1`。**不是合并即生效**:引入它的那次合并是 VM 上
+旧版 autodeploy 部署的(旧版不同步 drop-in),要手工 `--resync-dropins` 或等 main 的下一个提交才生效(§7)。
 
 **合并前**(在 VM 上确认没人直连 8000,以及 tunnel 连的是回环):
 
 ```bash
 systemctl cat lionpick-tunnel | grep -- --url        # 应是 http://localhost:8000
-getent ahosts localhost                               # 应包含 127.0.0.1(只有 ::1 的话 cloudflared 连不上只绑 IPv4 的 uvicorn)
-# 过去一天里非回环来源的请求(uvicorn 访问日志的客户端地址);有输出说明还有客户端直连 IP:8000
-journalctl -u lionpick --since -24h --no-pager | grep -E 'HTTP/1\.[01]"' | grep -vE ' (127\.0\.0\.1|::1|\[::1\]):[0-9]+ ' | head
-sudo ss -tn state established '( sport = :8000 )'     # 当前连接的对端
+getent ahosts localhost                               # 应包含 127.0.0.1(cloudflared 是 Go,::1 被拒会回退到 127.0.0.1;
+                                                      # 只有 ::1 一个结果时才连不上只绑 IPv4 的 uvicorn)
+# 直连 IP:8000 的请求。注意:uvicorn 默认 --proxy-headers 且信任 127.0.0.1,所以 tunnel 来的请求在访问日志里
+# 显示成 "<真实客户端 IP>:0"(从 X-Forwarded-For 取的,端口记为 0)或 "127.0.0.1:<端口>",
+# 而直连请求是 "<公网 IP>:<非 0 端口>"。下面只留后一种;有输出说明还有客户端直连:
+journalctl -u lionpick --since -24h --no-pager | grep -E 'HTTP/1\.[01]"' \
+  | grep -vE ' (127\.0\.0\.1|::1|\[::1\]):[0-9]+ ' | grep -vE ' [0-9a-fA-F.:]+:0 - "' | head
+sudo ss -tn state established '( sport = :8000 )' | grep -v 127.0.0.1   # 此刻非回环的对端(tunnel 连接全是 127.0.0.1)
 ```
 
 **合并后验证(不要重启 tunnel——quick tunnel 一重启 URL 就变)**:
 
 ```bash
+systemctl show lionpick -p ExecStart                  # 应含 --host 127.0.0.1(排序更靠后的 override.conf 会覆盖 30-*)
 sudo ss -ltnp | grep ':8000'                          # 只应看到 127.0.0.1:8000
 curl -sf http://127.0.0.1:8000/ready >/dev/null && echo local-ok
 # 现有 tunnel 的公网 URL(从 tunnel 自己的日志里取,不重启)
@@ -214,8 +228,11 @@ uvicorn 重启期间 tunnel 会短暂返回 502,origin 回来后 cloudflared 自
 
 **回退**:提交删除 `30-bind-localhost.conf`(autodeploy 会从 `/etc` 移除并 daemon-reload + restart)。
 
-**副作用**:之后所有请求的 socket 对端都是 127.0.0.1。按 IP 限流 / 记录客户端 IP 的代码必须读 `CF-Connecting-IP`,
-而且只在对端是回环时才信任这个头(否则任何人都能伪造)。
+**客户端 IP(给做限流的人)**:之后所有请求的 socket 对端都是 127.0.0.1。但 uvicorn 默认 `--proxy-headers`、
+`forwarded-allow-ips=127.0.0.1`,对回环对端会用 `X-Forwarded-For` 最右边的非 127.0.0.1 地址改写 `request.client`
+——所以 `request.client.host` 通常已经是真实客户端 IP(前提是 cloudflared 带了 X-Forwarded-For;**未在 VM 上核实**,
+看访问日志里是不是 `<ip>:0` 即可)。限流 key 建议优先用 `CF-Connecting-IP`(Cloudflare 边缘设置,客户端伪造不了),
+没有这个头时再退到 `request.client.host`;绑本机之后只有本机进程能绕过 tunnel 直接连,不能再有外部伪造。
 
 ## 6. 其它
 
@@ -226,9 +243,19 @@ uvicorn 重启期间 tunnel 会短暂返回 502,origin 回来后 cloudflared 自
 
 ## 7. 第一次上线检查清单(合并本批改动时)
 
-1. 合并前:按 §5 确认没有直连 8000 的客户端、`localhost` 解析到 127.0.0.1;`sudo -l` 确认 sudo 权限(§3)。
-2. 合并后第一次 CI 在 main 上跑完前,autodeploy 会一直 `CI pending`(正常)。若 retrieval gate 因跨平台差异失败,按 §2 处理。
-3. 部署后:`journalctl -u lionpick-autodeploy -n 30` 应看到 `drop-in installed: 20-vector-store.conf / 30-bind-localhost.conf / 40-demo-mode.conf`
-   (05 / 10 内容相同则不打印)、`daemon-reload`、`deploy OK`。
+**自举问题(必读)**:timer 执行的是 VM 工作区里的 `tools/cloud-autodeploy.sh`。合并本批改动的那一轮,跑的还是
+**旧脚本**:它不查 CI,也不同步 drop-in,直接 reset + restart + /ready。下一轮 HEAD 已是最新,直接退出。所以:
+- 这次合并**没有 CI 门禁**——合并前务必看 PR 上的 CI 是绿的;
+- 30 / 40 和 20 的接管**不会自动发生**,直到手工 `--resync-dropins` 或 main 上再来一个提交(那时由新脚本部署)。
+  不处理的话,某个无关的后续提交会"顺带"把 uvicorn 改成只听 127.0.0.1——所以按下面的步骤主动做。
+
+1. 合并前:按 §5 确认没有直连 8000 的客户端、`localhost` 解析结果里有 127.0.0.1;`sudo -n -l` 确认 sudo 权限(§3);
+   PR 上 CI 三个 job 全绿;核对 VM 上手工装的 05 / 10 / 20 和仓库版本的差异
+   (`diff /etc/systemd/system/lionpick.service.d/10-milvus.conf ~/AAALion-/deploy/systemd/lionpick.service.d/10-milvus.conf` 等,合并后做)。
+2. 合并后约 2 分钟:`journalctl -u lionpick-autodeploy -n 30` 应看到旧脚本的 `deploy OK — now at <sha>`;
+   再过一轮应看到 `WARNING: installed drop-ins differ from the repo (30-bind-localhost.conf missing 40-demo-mode.conf missing ...)`。
+3. 低峰时在 VM 上:`cd ~/AAALion- && bash tools/cloud-autodeploy.sh --resync-dropins`
+   应看到 `drop-in installed: ...`、`systemd daemon-reload`、`resync OK`。失败会自动恢复旧 drop-in 并重启。
 4. `systemctl cat lionpick` 里 jwt.conf 仍在;`curl -s 127.0.0.1:8000/ready` 里 `vector_store_gate.backend` 仍是 milvus、`llm.model` 是 haiku。
-5. 按 §5 验证 tunnel;按 §4 安装备份 timer 并跑一次恢复演练,把输出存档。
+5. 按 §5 验证 tunnel(不要重启 tunnel);按 §4 安装备份 timer 并跑一次恢复演练,把输出存档。
+6. 之后的每次合并由新脚本处理:main 上 CI 跑完前会显示 `CI pending`(正常)。若 retrieval gate 因跨平台差异失败,按 §2 处理。

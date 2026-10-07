@@ -151,7 +151,7 @@ class AutodeployScriptTests(unittest.TestCase):
         _run(["git", "push", "-q", "origin", "HEAD:main"], self.dev, self.git_env)
         return _run(["git", "rev-parse", "HEAD"], self.dev, self.git_env).stdout.strip()
 
-    def _deploy(self, ci: str = "green", ready: str = "ok", **extra: str) -> subprocess.CompletedProcess:
+    def _deploy(self, ci: str = "green", ready: str = "ok", *args: str, **extra: str) -> subprocess.CompletedProcess:
         env = dict(self.git_env)
         env.update({
             "PATH": f"{self.bin}{os.pathsep}{env.get('PATH', '')}",
@@ -168,7 +168,7 @@ class AutodeployScriptTests(unittest.TestCase):
             "FAKE_FIXTURES": str(self.fixtures),
         })
         env.update(extra)
-        return _run(["bash", str(SCRIPT)], self.vm, env, check=False)
+        return _run(["bash", str(SCRIPT), *args], self.vm, env, check=False)
 
     def _head(self) -> str:
         return _run(["git", "rev-parse", "HEAD"], self.vm, self.git_env).stdout.strip()
@@ -295,6 +295,91 @@ class AutodeployScriptTests(unittest.TestCase):
         self.assertNotIn("30-b.conf", drop)
         self.assertIn("s3cret", drop["jwt.conf"])
         self.assertIn("refusing to manage drop-in 'jwt.conf'", res.stderr)
+
+
+    def test_symlinked_dropin_is_refused(self) -> None:
+        # 仓库里的符号链接 drop-in:sudo install 会读链接目标(可能是 root 600 的机密)再装成 644。
+        secret = self.tmp / "milvus.secret.env"
+        secret.write_text("RAG_MILVUS_TOKEN=lionpick_app:hunter2\n")
+        os.symlink(secret, self.dev / DROPIN_REL / "50-evil.conf")
+        sha_c = self._commit_and_push("C")
+        res = self._deploy("green", "ok")
+        self.assertEqual(self._head(), sha_c, res.stdout + res.stderr)
+        self.assertNotIn("50-evil.conf", self._dropins())
+        self.assertIn("refusing symlinked drop-in '50-evil.conf'", res.stderr)
+        self.assertNotIn("hunter2", "".join(self._dropins().values()))
+
+    def test_dropin_sync_failure_reverts_without_restart(self) -> None:
+        # sudo 不允许 install(sudoers 收紧过):服务没重启过,只退回代码 + drop-in,不重启。
+        fake_sudo = self.bin / "fakesudo"
+        fake_sudo.write_text('#!/usr/bin/env bash\n[ "$1" = install ] && exit 1\nexec "$@"\n')
+        fake_sudo.chmod(0o755)
+        before = self._dropins()
+        res = self._deploy("green", "ok", AUTODEPLOY_SUDO=str(fake_sudo))
+        self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+        self.assertIn("drop-in sync FAILED", res.stdout)
+        self.assertEqual(self._head(), self.sha_a)
+        self.assertEqual(self._marker(), self.sha_b)
+        self.assertEqual(self._dropins(), before)
+        self.assertNotIn("restart lionpick", self._calls("systemctl"))
+
+    def test_default_sudo_is_non_interactive(self) -> None:
+        self.assertIn('SUDO="${AUTODEPLOY_SUDO-sudo -n}"', SCRIPT.read_text(encoding="utf-8"))
+
+    # -- 自举:旧脚本部署了新代码,但没同步 drop-in ------------------------------
+    def _bootstrap_old_script_deploy(self) -> None:
+        """模拟旧版 autodeploy:只 reset 到 B,不碰 drop-in、不写受管清单。"""
+        _run(["git", "fetch", "-q", "origin"], self.vm, self.git_env)
+        _run(["git", "reset", "-q", "--hard", "origin/main"], self.vm, self.git_env)
+
+    def test_up_to_date_warns_once_about_dropin_drift(self) -> None:
+        self._bootstrap_old_script_deploy()
+        res = self._deploy("green", "ok")
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("installed drop-ins differ from the repo", res.stdout)
+        self.assertIn("05-a.conf changed", res.stdout)
+        self.assertIn("30-b.conf missing", res.stdout)
+        self.assertIn("--resync-dropins", res.stdout)
+        self.assertEqual(self._calls("systemctl"), [])  # 只提示,不动线上
+        self.assertEqual(self._dropins()["05-a.conf"], "[Service]\nEnvironment=A=old\n")
+        res = self._deploy("green", "ok")
+        self.assertEqual(res.stdout, "")  # 同样的漂移不重复刷日志
+        self.assertEqual([u for u in self._calls("curl") if "/check-runs" in u], [])
+
+    def test_resync_dropins_applies_and_restarts(self) -> None:
+        self._bootstrap_old_script_deploy()
+        res = self._deploy("unreachable", "ok", "--resync-dropins")
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertIn("resync OK", res.stdout)
+        drop = self._dropins()
+        self.assertEqual(drop["05-a.conf"], "[Service]\nEnvironment=A=new\n")
+        self.assertEqual(drop["30-b.conf"], "[Service]\nEnvironment=B=1\n")
+        self.assertIn("s3cret", drop["jwt.conf"])
+        self.assertEqual(self._calls("systemctl"), ["daemon-reload", "restart lionpick"])
+        self.assertEqual(self._head(), self.sha_b)
+        # 再跑一次:已一致,什么都不做
+        res = self._deploy("green", "ok", "--resync-dropins")
+        self.assertIn("nothing to do", res.stdout)
+        self.assertEqual(self._calls("systemctl"), ["daemon-reload", "restart lionpick"])
+        # 之后的 up-to-date 轮次不再提示
+        self.assertEqual(self._deploy("green", "ok").stdout, "")
+
+    def test_resync_dropins_restores_on_failed_ready(self) -> None:
+        self._bootstrap_old_script_deploy()
+        before = self._dropins()
+        res = self._deploy("green", "fail", "--resync-dropins")
+        self.assertEqual(res.returncode, 1, res.stdout + res.stderr)
+        self.assertIn("resync FAILED", res.stdout)
+        self.assertEqual(self._dropins(), before)
+        self.assertEqual(self._calls("systemctl"),
+                         ["daemon-reload", "restart lionpick", "daemon-reload", "restart lionpick"])
+        self.assertIsNone(self._marker())  # 手工模式不写坏 SHA 标记
+        self.assertEqual(self._head(), self.sha_b)
+
+    def test_unknown_argument_is_rejected(self) -> None:
+        res = self._deploy("green", "ok", "--bogus")
+        self.assertEqual(res.returncode, 2)
+        self.assertEqual(self._head(), self.sha_a)
 
 
 class AutodeployConfigTests(unittest.TestCase):

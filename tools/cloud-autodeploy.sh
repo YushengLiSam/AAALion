@@ -30,6 +30,20 @@
 #     仓库里删掉的 drop-in,只有在这个清单里才会从 /etc 删除。
 #   * 部署前给这些文件拍快照;回滚时按快照恢复(内容和"有/无"都恢复)。稳态下快照
 #     就等于上一个 SHA 树里的 drop-in;首次接管手工装的文件时也不会误删它们。
+#   * 符号链接一律拒绝:sudo install 会以 root 身份读链接目标(比如 mode 600 的
+#     /etc/lionpick/milvus.secret.env),再以 644 装进 drop-in 目录 = 泄露机密。
+#   * drop-in 同步失败(多半是 sudo 权限不够)时:服务还没重启、仍在跑旧版本,所以只把
+#     代码和 drop-in 退回去、**不重启**,写坏 SHA 标记,退出码 1(timer 那次运行显示 failed)。
+#
+# 自举(第一次合并带本功能的提交时)要注意:timer 跑的是 VM 工作区里的这个脚本,
+# 合并的那一轮还是**旧脚本**在跑——它不查 CI、不同步 drop-in;下一轮 HEAD 已是最新,
+# 直接"up to date"退出。所以 drop-in 不会自动生效,直到 main 上再来一个新提交。
+# 为此:
+#   * HEAD 已是最新时也会比对仓库里的 drop-in 和已安装的(只读,不需要 sudo),
+#     有差异就打一条 WARNING(内容不变时不重复打);
+#   * `bash tools/cloud-autodeploy.sh --resync-dropins`:不动代码,只把当前 HEAD 的 drop-in
+#     同步进去;有变化就 daemon-reload + restart + 等 /ready,不就绪就恢复旧 drop-in 并重启。
+#     见 docs/RUNBOOK_OPS.md §7。
 #
 # Runs as the deploy user (git uses ~/.ssh/config github-lionpick alias +
 # read-only deploy key). Needs passwordless sudo for `systemctl restart
@@ -45,10 +59,12 @@ REPO="${LIONPICK_REPO:-$HOME/AAALion-}"
 READY_URL="${AUTODEPLOY_READY_URL:-http://127.0.0.1:8000/ready}"
 STATE_DIR="${AUTODEPLOY_STATE_DIR:-$HOME}"
 BAD_MARKER="$STATE_DIR/.lionpick-autodeploy-bad-sha"
+DRIFT_NOTE="$STATE_DIR/.lionpick-autodeploy-drift"
 MANAGED_LIST="$STATE_DIR/.lionpick-autodeploy-dropins"
 DROPIN_SRC_REL="deploy/systemd/lionpick.service.d"
 DROPIN_DIR="${AUTODEPLOY_DROPIN_DIR:-/etc/systemd/system/lionpick.service.d}"
-SUDO="${AUTODEPLOY_SUDO-sudo}"
+# -n:sudo 需要密码时立刻失败,而不是在没有终端的 timer 里等输入。
+SUDO="${AUTODEPLOY_SUDO-sudo -n}"
 PYTHON="${AUTODEPLOY_PYTHON:-python3}"
 REQUIRE_CI="${AUTODEPLOY_REQUIRE_CI:-1}"
 GITHUB_API="${AUTODEPLOY_GITHUB_API:-https://api.github.com}"
@@ -134,6 +150,10 @@ repo_dropins() {
   local d="$REPO/$DROPIN_SRC_REL" f name
   [ -d "$d" ] || return 0
   for f in "$d"/*.conf; do
+    if [ -L "$f" ]; then
+      log "WARNING: refusing symlinked drop-in '$(basename "$f")'" >&2
+      continue
+    fi
     [ -f "$f" ] || continue
     name="$(basename "$f")"
     if _valid_dropin_name "$name"; then echo "$name"; else log "WARNING: refusing to manage drop-in '$name'" >&2; fi
@@ -217,6 +237,62 @@ restore_dropins() {
   fi
 }
 
+# 只读比对:输出与仓库不一致的受管 drop-in(每行 "<name> <changed|missing|stale>")。
+dropin_drift() {
+  local name
+  while IFS= read -r name; do
+    if [ ! -f "$DROPIN_DIR/$name" ]; then echo "$name missing"
+    elif ! cmp -s "$REPO/$DROPIN_SRC_REL/$name" "$DROPIN_DIR/$name" 2>/dev/null; then echo "$name changed"; fi
+  done < <(repo_dropins 2>/dev/null | sort -u)
+  while IFS= read -r name; do
+    if [ -f "$DROPIN_DIR/$name" ] && [ ! -f "$REPO/$DROPIN_SRC_REL/$name" ]; then echo "$name stale"; fi
+  done < <(managed_dropins)
+}
+
+# HEAD 已是最新时调用:有漂移就提示一次(同样的漂移不重复刷日志)。
+warn_if_drift() {
+  local drift
+  drift="$(dropin_drift | tr '\n' ' ')"
+  if [ -z "$drift" ]; then
+    rm -f "$DRIFT_NOTE"
+    return 0
+  fi
+  if [ ! -f "$DRIFT_NOTE" ] || [ "$(cat "$DRIFT_NOTE")" != "$drift" ]; then
+    echo "$drift" > "$DRIFT_NOTE"
+    log "WARNING: installed drop-ins differ from the repo ($drift); run: bash tools/cloud-autodeploy.sh --resync-dropins (docs/RUNBOOK_OPS.md §7)"
+  fi
+}
+
+# 手工模式:代码不动,只把当前 HEAD 的 drop-in 同步进去并重启验证。
+resync_dropins_main() {
+  cd "$REPO" 2>/dev/null || { log "repo not found: $REPO"; exit 1; }
+  if [ -z "$(dropin_drift)" ]; then
+    log "drop-ins already match the repo at $(git rev-parse --short HEAD); nothing to do"
+    rm -f "$DRIFT_NOTE"
+    return 0
+  fi
+  log "resyncing drop-ins from $(git rev-parse --short HEAD): $(dropin_drift | tr '\n' ' ')"
+  snapshot_dropins
+  if ! sync_dropins; then
+    log "drop-in sync failed; restoring previous drop-ins (no restart)"
+    restore_dropins
+    rm -rf "$SNAP_DIR"
+    exit 1
+  fi
+  $SUDO systemctl restart lionpick
+  if wait_ready; then
+    log "resync OK — drop-ins match the repo, /ready 2xx"
+    rm -f "$DRIFT_NOTE"
+    rm -rf "$SNAP_DIR"
+    return 0
+  fi
+  log "resync FAILED ready-check — restoring previous drop-ins and restarting"
+  restore_dropins
+  $SUDO systemctl restart lionpick
+  rm -rf "$SNAP_DIR"
+  exit 1
+}
+
 wait_ready() {
   local _
   for _ in $(seq 1 "$READY_POLLS"); do
@@ -237,8 +313,11 @@ main() {
   local_sha="$(git rev-parse HEAD)"
   remote_sha="$(git rev-parse origin/main)"
 
-  # Up to date.
-  [ "$local_sha" = "$remote_sha" ] && exit 0
+  # Up to date(顺便只读检查一下 drop-in 有没有和仓库漂移,见文件头"自举")。
+  if [ "$local_sha" = "$remote_sha" ]; then
+    warn_if_drift
+    exit 0
+  fi
 
   # 2) Known-bad guard.
   if [ -f "$BAD_MARKER" ] && [ "$(cat "$BAD_MARKER")" = "$remote_sha" ]; then
@@ -266,17 +345,26 @@ main() {
 
   # 4) Deploy: code + drop-ins + restart + ready-check.
   log "deploying $local_sha -> $remote_sha"
-  git reset --hard "$remote_sha" -q
+  if ! git reset --hard "$remote_sha" -q; then
+    log "git reset --hard $remote_sha failed; nothing restarted"
+    git reset --hard "$local_sha" -q
+    exit 1
+  fi
   # 快照放在 reset 之后:文件名集合 = 新树里的 drop-in ∪ 已受管清单,这样新版本
   # "新增"的文件在快照里记为 absent,回滚时会被删掉。
   snapshot_dropins
-  local ok=0
-  if sync_dropins; then
-    $SUDO systemctl restart lionpick
-    wait_ready && ok=1
-  else
-    log "drop-in sync failed"
+  if ! sync_dropins; then
+    # 还没 restart:线上进程仍是旧代码 + 旧配置。退回代码和 drop-in 即可,不重启。
+    log "drop-in sync FAILED (sudo rights? see docs/RUNBOOK_OPS.md §3) — reverting to $local_sha WITHOUT restart; marking $remote_sha known-bad"
+    echo "$remote_sha" > "$BAD_MARKER"
+    git reset --hard "$local_sha" -q
+    restore_dropins
+    rm -rf "$SNAP_DIR"
+    exit 1
   fi
+  local ok=0
+  $SUDO systemctl restart lionpick
+  wait_ready && ok=1
 
   if [ "$ok" = "1" ]; then
     log "deploy OK — now at $remote_sha"
@@ -294,5 +382,9 @@ main() {
 
 # 被 source 时(测试)只定义函数,不执行。
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-  main "$@"
+  case "${1:-}" in
+    --resync-dropins) resync_dropins_main ;;
+    "") main ;;
+    *) echo "usage: $0 [--resync-dropins]" >&2; exit 2 ;;
+  esac
 fi
