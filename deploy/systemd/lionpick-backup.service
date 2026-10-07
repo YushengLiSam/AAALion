@@ -1,0 +1,18 @@
+# SQLite 用户数据备份(P0.3):data/*.db → ~/lionpick-backups/sqlite/<UTC 时间戳>/
+# 安装(一次性,手工;autodeploy 只同步 lionpick.service.d/ 下的 drop-in,不管这个 unit):
+#   sudo install -m 644 deploy/systemd/lionpick-backup.service deploy/systemd/lionpick-backup.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now lionpick-backup.timer
+#   sudo systemctl start lionpick-backup.service && journalctl -u lionpick-backup -n 20   # 先手动跑一次
+# 只用标准库,所以直接用系统 python3(不依赖 venv)。对线上库只读(sqlite3 在线备份 API)。
+[Unit]
+Description=LionPick SQLite backup (data/*.db -> ~/lionpick-backups/sqlite)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=yushengli
+WorkingDirectory=/home/yushengli/AAALion-
+ExecStart=/usr/bin/python3 /home/yushengli/AAALion-/tools/backup_sqlite.py
+# 不和 API 进程抢 CPU / IO
+Nice=10
+IOSchedulingClass=idle

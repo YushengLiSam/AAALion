@@ -1,0 +1,11 @@
+# 每天一次;Persistent=true:关机错过的那次开机后补跑;随机延迟避开整点。
+[Unit]
+Description=Daily LionPick SQLite backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
