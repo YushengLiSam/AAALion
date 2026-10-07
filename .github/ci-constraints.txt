@@ -1,0 +1,9 @@
+# CI 用的版本钉子(pip install -c),只钉"会影响检索数值"或"上游大版本可能破坏
+# sentence-transformers==3.2.0"的包,保证 CI 与 docs/bench/eval_baseline.json 的生成环境一致。
+# 基线生成环境(2026-10-07,本地,强制 CPU):torch 2.12.0 / transformers 4.57.6 /
+# tokenizers 0.22.2 / huggingface_hub 0.36.2(numpy 2.4.6 没钉:2.3+ 不支持 Python 3.10,
+# 而 pytest 矩阵要跑 3.10)。改这里的任何一行都要重新生成基线(docs/RUNBOOK_OPS.md §2)。
+# torch 本身在 workflow 里从 CPU 索引单独安装(同一版本号,见 ci.yml 的 TORCH_VERSION)。
+transformers==4.57.6
+tokenizers==0.22.2
+huggingface_hub==0.36.2

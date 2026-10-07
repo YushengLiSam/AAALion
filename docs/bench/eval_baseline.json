@@ -1,0 +1,2997 @@
+{
+ "gate_version": 1,
+ "meta": {
+  "mode": "hybrid_rerank",
+  "retrieval_env": {
+   "RERANK_INPUT_CAP": "10",
+   "RERANK_MAX_LENGTH": "128",
+   "RAG_HARD_FILTERS": "1",
+   "RAG_RERANK": "1",
+   "RAG_PREWARM": "1"
+  },
+  "fixed_fx_to_cny": {
+   "USD": 7.1
+  },
+  "rag_store": "chroma",
+  "device": "cpu",
+  "llm": "disabled (keys blanked, network guard)",
+  "versions": {
+   "python": "3.11.15",
+   "platform": "Darwin-arm64",
+   "torch": "2.12.0",
+   "transformers": "4.57.6",
+   "sentence_transformers": "3.2.0",
+   "chromadb": "0.5.15"
+  },
+  "blocked_llm_calls": 0
+ },
+ "sets": {
+  "golden": {
+   "golden_file": "rag/eval/golden.jsonl",
+   "n_cases": 92,
+   "n_positive": 80,
+   "errors": 0,
+   "overall": {
+    "recall@5": 0.9286458333333334,
+    "mrr": 0.8629166666666667,
+    "negation_accuracy": 1.0,
+    "hits": 77
+   },
+   "cases": [
+    {
+     "key": "266261ca4aa1",
+     "query": "推荐一款适合油皮的洗面奶",
+     "expected": [
+      "p_beauty_011"
+     ],
+     "retrieved_top10": [
+      "p_beauty_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "647e421c6b2e",
+     "query": "适合敏感肌的洁面产品有什么",
+     "expected": [
+      "p_beauty_011"
+     ],
+     "retrieved_top10": [
+      "p_beauty_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "8f451efad7bc",
+     "query": "200元以下的蓝牙耳机有哪些",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null
+    },
+    {
+     "key": "0a6bea29b003",
+     "query": "性价比高的国产手机推荐",
+     "expected": [
+      "p_digital_009"
+     ],
+     "retrieved_top10": [
+      "p_digital_016",
+      "p_digital_009",
+      "p_digital_015",
+      "p_digital_002",
+      "p_digital_017",
+      "p_digital_008",
+      "p_digital_014",
+      "p_digital_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "a7688ab06bab",
+     "query": "iPhone 17 Pro 宇宙橙 256GB 多少钱",
+     "expected": [
+      "p_digital_001"
+     ],
+     "retrieved_top10": [
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "87b8e77c31a4",
+     "query": "Apple MacBook Air M5 16GB",
+     "expected": [
+      "p_digital_020"
+     ],
+     "retrieved_top10": [
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_012"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "05e5c7cd9484",
+     "query": "雅诗兰黛特润修护精华露 30ml",
+     "expected": [
+      "p_beauty_001"
+     ],
+     "retrieved_top10": [
+      "p_beauty_001",
+      "p_1_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "68c01c999fba",
+     "query": "兰蔻小黑瓶 30ml 多少钱",
+     "expected": [
+      "p_beauty_002"
+     ],
+     "retrieved_top10": [
+      "p_beauty_002"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "7edd4447930f",
+     "query": "适合熬夜的精华液",
+     "expected": [
+      "p_beauty_001",
+      "p_beauty_002"
+     ],
+     "retrieved_top10": [
+      "p_beauty_009",
+      "p_beauty_002",
+      "p_1_intl_02",
+      "p_beauty_004",
+      "p_beauty_005",
+      "p_1_real_02",
+      "p_beauty_024",
+      "p_beauty_001"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "5c81bc623985",
+     "query": "请推荐一款轻量跑鞋",
+     "expected": [
+      "p_clothes_010",
+      "p_8_real_02"
+     ],
+     "retrieved_top10": [
+      "p_clothes_010",
+      "p_8_real_02",
+      "p_clothes_008"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "7ec75155606e",
+     "query": "雅诗兰黛小棕瓶和兰蔻小黑瓶哪个更适合熬夜",
+     "expected": [
+      "p_beauty_001",
+      "p_beauty_002"
+     ],
+     "retrieved_top10": [
+      "p_beauty_001",
+      "p_beauty_002",
+      "p_1_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "a04c3db35d13",
+     "query": "iPhone 17 Pro 和 iPhone 17 Pro Max 对比",
+     "expected": [
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "retrieved_top10": [
+      "p_digital_003",
+      "p_digital_001"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "077524c10b80",
+     "query": "华为 FreeBuds 和 Apple AirPods 哪个降噪好",
+     "expected": [
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_02",
+      "p_digital_005",
+      "p_digital_021",
+      "p_digital_024",
+      "p_digital_004",
+      "p_digital_002",
+      "p_digital_025",
+      "p_digital_013"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "7fdc0a92fda3",
+     "query": "推荐防晒霜，但我不要含酒精的，也不要日系品牌",
+     "expected": [
+      "p_beauty_006"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "533a6b4d3a58",
+     "query": "推荐洁面产品，除了泡沫型的",
+     "expected": [],
+     "retrieved_top10": [
+      "p_beauty_011"
+     ],
+     "error": null
+    },
+    {
+     "key": "306de148dc97",
+     "query": "不要 Apple 的笔记本电脑推荐",
+     "expected": [
+      "p_digital_004",
+      "p_digital_022",
+      "p_digital_023"
+     ],
+     "retrieved_top10": [
+      "p_digital_023",
+      "p_digital_022",
+      "p_digital_004"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_006",
+      "p_digital_012",
+      "p_digital_020"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "7024d7a9cfaf",
+     "query": "推荐一款适合油皮的洗面奶 更便宜 平价 低价 性价比 再便宜点的呢",
+     "expected": [
+      "p_beauty_011"
+     ],
+     "retrieved_top10": [
+      "p_beauty_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "38119a5ee5ee",
+     "query": "适合熬夜的精华液 更高端 高价位 旗舰 贵的呢",
+     "expected": [
+      "p_beauty_002"
+     ],
+     "retrieved_top10": [
+      "p_1_intl_02",
+      "p_1_intl_04",
+      "p_beauty_002",
+      "p_beauty_001",
+      "p_beauty_004",
+      "p_beauty_005",
+      "p_beauty_024",
+      "p_beauty_009",
+      "p_1_real_02",
+      "p_beauty_018"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.3333333333333333,
+     "hit": true
+    },
+    {
+     "key": "c6d7b60f8759",
+     "query": "便宜点的",
+     "expected": [],
+     "retrieved_top10": [
+      "p_food_021",
+      "p_food_012",
+      "p_food_010",
+      "p_food_020",
+      "p_food_015"
+     ],
+     "error": null
+    },
+    {
+     "key": "dcb4d4a2c6e7",
+     "query": "好用的",
+     "expected": [],
+     "retrieved_top10": [
+      "p_food_021",
+      "p_beauty_002",
+      "p_food_015",
+      "p_beauty_005",
+      "p_food_005",
+      "p_beauty_003",
+      "p_beauty_004",
+      "p_beauty_023",
+      "p_clothes_012"
+     ],
+     "error": null
+    },
+    {
+     "key": "94fb5c1204b2",
+     "query": "送礼推荐",
+     "expected": [],
+     "retrieved_top10": [
+      "p_4_intl_01",
+      "p_food_019",
+      "p_6_real_04",
+      "p_5_real_03"
+     ],
+     "error": null
+    },
+    {
+     "key": "a88df0b61022",
+     "query": "iPhone 17 Pro 黑色 1TB 多少钱",
+     "expected": [
+      "p_digital_001"
+     ],
+     "retrieved_top10": [
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "6bb82fd63214",
+     "query": "薇诺娜舒敏控油洁面乳",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null
+    },
+    {
+     "key": "94653cc9cd2a",
+     "query": "理肤泉特护清盈防晒乳 SPF50",
+     "expected": [
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "d9fed9638efb",
+     "query": "适合干皮的乳液",
+     "expected": [],
+     "retrieved_top10": [
+      "p_beauty_019",
+      "p_beauty_007",
+      "p_1_intl_05",
+      "p_beauty_014",
+      "p_beauty_024"
+     ],
+     "error": null
+    },
+    {
+     "key": "6138853ca160",
+     "query": "保湿面霜推荐",
+     "expected": [
+      "p_beauty_007",
+      "p_beauty_008",
+      "p_1_real_03"
+     ],
+     "retrieved_top10": [
+      "p_beauty_007",
+      "p_1_real_01",
+      "p_beauty_008",
+      "p_1_intl_05",
+      "p_1_real_03",
+      "p_beauty_012",
+      "p_1_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "672a932bc465",
+     "query": "无线耳机降噪",
+     "expected": [
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_01",
+      "p_2_intl_02",
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_digital_007",
+      "p_2_intl_01",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "49f2d8e16571",
+     "query": "Apple iPad Air 平板",
+     "expected": [
+      "p_digital_025"
+     ],
+     "retrieved_top10": [
+      "p_digital_025",
+      "p_digital_013",
+      "p_digital_024"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "ba44642037b6",
+     "query": "国产护肤平价好物",
+     "expected": [
+      "p_beauty_009",
+      "p_1_real_02"
+     ],
+     "retrieved_top10": [
+      "p_1_real_03",
+      "p_1_real_02",
+      "p_beauty_009"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "bd80f402e1a7",
+     "query": "新手适合的相机",
+     "expected": [
+      "p_2_intl_05"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_05"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "e5fe34f17718",
+     "query": "适合熬夜的护肤精华，要平价",
+     "expected": [
+      "p_beauty_009"
+     ],
+     "retrieved_top10": [
+      "p_beauty_018",
+      "p_1_real_02",
+      "p_beauty_009",
+      "p_beauty_005",
+      "p_beauty_004",
+      "p_beauty_001",
+      "p_beauty_002",
+      "p_1_intl_02",
+      "p_1_real_05"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.3333333333333333,
+     "hit": true
+    },
+    {
+     "key": "92ccc9ff5731",
+     "query": "推荐一款入门跑步鞋",
+     "expected": [
+      "p_clothes_007",
+      "p_clothes_009",
+      "p_8_real_02"
+     ],
+     "retrieved_top10": [
+      "p_8_real_02",
+      "p_clothes_010",
+      "p_clothes_008",
+      "p_clothes_007",
+      "p_clothes_009"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "a59dee6c0216",
+     "query": "想买一本经典中文小说",
+     "expected": [
+      "p_7_real_02",
+      "p_7_real_03"
+     ],
+     "retrieved_top10": [
+      "p_7_real_03",
+      "p_7_real_01",
+      "p_7_real_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "19ff362dd418",
+     "query": "推荐适合通勤的双肩包",
+     "expected": [
+      "p_clothes_018",
+      "p_clothes_025"
+     ],
+     "retrieved_top10": [
+      "p_clothes_025",
+      "p_clothes_018"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "48eee9d0266f",
+     "query": "100元以下的洁面产品",
+     "expected": [
+      "p_beauty_011"
+     ],
+     "retrieved_top10": [
+      "p_beauty_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "798fa102c388",
+     "query": "500元以下的运动T恤",
+     "expected": [
+      "p_clothes_001",
+      "p_clothes_003",
+      "p_clothes_021"
+     ],
+     "retrieved_top10": [
+      "p_clothes_020",
+      "p_clothes_001",
+      "p_clothes_002",
+      "p_clothes_003",
+      "p_clothes_021"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "ba4c138176cd",
+     "query": "200元以下的速溶咖啡",
+     "expected": [
+      "p_food_022",
+      "p_food_023",
+      "p_food_002"
+     ],
+     "retrieved_top10": [
+      "p_food_023",
+      "p_food_022",
+      "p_food_002",
+      "p_food_001"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "2d0196581702",
+     "query": "2000元以下的智能手表",
+     "expected": [
+      "p_8_real_01"
+     ],
+     "retrieved_top10": [
+      "p_8_real_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "f112ba629722",
+     "query": "100元以下的休闲零食",
+     "expected": [
+      "p_food_009",
+      "p_food_010",
+      "p_food_021"
+     ],
+     "retrieved_top10": [
+      "p_food_010",
+      "p_food_009"
+     ],
+     "error": null,
+     "recall@5": 0.6666666666666666,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "4e05f9902105",
+     "query": "推荐一款手机，不要Apple",
+     "expected": [
+      "p_digital_002",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "retrieved_top10": [
+      "p_digital_010",
+      "p_digital_009",
+      "p_digital_014",
+      "p_digital_002",
+      "p_digital_015",
+      "p_digital_008",
+      "p_digital_017",
+      "p_digital_016"
+     ],
+     "error": null,
+     "recall@5": 0.625,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "6f1ce1524aa2",
+     "query": "推荐跑步鞋，不要Nike",
+     "expected": [
+      "p_clothes_008",
+      "p_clothes_009",
+      "p_clothes_010",
+      "p_8_real_02"
+     ],
+     "retrieved_top10": [
+      "p_clothes_008",
+      "p_clothes_009",
+      "p_8_real_02",
+      "p_clothes_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_007"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "6caaeea38a38",
+     "query": "推荐头戴式降噪耳机，不要Sony",
+     "expected": [
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_2_intl_01"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "baddb4daa4e0",
+     "query": "推荐抗初老精华，不要兰蔻",
+     "expected": [
+      "p_beauty_001",
+      "p_beauty_009",
+      "p_beauty_024"
+     ],
+     "retrieved_top10": [
+      "p_1_real_02",
+      "p_beauty_009",
+      "p_beauty_024",
+      "p_beauty_001"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_002"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "62961d9e3c66",
+     "query": "推荐速溶咖啡，不要雀巢",
+     "expected": [
+      "p_food_001",
+      "p_food_022"
+     ],
+     "retrieved_top10": [
+      "p_food_001",
+      "p_food_022"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_food_002",
+      "p_food_023"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "d9f8e3713371",
+     "query": "想买一双跑步鞋 轻量碳板的",
+     "expected": [
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_clothes_010",
+      "p_8_real_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "4feb44e498a9",
+     "query": "推荐适合熬夜的精华 更便宜 平价 低价 性价比 国货平价的",
+     "expected": [
+      "p_beauty_009",
+      "p_1_real_02"
+     ],
+     "retrieved_top10": [
+      "p_1_real_02",
+      "p_beauty_009",
+      "p_beauty_024"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "c8f0e272524a",
+     "query": "要折叠屏",
+     "expected": [
+      "p_digital_010",
+      "p_digital_014"
+     ],
+     "retrieved_top10": [
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_002",
+      "p_digital_009",
+      "p_digital_008",
+      "p_digital_003",
+      "p_digital_017",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_001"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "89ff14db78ea",
+     "query": "Sony WH-1000XM5 和 Bose QC Ultra 哪个降噪更好",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_2_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "98f897417d28",
+     "query": "特步 160X 和 Nike Pegasus 41 哪个更适合马拉松",
+     "expected": [
+      "p_clothes_010",
+      "p_clothes_007"
+     ],
+     "retrieved_top10": [
+      "p_clothes_007",
+      "p_clothes_010",
+      "p_3_intl_02",
+      "p_clothes_021",
+      "p_clothes_011",
+      "p_clothes_006",
+      "p_clothes_003",
+      "p_clothes_019"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "73dd84e6a128",
+     "query": "雪花秀和资生堂哪个适合干皮",
+     "expected": [
+      "p_1_real_04",
+      "p_beauty_004"
+     ],
+     "retrieved_top10": [
+      "p_1_intl_04",
+      "p_1_real_04",
+      "p_beauty_004",
+      "p_6_real_04"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "c4caeb984782",
+     "query": "推荐一款电动牙刷",
+     "expected": [],
+     "retrieved_top10": [
+      "p_6_real_01",
+      "p_digital_007",
+      "p_digital_022"
+     ],
+     "error": null
+    },
+    {
+     "key": "29793483a1b3",
+     "query": "推荐一款无线充电器",
+     "expected": [],
+     "retrieved_top10": [
+      "p_2_intl_02",
+      "p_2_intl_01",
+      "p_digital_009",
+      "p_digital_018",
+      "p_digital_007"
+     ],
+     "error": null
+    },
+    {
+     "key": "0b1dba6b56b9",
+     "query": "推荐一辆扫地机器人",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null
+    },
+    {
+     "key": "31ba85832b09",
+     "query": "推荐徒步登山鞋",
+     "expected": [
+      "p_clothes_014",
+      "p_clothes_015",
+      "p_8_real_03"
+     ],
+     "retrieved_top10": [
+      "p_8_real_03",
+      "p_clothes_015",
+      "p_clothes_014"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "c893ac2a2758",
+     "query": "推荐有机牛奶",
+     "expected": [
+      "p_food_007"
+     ],
+     "retrieved_top10": [
+      "p_food_007",
+      "p_food_016"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "1241967a57fd",
+     "query": "500元以下的高倍防晒霜",
+     "expected": [
+      "p_beauty_006",
+      "p_beauty_010",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_023",
+      "p_beauty_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "a11f972b4299",
+     "query": "300元以下的面霜推荐",
+     "expected": [
+      "p_1_intl_05",
+      "p_1_real_03",
+      "p_beauty_007",
+      "p_beauty_008",
+      "p_beauty_012"
+     ],
+     "retrieved_top10": [
+      "p_1_intl_05",
+      "p_beauty_008",
+      "p_beauty_012",
+      "p_beauty_007",
+      "p_1_real_03"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "d69c79faddd6",
+     "query": "400元以下的平价精华液",
+     "expected": [
+      "p_1_real_02",
+      "p_beauty_009",
+      "p_beauty_018",
+      "p_beauty_024"
+     ],
+     "retrieved_top10": [
+      "p_beauty_018",
+      "p_1_real_02",
+      "p_beauty_009",
+      "p_beauty_024"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "bc3960f2e1cc",
+     "query": "500元以下的跑步鞋",
+     "expected": [
+      "p_8_real_02"
+     ],
+     "retrieved_top10": [
+      "p_8_real_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "8d2ac5a97142",
+     "query": "Apple 平板电脑推荐",
+     "expected": [
+      "p_digital_013",
+      "p_digital_024",
+      "p_digital_025"
+     ],
+     "retrieved_top10": [
+      "p_digital_025",
+      "p_digital_024",
+      "p_digital_013"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "a1ab4e41424c",
+     "query": "3500元以下的 Sony 降噪耳机",
+     "expected": [
+      "p_2_intl_01"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "73ff12bbc64f",
+     "query": "推荐一款防晒霜，不要日系品牌",
+     "expected": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "9af5c0b13ffb",
+     "query": "推荐一款补水化妆水，不要韩系",
+     "expected": [
+      "p_1_intl_03",
+      "p_1_real_05"
+     ],
+     "retrieved_top10": [
+      "p_beauty_019",
+      "p_1_intl_03",
+      "p_beauty_003",
+      "p_1_real_05"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true,
+     "forbidden": [
+      "p_1_real_04"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "21ba03e7a12e",
+     "query": "推荐一款敏感肌面霜，不要法系品牌",
+     "expected": [
+      "p_1_real_03",
+      "p_1_intl_01"
+     ],
+     "retrieved_top10": [
+      "p_beauty_007",
+      "p_1_real_03",
+      "p_1_real_01",
+      "p_beauty_008"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 0.5,
+     "hit": true,
+     "forbidden": [
+      "p_1_intl_05"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "4e4356da3bd5",
+     "query": "2500元以下的 Sony 降噪耳机 更便宜 平价 低价 性价比 预算加到3500元",
+     "expected": [
+      "p_2_intl_01"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "aba1161a186d",
+     "query": "不要 Sony 了，改成 Bose",
+     "expected": [
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_2_intl_01"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "84d8698c315d",
+     "query": "Apple 平板电脑推荐 更便宜 平价 低价 性价比 品牌不限，预算加到3500元",
+     "expected": [
+      "p_digital_011",
+      "p_digital_019"
+     ],
+     "retrieved_top10": [
+      "p_digital_019",
+      "p_digital_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "67ebf0357510",
+     "query": "2500元以下的 Sony 降噪耳机 更便宜 平价 低价 性价比 预算不限",
+     "expected": [
+      "p_2_intl_01"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "d33d2db6f818",
+     "query": "推荐防晒霜不要日系 更便宜 平价 低价 性价比 再便宜点的呢",
+     "expected": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "88bd5c3e1ad7",
+     "query": "推荐一款补水化妆水不要韩系",
+     "expected": [
+      "p_1_intl_03"
+     ],
+     "retrieved_top10": [
+      "p_beauty_019",
+      "p_beauty_003",
+      "p_1_real_05",
+      "p_1_intl_03"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.25,
+     "hit": true,
+     "forbidden": [
+      "p_1_real_04",
+      "p_6_real_04"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "af2a5dfcc0da",
+     "query": "推荐一款补水化妆水不要韩系 更便宜 平价 低价 性价比 再便宜点的呢",
+     "expected": [
+      "p_1_intl_03"
+     ],
+     "retrieved_top10": [
+      "p_beauty_019",
+      "p_1_real_05"
+     ],
+     "error": null,
+     "recall@5": 0.0,
+     "mrr": 0.0,
+     "hit": false,
+     "forbidden": [
+      "p_1_real_04",
+      "p_6_real_04"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "9c3bf9849c57",
+     "query": "Give me an iPhone",
+     "expected": [
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "retrieved_top10": [
+      "p_digital_003",
+      "p_digital_001"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "6747d2910b6f",
+     "query": "Recommend a tablet",
+     "expected": [
+      "p_digital_025",
+      "p_digital_013"
+     ],
+     "retrieved_top10": [
+      "p_digital_019",
+      "p_digital_011",
+      "p_digital_005",
+      "p_digital_024",
+      "p_digital_021",
+      "p_digital_025",
+      "p_digital_013"
+     ],
+     "error": null,
+     "recall@5": 0.0,
+     "mrr": 0.16666666666666666,
+     "hit": false
+    },
+    {
+     "key": "5560bfa97e89",
+     "query": "I want noise cancelling headphones",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_01",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.25,
+     "hit": true
+    },
+    {
+     "key": "b03a4ad8b47b",
+     "query": "best laptop for designers",
+     "expected": [
+      "p_digital_020"
+     ],
+     "retrieved_top10": [
+      "p_digital_012",
+      "p_digital_004",
+      "p_digital_022",
+      "p_digital_006",
+      "p_digital_020"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.2,
+     "hit": true
+    },
+    {
+     "key": "7bf3e44a34f0",
+     "query": "luxury Japanese skincare",
+     "expected": [
+      "p_1_intl_01",
+      "p_1_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_beauty_003",
+      "p_1_real_05",
+      "p_1_real_01",
+      "p_beauty_009",
+      "p_6_real_04"
+     ],
+     "error": null,
+     "recall@5": 0.0,
+     "mrr": 0.0,
+     "hit": false
+    },
+    {
+     "key": "b3613f395228",
+     "query": "推荐跑鞋，但不要耐克的",
+     "expected": [
+      "p_clothes_009",
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_clothes_010",
+      "p_8_real_02"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_007",
+      "p_clothes_011",
+      "p_3_intl_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "14277cdfb190",
+     "query": "推荐防晒霜，不要日系的",
+     "expected": [
+      "p_beauty_023",
+      "p_beauty_006"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "6490344d0355",
+     "query": "推荐防晒霜 更便宜 平价 低价 性价比 再便宜点的呢",
+     "expected": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "d0c9da9bf1f1",
+     "query": "除了苹果还有什么笔记本",
+     "expected": [
+      "p_digital_004",
+      "p_digital_023"
+     ],
+     "retrieved_top10": [
+      "p_digital_004",
+      "p_digital_023",
+      "p_digital_022"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_006",
+      "p_digital_020",
+      "p_digital_012"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "60db3c134af4",
+     "query": "推荐面霜，不要雅诗兰黛，也不要美系的",
+     "expected": [
+      "p_beauty_012",
+      "p_beauty_007"
+     ],
+     "retrieved_top10": [
+      "p_1_intl_05",
+      "p_beauty_007",
+      "p_1_real_03"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 0.5,
+     "hit": true,
+     "forbidden": [
+      "p_1_real_01",
+      "p_beauty_008"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "99f406e3b669",
+     "query": "推荐运动鞋 替代推荐 相似商品 除了耐克还有什么",
+     "expected": [
+      "p_clothes_012",
+      "p_3_intl_05"
+     ],
+     "retrieved_top10": [
+      "p_clothes_012",
+      "p_3_intl_05",
+      "p_8_real_02",
+      "p_clothes_010",
+      "p_clothes_008",
+      "p_clothes_009",
+      "p_clothes_015",
+      "p_clothes_014",
+      "p_clothes_013",
+      "p_8_real_03"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_007",
+      "p_clothes_011",
+      "p_3_intl_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "b5a658dac08a",
+     "query": "推荐降噪耳机，不要 Sony，也不要美系的",
+     "expected": [
+      "p_digital_007"
+     ],
+     "retrieved_top10": [
+      "p_digital_007"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_2_intl_02",
+      "p_digital_018"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "0d5b352cbaed",
+     "query": "推荐跑鞋，要国产的",
+     "expected": [
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_clothes_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_007",
+      "p_clothes_008",
+      "p_clothes_009",
+      "p_8_real_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "52d7c20ac53a",
+     "query": "推荐平板电脑 替代推荐 相似商品 华为以外还有吗",
+     "expected": [
+      "p_digital_011",
+      "p_digital_019"
+     ],
+     "retrieved_top10": [
+      "p_digital_019",
+      "p_digital_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_013",
+      "p_digital_024",
+      "p_digital_025",
+      "p_digital_005",
+      "p_digital_021"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "1c5a705ac1cb",
+     "query": "推荐速溶咖啡，不要雀巢的",
+     "expected": [
+      "p_food_001",
+      "p_food_022"
+     ],
+     "retrieved_top10": [
+      "p_food_001",
+      "p_food_022"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_food_002",
+      "p_food_023"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "895174a92524",
+     "query": "2000元以下的苹果笔记本电脑",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null,
+     "forbidden": [
+      "p_digital_006",
+      "p_digital_012",
+      "p_digital_020"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "02fef1db9b70",
+     "query": "推荐咖啡 不要雀巢的",
+     "expected": [
+      "p_food_001",
+      "p_food_022"
+     ],
+     "retrieved_top10": [
+      "p_food_001",
+      "p_food_022"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_food_002",
+      "p_food_023"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "9c4e64896d21",
+     "query": "推荐篮球鞋 要国产的",
+     "expected": [
+      "p_clothes_012",
+      "p_clothes_013"
+     ],
+     "retrieved_top10": [
+      "p_clothes_012",
+      "p_clothes_013"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_011"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "92a2db25748d",
+     "query": "150元以下的零食",
+     "expected": [
+      "p_food_009",
+      "p_food_010",
+      "p_food_019"
+     ],
+     "retrieved_top10": [
+      "p_food_010",
+      "p_food_009",
+      "p_food_019",
+      "p_4_intl_02",
+      "p_4_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "b60f87ff0a7c",
+     "query": "100元以下的洗面奶",
+     "expected": [
+      "p_beauty_011"
+     ],
+     "retrieved_top10": [
+      "p_beauty_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "4d4f239d1ccb",
+     "query": "150元以下的笔记本电脑",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null,
+     "forbidden": [
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_023"
+     ],
+     "negation_clean": true
+    }
+   ]
+  },
+  "golden_compositional": {
+   "golden_file": "rag/eval/golden_compositional.jsonl",
+   "n_cases": 61,
+   "n_positive": 58,
+   "errors": 0,
+   "overall": {
+    "recall@5": 0.8212643678160918,
+    "mrr": 0.8778735632183909,
+    "negation_accuracy": 1.0,
+    "hits": 55
+   },
+   "cases": [
+    {
+     "key": "f54ec8c9311f",
+     "query": "对比一下苹果和小米的智能手机,哪个好?",
+     "expected": [
+      "p_digital_001",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010"
+     ],
+     "retrieved_top10": [
+      "p_digital_010",
+      "p_digital_009",
+      "p_digital_008",
+      "p_digital_003",
+      "p_digital_001"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "fdd12959d112",
+     "query": "索尼和Bose的头戴降噪耳机哪个更值得买?",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_2_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "8387a38aa496",
+     "query": "HOKA跟特步的跑步鞋比呢?哪双适合长距离?",
+     "expected": [
+      "p_clothes_009",
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_clothes_009",
+      "p_clothes_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "3323e1547e68",
+     "query": "对比安热沙和理肤泉的防晒,哪个更适合户外?",
+     "expected": [
+      "p_beauty_010",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_023",
+      "p_beauty_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "55023ff0502d",
+     "query": "三只松鼠和百草味的每日坚果哪个划算?",
+     "expected": [
+      "p_food_009",
+      "p_food_019"
+     ],
+     "retrieved_top10": [
+      "p_food_009",
+      "p_food_019"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "b1ff478e482c",
+     "query": "耐克和阿迪达斯的跑步鞋对比,哪个缓震更好?",
+     "expected": [
+      "p_clothes_007",
+      "p_clothes_008"
+     ],
+     "retrieved_top10": [
+      "p_clothes_007",
+      "p_clothes_008"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "e2069bb8f84b",
+     "query": "那华为和苹果这俩品牌的真无线降噪耳机对比一下,哪个降噪强?",
+     "expected": [
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_digital_007",
+      "p_2_intl_02",
+      "p_digital_018"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "d3eeb1cbf54b",
+     "query": "北面的羽绒服和探路者的羽绒冲锋衣比呢?哪个更适合冬天户外?",
+     "expected": [
+      "p_3_intl_04",
+      "p_8_real_05"
+     ],
+     "retrieved_top10": [
+      "p_3_intl_04"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "6129c1ff7d43",
+     "query": "华为和苹果和小米这三个手机对比一下",
+     "expected": [
+      "p_digital_002",
+      "p_digital_001",
+      "p_digital_008"
+     ],
+     "retrieved_top10": [
+      "p_digital_010",
+      "p_digital_002",
+      "p_digital_008",
+      "p_digital_003",
+      "p_digital_009",
+      "p_digital_001"
+     ],
+     "error": null,
+     "recall@5": 0.6666666666666666,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "d4628225bda9",
+     "query": "iPhone、华为Pura、小米和OPPO四款旗舰手机哪个值得买",
+     "expected": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_008",
+      "p_digital_015"
+     ],
+     "retrieved_top10": [
+      "p_digital_010",
+      "p_digital_003",
+      "p_digital_014",
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_008",
+      "p_digital_015",
+      "p_digital_009",
+      "p_digital_016"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 0.25,
+     "hit": true
+    },
+    {
+     "key": "ea961a97cd43",
+     "query": "这几款防晒帮我对比一下",
+     "expected": [
+      "p_beauty_010",
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_010",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "91de66ca54c3",
+     "query": "苹果、华为、联想三个品牌的笔记本电脑对比",
+     "expected": [
+      "p_digital_006",
+      "p_digital_004",
+      "p_digital_022"
+     ],
+     "retrieved_top10": [
+      "p_digital_023",
+      "p_digital_004",
+      "p_digital_022",
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_012"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "b01c6115f04c",
+     "query": "Sony、Bose、苹果和华为的降噪耳机对比一下哪个降噪好",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_digital_007"
+     ],
+     "retrieved_top10": [
+      "p_digital_007",
+      "p_2_intl_04",
+      "p_2_intl_01",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "2096e2a72d9d",
+     "query": "对,把这三个牌子的平板都拉出来比一比",
+     "expected": [
+      "p_digital_024",
+      "p_digital_021",
+      "p_digital_011"
+     ],
+     "retrieved_top10": [
+      "p_digital_021",
+      "p_digital_005",
+      "p_digital_011",
+      "p_digital_024",
+      "p_digital_013",
+      "p_digital_025"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "949a0c113f18",
+     "query": "第一个和第二个比一下",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_02",
+      "p_digital_007",
+      "p_2_intl_01",
+      "p_digital_018",
+      "p_2_intl_04"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.3333333333333333,
+     "hit": true
+    },
+    {
+     "key": "438c56d669da",
+     "query": "第一个和第二个对比一下哪个好",
+     "expected": [
+      "p_clothes_007",
+      "p_clothes_009",
+      "p_clothes_008",
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_8_real_02",
+      "p_clothes_010",
+      "p_clothes_008",
+      "p_clothes_007",
+      "p_clothes_009"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 0.5,
+     "hit": true
+    },
+    {
+     "key": "398a1fe176cf",
+     "query": "第一个跟第二个比一下",
+     "expected": [
+      "p_digital_020",
+      "p_digital_023",
+      "p_digital_004",
+      "p_digital_022"
+     ],
+     "retrieved_top10": [
+      "p_digital_023",
+      "p_digital_004",
+      "p_digital_022",
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_012"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "529289f19e16",
+     "query": "第一个和第二个哪个更好",
+     "expected": [
+      "p_clothes_011",
+      "p_clothes_013",
+      "p_clothes_012"
+     ],
+     "retrieved_top10": [
+      "p_clothes_012",
+      "p_clothes_013",
+      "p_clothes_011"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "7b4db74be1bb",
+     "query": "第一个和第二个比一比",
+     "expected": [
+      "p_beauty_010",
+      "p_beauty_023",
+      "p_beauty_006"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006",
+      "p_beauty_010",
+      "p_beauty_023"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "c72c0506ed54",
+     "query": "想买个耳机 不要苹果的",
+     "expected": [
+      "p_2_intl_04",
+      "p_2_intl_01"
+     ],
+     "retrieved_top10": [],
+     "error": null,
+     "recall@5": 0.0,
+     "mrr": 0.0,
+     "hit": false,
+     "forbidden": [
+      "p_2_intl_02",
+      "p_digital_018"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "d1cec4a56f11",
+     "query": "要缓震好的，日常慢跑 别给我耐克的",
+     "expected": [
+      "p_8_real_02"
+     ],
+     "retrieved_top10": [
+      "p_8_real_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_007"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "818591ca90d3",
+     "query": "小米的就算了",
+     "expected": [
+      "p_digital_016"
+     ],
+     "retrieved_top10": [
+      "p_digital_016"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_003",
+      "p_digital_010",
+      "p_digital_008",
+      "p_digital_009"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "59cdf3f80286",
+     "query": "主要是抗皱淡纹，抗初老 雅诗兰黛的不要",
+     "expected": [
+      "p_beauty_024",
+      "p_beauty_009",
+      "p_1_real_02"
+     ],
+     "retrieved_top10": [
+      "p_beauty_024",
+      "p_1_real_02",
+      "p_beauty_009"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_001",
+      "p_1_intl_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "44b9886dbe59",
+     "query": "苹果的就不看了",
+     "expected": [
+      "p_digital_019",
+      "p_digital_011"
+     ],
+     "retrieved_top10": [
+      "p_digital_011",
+      "p_digital_019"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_024",
+      "p_digital_013",
+      "p_digital_025"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "38b11c2838d8",
+     "query": "日常办公，要轻薄便携 不要苹果",
+     "expected": [
+      "p_digital_004",
+      "p_digital_023"
+     ],
+     "retrieved_top10": [
+      "p_digital_023"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_012"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "8b205aab473b",
+     "query": "面部用，我是敏感肌易敏 安热沙的不要",
+     "expected": [
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_023",
+      "p_beauty_006"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "5f3c9353d86d",
+     "query": "算了,还是看降噪耳机吧",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_digital_007",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_digital_007",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 0.8,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "7b7c9e64925a",
+     "query": "不用了,我改主意了,想要一副真无线蓝牙耳机",
+     "expected": [
+      "p_digital_018",
+      "p_digital_007",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "6b525fb957d8",
+     "query": "其实我现在更想入手一个头戴式降噪耳机",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_2_intl_01",
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "8eb9c58c7df9",
+     "query": "太贵了,不看手机了。给我推荐降噪耳机吧,牌子无所谓",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_digital_007",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_02",
+      "p_digital_018"
+     ],
+     "error": null,
+     "recall@5": 0.4,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "357f7a034c78",
+     "query": "对了,帮我找个通勤戴的主动降噪耳机",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_digital_007",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [],
+     "error": null,
+     "recall@5": 0.0,
+     "mrr": 0.0,
+     "hit": false,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_015",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "a86d59459714",
+     "query": "想换一台新的智能手机，预算比较宽，有什么推荐 替代推荐 相似商品 华为以外还有别的吗？",
+     "expected": [
+      "p_digital_001",
+      "p_digital_003",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010"
+     ],
+     "retrieved_top10": [
+      "p_digital_015",
+      "p_digital_017",
+      "p_digital_009",
+      "p_digital_003",
+      "p_digital_016",
+      "p_digital_010",
+      "p_digital_014",
+      "p_digital_008",
+      "p_digital_001"
+     ],
+     "error": null,
+     "recall@5": 0.4,
+     "mrr": 0.3333333333333333,
+     "hit": true,
+     "forbidden": [
+      "p_digital_002"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "303399286518",
+     "query": "不要日系的，换其他牌子",
+     "expected": [
+      "p_beauty_006",
+      "p_beauty_023"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_beauty_010"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "c5dd264d9156",
+     "query": "华为的就不用了，还有其他的吗",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_digital_018",
+      "p_2_intl_01",
+      "p_2_intl_02",
+      "p_2_intl_04"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_007"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "854c7aa78ac4",
+     "query": "华为以外的看看",
+     "expected": [
+      "p_digital_024",
+      "p_digital_025",
+      "p_digital_013",
+      "p_digital_011",
+      "p_digital_019"
+     ],
+     "retrieved_top10": [
+      "p_digital_011",
+      "p_digital_024",
+      "p_digital_019",
+      "p_digital_013",
+      "p_digital_025"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_021",
+      "p_digital_005"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "5fb77cfdad93",
+     "query": "我皮肤偏干，想入手一瓶补水的化妆水/精华水 牌子 不要日系",
+     "expected": [
+      "p_beauty_019",
+      "p_1_real_04"
+     ],
+     "retrieved_top10": [
+      "p_beauty_019",
+      "p_1_real_04"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_1_intl_03",
+      "p_1_real_05",
+      "p_beauty_003"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "3339189fb186",
+     "query": "想买台轻薄的笔记本电脑办公用 替代推荐 相似商品 华为以外还有别的吗？",
+     "expected": [
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_012",
+      "p_digital_022",
+      "p_digital_023"
+     ],
+     "retrieved_top10": [
+      "p_digital_023",
+      "p_digital_022",
+      "p_digital_020",
+      "p_digital_006",
+      "p_digital_012"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_004"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "705465b777a9",
+     "query": "想给女朋友买个生日礼物 她比较喜欢护肤",
+     "expected": [
+      "p_beauty_009",
+      "p_beauty_024",
+      "p_1_real_02",
+      "p_beauty_007",
+      "p_beauty_012"
+     ],
+     "retrieved_top10": [
+      "p_1_real_02",
+      "p_beauty_009",
+      "p_beauty_022",
+      "p_1_real_03",
+      "p_beauty_007",
+      "p_1_intl_05",
+      "p_beauty_008",
+      "p_beauty_018"
+     ],
+     "error": null,
+     "recall@5": 0.6,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "308ac7890e88",
+     "query": "他喜欢听音乐,想要个降噪耳机",
+     "expected": [
+      "p_2_intl_02",
+      "p_2_intl_01",
+      "p_2_intl_04"
+     ],
+     "retrieved_top10": [],
+     "error": null,
+     "recall@5": 0.0,
+     "mrr": 0.0,
+     "hit": false,
+     "forbidden": [
+      "p_digital_018",
+      "p_digital_007"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "bc6db9746f6c",
+     "query": "想送点养生保健、对身体好的",
+     "expected": [
+      "p_5_real_03",
+      "p_5_real_04"
+     ],
+     "retrieved_top10": [
+      "p_food_006",
+      "p_5_real_03",
+      "p_food_016",
+      "p_food_005"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 0.5,
+     "hit": true,
+     "forbidden": [
+      "p_6_real_05"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "c21f42d41b4d",
+     "query": "送床上用品这种家居的吧",
+     "expected": [
+      "p_6_real_03"
+     ],
+     "retrieved_top10": [
+      "p_6_real_03"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_6_real_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "3f54f45d6419",
+     "query": "他喜欢户外露营和徒步",
+     "expected": [
+      "p_8_real_04",
+      "p_clothes_025",
+      "p_clothes_024"
+     ],
+     "retrieved_top10": [
+      "p_8_real_04"
+     ],
+     "error": null,
+     "recall@5": 0.3333333333333333,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_8_real_05",
+      "p_clothes_014"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "1fd3f6fc0bdc",
+     "query": "2000以内的国产降噪耳机，不要小米",
+     "expected": [
+      "p_digital_007"
+     ],
+     "retrieved_top10": [
+      "p_digital_007"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_2_intl_04",
+      "p_2_intl_01",
+      "p_digital_018",
+      "p_2_intl_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "c200e6d92391",
+     "query": "敏感肌能用的便宜防晒，最好不含酒精",
+     "expected": [
+      "p_beauty_023",
+      "p_beauty_006"
+     ],
+     "retrieved_top10": [
+      "p_beauty_006"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "914c085ba5ae",
+     "query": "5000块以内的国产平板电脑，不要苹果的",
+     "expected": [
+      "p_digital_019",
+      "p_digital_011",
+      "p_digital_005"
+     ],
+     "retrieved_top10": [
+      "p_digital_011",
+      "p_digital_005"
+     ],
+     "error": null,
+     "recall@5": 0.6666666666666666,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_024",
+      "p_digital_025",
+      "p_digital_013"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "6bd47d3388a0",
+     "query": "1000以内的国产跑步鞋，别给我耐克",
+     "expected": [
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_clothes_010"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_clothes_007",
+      "p_8_real_02"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "a4241a0487a9",
+     "query": "8000以内的国产笔记本电脑，不考虑联想",
+     "expected": [
+      "p_digital_004"
+     ],
+     "retrieved_top10": [
+      "p_digital_004"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_023",
+      "p_digital_022",
+      "p_digital_020",
+      "p_digital_006"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "d3994cbccdab",
+     "query": "7000以内的国产5G手机，不要小米",
+     "expected": [
+      "p_digital_016",
+      "p_digital_015",
+      "p_digital_017",
+      "p_digital_002"
+     ],
+     "retrieved_top10": [
+      "p_digital_016",
+      "p_digital_015",
+      "p_digital_017",
+      "p_digital_002"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_digital_009",
+      "p_digital_008",
+      "p_digital_010",
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "9a7bab532735",
+     "query": "300以内敏感肌专用的国产舒缓面霜，不要进口的",
+     "expected": [
+      "p_1_real_03",
+      "p_beauty_007"
+     ],
+     "retrieved_top10": [
+      "p_beauty_007",
+      "p_1_real_03"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true,
+     "forbidden": [
+      "p_1_intl_05",
+      "p_beauty_012"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "fb7b1e0384b0",
+     "query": "有没有手机推荐",
+     "expected": [
+      "p_digital_001",
+      "p_digital_002",
+      "p_digital_008",
+      "p_digital_016",
+      "p_digital_017"
+     ],
+     "retrieved_top10": [
+      "p_digital_002",
+      "p_digital_017",
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_015",
+      "p_digital_003",
+      "p_digital_001",
+      "p_digital_016",
+      "p_digital_010"
+     ],
+     "error": null,
+     "recall@5": 0.6,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "ab6b04d5b1de",
+     "query": "口红有吗",
+     "expected": [
+      "p_beauty_015"
+     ],
+     "retrieved_top10": [
+      "p_beauty_015"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "e1127d1635ba",
+     "query": "有没有降噪耳机",
+     "expected": [
+      "p_2_intl_01",
+      "p_2_intl_04",
+      "p_digital_018",
+      "p_digital_007",
+      "p_2_intl_02"
+     ],
+     "retrieved_top10": [
+      "p_2_intl_04",
+      "p_digital_007",
+      "p_digital_018",
+      "p_2_intl_01",
+      "p_2_intl_02"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "d76edc085a11",
+     "query": "有没有便宜又好吃的零食",
+     "expected": [
+      "p_4_intl_01",
+      "p_4_intl_02",
+      "p_food_010",
+      "p_food_009",
+      "p_food_019"
+     ],
+     "retrieved_top10": [
+      "p_food_010",
+      "p_food_009",
+      "p_food_019",
+      "p_4_intl_02",
+      "p_4_intl_01"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "9a77b7976d71",
+     "query": "有便宜又好用的真无线耳机吗",
+     "expected": [
+      "p_2_intl_02",
+      "p_digital_007",
+      "p_digital_018"
+     ],
+     "retrieved_top10": [
+      "p_digital_007",
+      "p_2_intl_02",
+      "p_digital_018"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "373448b3fd2e",
+     "query": "你们这有没有小米的手机",
+     "expected": [
+      "p_digital_008",
+      "p_digital_009",
+      "p_digital_010"
+     ],
+     "retrieved_top10": [
+      "p_digital_008",
+      "p_digital_010",
+      "p_digital_009"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "75ae9ce1426b",
+     "query": "太贵了,有没有便宜点的笔记本",
+     "expected": [
+      "p_digital_004",
+      "p_digital_023"
+     ],
+     "retrieved_top10": [
+      "p_digital_004",
+      "p_digital_023",
+      "p_digital_020",
+      "p_digital_022",
+      "p_digital_006",
+      "p_digital_012"
+     ],
+     "error": null,
+     "recall@5": 1.0,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "dc92b31cfff3",
+     "query": "推荐一双跑步鞋,阿迪达斯 Ultraboost 怎么样 更便宜 平价 低价 性价比 再便宜点的跑步鞋有吗",
+     "expected": [
+      "p_8_real_02",
+      "p_clothes_007",
+      "p_clothes_010"
+     ],
+     "retrieved_top10": [
+      "p_clothes_010",
+      "p_clothes_009",
+      "p_clothes_008",
+      "p_8_real_02"
+     ],
+     "error": null,
+     "recall@5": 0.6666666666666666,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "568988ccb25b",
+     "query": "预算有限,有没有便宜很多的精华",
+     "expected": [
+      "p_beauty_018",
+      "p_1_intl_04",
+      "p_1_intl_02",
+      "p_beauty_009"
+     ],
+     "retrieved_top10": [
+      "p_beauty_018",
+      "p_beauty_009",
+      "p_beauty_024",
+      "p_beauty_005",
+      "p_beauty_004",
+      "p_beauty_001",
+      "p_beauty_002",
+      "p_1_intl_04",
+      "p_1_intl_02",
+      "p_1_real_05"
+     ],
+     "error": null,
+     "recall@5": 0.5,
+     "mrr": 1.0,
+     "hit": true
+    },
+    {
+     "key": "c19bfaa357ff",
+     "query": "有没有 500 元以内的苹果笔记本电脑",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null,
+     "forbidden": [
+      "p_digital_006",
+      "p_digital_020",
+      "p_digital_012"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "1aba287e46f2",
+     "query": "预算 2000 块,买个苹果手机",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null,
+     "forbidden": [
+      "p_digital_001",
+      "p_digital_003"
+     ],
+     "negation_clean": true
+    },
+    {
+     "key": "c31863904589",
+     "query": "便宜点,2000 以内的平板有吗",
+     "expected": [],
+     "retrieved_top10": [],
+     "error": null,
+     "forbidden": [
+      "p_digital_019",
+      "p_digital_011",
+      "p_digital_025"
+     ],
+     "negation_clean": true
+    }
+   ]
+  }
+ }
+}

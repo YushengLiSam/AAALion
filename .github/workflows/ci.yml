@@ -1,0 +1,149 @@
+# CI —— 部署门禁。tools/cloud-autodeploy.sh 只部署本 workflow 全部 check run 都是
+# completed + success 的 SHA(查公开的 GitHub check-runs API,不需要 token)。
+#
+# 两个 job,都不需要任何 secret,也**绝不调用 LLM**:
+#   1. tests          —— pytest server/tests,Python 3.10(=线上 VM)和 3.11 两条腿,纯 CPU。
+#                        测试本身不下载模型(本地用空 HF 缓存 + HF_HUB_OFFLINE=1 跑过全绿);
+#                        需要 LIONPICK_E2E_TESTS 的端到端用例和本地一样默认跳过。
+#   2. retrieval-gate —— 从 data/seed 重建 Chroma 文本索引,跑生产路径(hybrid_rerank)的
+#                        检索评测,逐 case 对比 docs/bench/eval_baseline.json(rag/eval/gate.py):
+#                        命中变未命中 / 反选漏出 / 平均 recall@5 或 MRR 降 > 0.02 → 失败。
+#                        重排参数用线上值 RERANK_INPUT_CAP=10、RERANK_MAX_LENGTH=128(显式写在下面)。
+#
+# 不调用 LLM 的保证:检索链路里只有 rag/retrieve/negation.py 和 rewrite.py 会请求 LLM,两者都
+# 只在 TOKENROUTER_API_KEY 非空时发请求;这里把所有 LLM key 显式置空,gate.py 另外给
+# urllib / httpx 装了守卫,任何发往 LLM 网关的请求都会被拦截并让 job 失败。
+#
+# 旧的 rag-eval.yml(手动触发,生成 HTML 报告)保留不动。
+
+name: CI
+
+# 故意不加 paths 过滤:autodeploy 要求 main 上**每个** SHA 都有这三个 check run,
+# 只改文档的提交如果不跑 CI,就会一直停在 pending 部署不了。
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# PR 上新提交会取消旧的运行;main 上不取消,保证每个 main SHA 都有完整结论供 autodeploy 判断。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  TORCH_VERSION: "2.12.0"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUNBUFFERED: "1"
+  # chromadb 默认会发匿名遥测
+  ANONYMIZED_TELEMETRY: "False"
+  TOKENIZERS_PARALLELISM: "false"
+  # 绝不调用 LLM:所有 key 显式置空,provider 固定 echo
+  LLM_PROVIDER: echo
+  TOKENROUTER_API_KEY: ""
+  ANTHROPIC_API_KEY: ""
+  DOUBAO_API_KEY: ""
+  OPENAI_API_KEY: ""
+  AGENT_PATH: "off"
+
+jobs:
+  tests:
+    name: pytest (py${{ matrix.python }})
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            server/requirements*.txt
+            .github/ci-constraints.txt
+
+      - name: Install deps (CPU torch + server requirements + pymilvus)
+        run: |
+          python -m pip install --upgrade pip
+          # 先装 CPU 版 torch,避免 sentence-transformers 拉几个 GB 的 CUDA 轮子。
+          pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cpu
+          # 线上 VM 装的是 requirements-milvus-server.txt(只有 pymilvus 客户端)。
+          pip install -c .github/ci-constraints.txt \
+            -r server/requirements.txt -r server/requirements-milvus-server.txt pytest==9.0.3
+          # 3.11 腿额外装 milvus-lite,跑本地 Milvus 的集成测试(3.10 腿上这些用例按 HAS_MILVUS 跳过)。
+          if [ "${{ matrix.python }}" = "3.11" ]; then
+            pip install -c .github/ci-constraints.txt -r server/requirements-milvus.txt
+          fi
+
+      - name: pytest server/tests
+        run: python -m pytest server/tests -q -p no:cacheprovider -rs
+
+  retrieval-gate:
+    name: retrieval eval gate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      # 线上 server/.env 的重排参数(本地默认是 0 / 256)。gate.py 会把实际生效值写进结果,
+      # 与基线不一致时拒绝比较(退出码 2)。
+      RERANK_INPUT_CAP: "10"
+      RERANK_MAX_LENGTH: "128"
+      RAG_HARD_FILTERS: "1"
+      RAG_RERANK: "1"
+      RAG_PREWARM: "1"
+      RAG_STORE: chroma
+      RAG_CHROMA_DIR: ${{ github.workspace }}/.ci-chroma
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # 与基线生成环境一致(docs/bench/eval_baseline.json meta.versions.python)
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            server/requirements*.txt
+            .github/ci-constraints.txt
+
+      - name: Cache HF models (bge-small-zh, bge-reranker-base, bge-reranker-v2-m3)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-bge-small-zh-v1.5-reranker-base-v2-m3-v1
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cpu
+          pip install -c .github/ci-constraints.txt -r server/requirements.txt
+
+      - name: Build text index from data/seed (CPU)
+        run: python -m rag.eval.gate build-index
+
+      - name: Retrieval-only eval (hybrid_rerank, production rerank settings, no LLM)
+        run: python -m rag.eval.gate run --out eval_current.json
+
+      - name: Compare against docs/bench/eval_baseline.json
+        run: python -m rag.eval.gate compare --baseline docs/bench/eval_baseline.json --current eval_current.json
+
+      # 仅供参考:完整的三模式表格(dense / hybrid / hybrid_rerank),不参与判定。
+      - name: Full eval table (informational)
+        if: always()
+        continue-on-error: true
+        run: python -m rag.eval.run | tee eval_stdout.txt
+
+      - name: Upload gate output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-gate
+          path: |
+            eval_current.json
+            eval_stdout.txt
+          if-no-files-found: ignore
