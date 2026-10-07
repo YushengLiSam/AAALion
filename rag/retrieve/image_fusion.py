@@ -114,6 +114,56 @@ def cross_cat_margin() -> float:
     return _env_float("IMAGE_CROSS_CAT_MARGIN", DEFAULT_CROSS_CAT_MARGIN)
 
 
+# ---- 两路召回(IMAGE_TWO_PATH)----
+# RRF 常数 k=60 固定(Cormack et al. 2009 的标准取值,与 rag/retrieve/hybrid.py 一致),
+# 两路等权。**不在评测集上调权重**:拍照评测集只有 145 张目录图的增强版本,
+# 文字变体也是模板生成的,调出来的权重只会过拟合这几个模板。
+RRF_K = 60
+# 视觉锚点钉在第 1 位的相似度阈值。取值依据(rag/eval/image_text_eval.py 的 pin_calibration,
+# 145 张目录图 × 3 份增强,共 435 张):CLIP top-1 认错商品(top-1 ≠ 原图商品)的 18 张里
+# 最高相似度 0.826;取 "认错最大值 + 0.02" 向上取整 = 0.85,≥0.85 的 70 张 top-1 全部正确。
+# 真实照片的分数比增强图低,所以这个阈值在线上很少触发;辨认式提问(这个多少钱 / 这是什么 /
+# 有没有同款)另有规则保证锚点在第 1 位,不依赖这个阈值。
+DEFAULT_PIN_SIM = 0.85
+
+
+def two_path_enabled() -> bool:
+    """IMAGE_TWO_PATH=1(默认开):视觉路 + 文字路(文本索引)两路,商品级 RRF 融合,
+    外加 SKU 规格问题与"照片当锚点"的关系问法。0 → 现在的级联(逐字节不变)。"""
+    return os.getenv("IMAGE_TWO_PATH", "1") == "1"
+
+
+def sku_attrs_enabled() -> bool:
+    """IMAGE_SKU_ATTRS=1(默认开,只在 IMAGE_TWO_PATH=1 时生效):"有没有黑色的"走 SKU 数据。"""
+    return os.getenv("IMAGE_SKU_ATTRS", "1") == "1"
+
+
+def photo_relations_enabled() -> bool:
+    """IMAGE_PHOTO_RELATIONS=1(默认开,只在 IMAGE_TWO_PATH=1 时生效):同品牌 / 同价位 / 搭配。"""
+    return os.getenv("IMAGE_PHOTO_RELATIONS", "1") == "1"
+
+
+def text_path_photo_only_enabled() -> bool:
+    """IMAGE_TEXT_PATH_PHOTO_ONLY:没有描述性文字(只发照片 / "这个有没有便宜点的")时,
+    是否也跑文字路(用视觉锚点的离线图片描述当 query)。默认值见 docs/IMAGE_SEARCH.md 的评测。"""
+    return os.getenv("IMAGE_TEXT_PATH_PHOTO_ONLY", "1") == "1"
+
+
+def pin_photo_only_enabled() -> bool:
+    """IMAGE_PIN_PHOTO_ONLY:只发照片(没有文字)时,视觉锚点是否总在第 1 位(把只发照片当成
+    "这是什么")。默认值见 docs/IMAGE_SEARCH.md 的评测。"""
+    return os.getenv("IMAGE_PIN_PHOTO_ONLY", "1") == "1"
+
+
+def pin_sim() -> float:
+    return _env_float("IMAGE_PIN_SIM", DEFAULT_PIN_SIM)
+
+
+def text_path_k() -> int:
+    """文字路取多少个商品参与 RRF(IMAGE_TEXT_PATH_K,默认 10)。"""
+    return _env_int("IMAGE_TEXT_PATH_K", 10)
+
+
 # ---------------------------------------------------------------------------
 # 数据结构
 # ---------------------------------------------------------------------------
@@ -161,6 +211,21 @@ class ImageFusionResult:
     fallback_intent: str | None = None
     history_dropped: bool = False
     trace: dict = field(default_factory=dict)
+    # ---- 以下字段只在 IMAGE_TWO_PATH=1 时由 rag_client 填写(级联路径保持默认值)----
+    # relation —— 第五种 status:"同品牌 / 同价位 / 搭配" 以视觉锚点为参照检索出的商品
+    two_path: bool = False
+    notes: list[str] = field(default_factory=list)      # 给 LLM 的确定性事实(SKU / 关系)
+    relation: str | None = None
+    relation_label: str | None = None
+    sku: dict | None = None
+    pinned: bool = False
+    # 级联算出的中间量(两路融合要复用):全部幸存者(视觉顺序)、相似度、约束
+    survivors: list[dict] = field(default_factory=list)
+    sims: dict = field(default_factory=dict)
+    filter: Filter | None = None
+    rel_max: float | None = None
+    rel_min: float | None = None
+    relative: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -872,8 +937,12 @@ def fuse_image_candidates(
     weight: float | None = None,
     rerank_fn: RerankFn | None = None,
     normalize_fn: Callable[[list[dict]], list[dict]] | None = None,
+    text_rerank: bool = True,
 ) -> ImageFusionResult:
-    """给定视觉候选(已合并或 Hit 列表)与本轮文字,选出要出的卡。纯计算、不调 LLM。"""
+    """给定视觉候选(已合并或 Hit 列表)与本轮文字,选出要出的卡。纯计算、不调 LLM。
+
+    text_rerank=False(两路模式用):不做交叉编码器融合排序,幸存者保持纯视觉顺序——
+    文字相关性改由文字路(文本索引检索)提供,再用 RRF 融合。默认 True = 级联原行为。"""
     k = k or image_top_k()
     floor = min_sim() if floor is None else floor
     weight = text_weight() if weight is None else weight
@@ -911,17 +980,18 @@ def fuse_image_candidates(
     trace.update(n_survivors=len(survivors), relative=relative, history_dropped=dropped,
                  enforced=labels)
 
+    ctx = dict(sims=sims, filter=flt, rel_max=rel_max, rel_min=rel_min, relative=relative)
     if not survivors:
         fb, q, intent = build_fallback(flt, neg, anchor, rel_max=rel_max, rel_min=rel_min,
                                        relative=relative, text=text_n)
         return ImageFusionResult(
             status="constraints_emptied", enforced=labels, anchor=anchor, anchor_excluded=True,
             top_sim=top_sim, floor=floor, negation=neg, fallback_filter=fb, fallback_query=q,
-            fallback_intent=intent, history_dropped=dropped, trace=trace,
+            fallback_intent=intent, history_dropped=dropped, trace=trace, **ctx,
         )
 
     reordered = False
-    if len(survivors) > 1 and has_descriptive_intent(text_n):
+    if text_rerank and len(survivors) > 1 and has_descriptive_intent(text_n):
         query = strip_constraint_phrases(text_n)
         pool, rest = survivors[: rerank_pool()], survivors[rerank_pool():]
         try:
@@ -945,4 +1015,256 @@ def fuse_image_candidates(
         status="visual", products=survivors[:k], enforced=labels, anchor=anchor,
         anchor_excluded=anchor_excluded, reordered_by_text=reordered, top_sim=top_sim,
         floor=floor, negation=neg, history_dropped=dropped, trace=trace,
+        survivors=survivors, **ctx,
     )
+
+
+# ---------------------------------------------------------------------------
+# 两路召回(IMAGE_TWO_PATH):文字路 query、商品级 RRF、锚点钉住、SKU 规格问题
+# 纯计算;文字路的检索本身(top_k)由 rag_client 调用。
+# ---------------------------------------------------------------------------
+
+
+def _caption(product_id: str | None) -> str | None:
+    if not product_id:
+        return None
+    try:
+        from rag.ingest.chunk import image_caption_text
+        return image_caption_text(product_id)
+    except Exception:
+        return None
+
+
+def text_path_query(text: str, anchor: dict, flt: Filter | None = None,
+                    caption_fn: Callable[[str | None], str | None] | None = None) -> tuple[str, str]:
+    """文字路的 query。返回 (query, 来源) —— 来源 "text" 或 "text+caption" 或 "caption" / "head"。
+
+    * 文字有描述性内容("适合跑步的 / 有没有黑色的"):锚点细分品类名 + 剥掉指代/约束套话后的描述;
+      用户文字自己指定了品类时不加锚点品类名。
+    * 没有(只发照片 / "这个有没有便宜点的"):剩下的描述(可能为空)+ 视觉锚点的离线图片描述
+      (image_caption_text:外观 / 颜色 / 材质 / 风格,不含图中文字),让只发照片的请求也用上文本索引;
+      没有离线描述时退回锚点细分品类名。
+    query 里不留否定触发词(排除条件已在 Filter 里)。"""
+    caption_fn = caption_fn or _caption
+    residual = descriptive_residual(text)
+    has_own_cat = bool(flt is not None and (flt.category or _subs(flt)))
+    head = None if has_own_cat else (anchor.get("sub_category") or anchor.get("category"))
+    if has_descriptive_intent(text):
+        q, src = " ".join(x for x in (head, residual) if x), "text"
+    else:
+        cap = caption_fn(anchor.get("product_id"))
+        if cap:
+            q, src = " ".join(x for x in (residual, cap) if x), ("text+caption" if residual else "caption")
+        else:
+            q, src = " ".join(x for x in (head, residual) if x), "head"
+    return strip_negation_triggers(q), src
+
+
+# "还有别的吗 / 有其他款吗 / 换一款" 是在要**别的**商品:不能把图里这件钉在第 1 位
+_ALT_SEEK_RE = re.compile(r"别的|别款|其[他它]|换一?(?:个|款|种|双|件|台|部|只)|不一样的|不同的|另外的?")
+
+
+def seeks_alternatives(text: str) -> bool:
+    return bool(text and _ALT_SEEK_RE.search(text))
+
+
+def _without_asked_brands(flt: Filter | None, asked: Sequence[str]) -> Filter | None:
+    """去掉辨认式提问里被问到的品牌("这是苹果的吗" 的 Apple 不是"只要苹果")。"""
+    if flt is None or not flt.brand_include or not asked:
+        return flt
+    low = {b.casefold() for b in asked}
+    out = Filter(**{k: getattr(flt, k) for k in flt.__dataclass_fields__})
+    out.brand_include = [b for b in flt.brand_include if b.casefold() not in low] or None
+    return out
+
+
+def is_deictic_only(text: str, turn_filter: Filter | None, neg: LocalNegation | None,
+                    relative: str | None) -> bool:
+    """问的就是图里这件 → 视觉锚点钉在第 1 位:
+    * 辨认式("这是什么 / 这是苹果的吗 / 是不是防水的")——被问到的品牌不算硬约束;
+    * 指代 / 询价式("这个多少钱 / 有没有同款"):有文字、但没有描述。
+    都要求:没有相对价格、没有否定、本轮文字没有(除被问品牌外的)硬约束、不是在要别的商品
+    ("还有别的吗")。只发照片(无文字)不算(另有 IMAGE_PIN_PHOTO_ONLY)。"""
+    if not (text or "").strip():
+        return False
+    if relative or (neg is not None and neg.active):
+        return False
+    if seeks_alternatives(text):
+        return False
+    ident = is_identification_question(text)
+    tf = _without_asked_brands(turn_filter, identification_brands(text)) if ident else turn_filter
+    if tf is not None and tf.active:
+        return False
+    if ident:
+        return True
+    return not has_descriptive_intent(normalize_question_forms(text))
+
+
+def rrf_scores(ranked_lists: Sequence[Sequence[str]], k: int = RRF_K) -> dict[str, float]:
+    """商品级 RRF:score = Σ 1/(k + rank),rank 从 1 起(与 hybrid.reciprocal_rank_fusion 同口径)。
+    各路等权;同一路里重复出现的商品只按第一次出现计。"""
+    scores: dict[str, float] = {}
+    for lst in ranked_lists:
+        seen: set[str] = set()
+        rank = 0
+        for pid in lst:
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            rank += 1
+            scores[pid] = scores.get(pid, 0.0) + 1.0 / (k + rank)
+    return scores
+
+
+_TEXT_SIGNAL_KEYS = ("dense_rank", "bm25_rank", "rerank_score", "rerank_rank", "rerank_model")
+
+
+def rrf_merge(visual: list[dict], textual: list[dict], *, all_sims: dict[str, float] | None = None,
+              k: int = RRF_K) -> list[dict]:
+    """视觉路(幸存者,视觉顺序)+ 文字路(top_k 顺序)→ 按 RRF 分降序的商品列表(拷贝)。
+
+    每个商品的 _retrieval 里写上 visual_rank / text_rank(从 0 起,与 dense_rank / bm25_rank
+    的口径一致;不在那一路为 None)、rrf_score(本函数算的商品级分数,覆盖混合检索内部的同名字段)、
+    clip_sim(已知时)和 source(image / text / image+text)。同分时视觉名次优先。"""
+    all_sims = all_sims or {}
+    v_ids = [p.get("product_id") for p in visual if p.get("product_id")]
+    t_ids = [p.get("product_id") for p in textual if p.get("product_id")]
+    v_rank = {pid: i for i, pid in enumerate(dict.fromkeys(v_ids))}
+    t_rank = {pid: i for i, pid in enumerate(dict.fromkeys(t_ids))}
+    scores = rrf_scores([v_ids, t_ids], k=k)
+    by_id: dict[str, dict] = {}
+    for p in visual:
+        by_id.setdefault(p["product_id"], p)
+    t_by_id = {p["product_id"]: p for p in textual if p.get("product_id")}
+    for pid, p in t_by_id.items():
+        by_id.setdefault(pid, p)
+    inf = float("inf")
+    order = sorted(scores, key=lambda pid: (-scores[pid], v_rank.get(pid, inf), t_rank.get(pid, inf)))
+    out: list[dict] = []
+    for pid in order:
+        p = dict(by_id[pid])
+        sig = dict(p.get("_retrieval") or {})
+        if pid in t_by_id and pid in v_rank:
+            tsig = t_by_id[pid].get("_retrieval") or {}
+            for key in _TEXT_SIGNAL_KEYS:
+                if tsig.get(key) is not None:
+                    sig[key] = tsig[key]
+        sig["visual_rank"] = v_rank.get(pid)
+        sig["text_rank"] = t_rank.get(pid)
+        sig["rrf_score"] = round(scores[pid], 6)
+        if pid in all_sims:
+            sig["clip_sim"] = round(float(all_sims[pid]), 4)
+        sig["source"] = ("image+text" if pid in v_rank and pid in t_rank
+                         else "image" if pid in v_rank else "text")
+        p["_retrieval"] = sig
+        out.append(p)
+    return out
+
+
+def hit_sims(hits: Iterable) -> dict[str, float]:
+    """视觉命中(Hit / VisualCandidate / 三元组)→ {product_id: 最大相似度}。
+    召回数 ≥ 目录规模时这里有每个商品的 CLIP 相似度(文字路独有的商品也能标上 clip_sim)。"""
+    out: dict[str, float] = {}
+    for h in hits or []:
+        if isinstance(h, tuple):
+            pid, score = h[0], h[1]
+        else:
+            pid = getattr(h, "product_id", None)
+            score = getattr(h, "score", getattr(h, "sim", None))
+        if not pid or score is None:
+            continue
+        score = float(score)
+        if pid not in out or score > out[pid]:
+            out[pid] = score
+    return out
+
+
+def pin_first(products: list[dict], product_id: str | None) -> tuple[list[dict], bool]:
+    """把 product_id 移到第 1 位。返回 (新列表, 是否在列表里)。"""
+    if not product_id:
+        return products, False
+    idx = next((i for i, p in enumerate(products) if p.get("product_id") == product_id), None)
+    if idx is None:
+        return products, False
+    return [products[idx]] + products[:idx] + products[idx + 1:], True
+
+
+def apply_sku_ask(
+    ranked: list[dict],
+    ask,
+    anchor: dict,
+    *,
+    anchor_survived: bool,
+    catalog: Iterable[dict] = (),
+    all_sims: dict[str, float] | None = None,
+    constraint_fn: Callable[[list[dict]], list[dict]] | None = None,
+) -> tuple[list[dict], dict, list[str]]:
+    """SKU 规格问题("有没有黑色的")的确定性处理。返回 (新排序, sku 信息, 给 LLM 的事实)。
+
+    * 视觉锚点 SKU 里有 → 锚点放第 1 位,事实:"图中商品有黑色款(来自 SKU 数据)";
+    * 锚点列了这一族规格但没有这个值 → 候选只留 SKU 里有这个值的(同细分品类族在前);
+      候选里一个都没有时,在目录的同细分品类族 / 同大类里找(同样过硬约束,按视觉相似度排);
+      还是没有 → 卡片保持原样,事实:"同类商品都没有黑色款";
+    * 锚点根本没列这一族规格 → 不改卡片,事实:"SKU 数据没写,无法确认"(不能说没有)。
+    constraint_fn:对目录补充候选执行与卡片相同的硬约束(含人民币归一化)。"""
+    from rag.retrieve import sku_attrs as S
+
+    all_sims = all_sims or {}
+    title = (anchor.get("title") or "")[:30]
+    anchor_id = anchor.get("product_id")
+    a_has = S.product_has(anchor, ask)
+    info: dict = {"ask": ask.label, "family": ask.family, "anchor_has": a_has}
+    notes: list[str] = []
+    if a_has is None:
+        info["action"] = "anchor_unknown"
+        notes.append(f"SKU 数据没有列出图中商品(视觉最相似的「{title}」)的{ask.family_label}选项,"
+                     f"无法确认它有没有{ask.label}款;不要猜测,也不要说没有。")
+        return ranked, info, notes
+    if a_has:
+        vals = "、".join(S.matching_values(anchor, ask)[:4])
+        if anchor_survived:
+            ranked, _ = pin_first(ranked, anchor_id)
+            info["action"] = "anchor_first"
+            notes.append(f"图中商品(视觉最相似的「{title}」)有{ask.label}款(来自 SKU 数据,SKU 里写作:{vals})。")
+            return ranked, info, notes
+        notes.append(f"视觉最相似的「{title}」有{ask.label}款(来自 SKU 数据,写作:{vals}),"
+                     "但它不满足本轮的其他条件,没有出卡。")
+    else:
+        opts = "、".join(S.product_attr_values(anchor).get(ask.family, [])[:8])
+        notes.append(f"图中商品(视觉最相似的「{title}」)没有{ask.label}款(SKU 数据;它的{ask.family_label}"
+                     f"选项是:{opts})。")
+    kind = set(anchor_kind(anchor))
+    cat = anchor.get("category")
+
+    def _same_kind_first(ps: list[dict]) -> list[dict]:
+        return sorted(ps, key=lambda p: 0 if (kind and p.get("sub_category") in kind) else 1)
+
+    with_val = [p for p in ranked if p.get("product_id") != anchor_id and S.product_has(p, ask)]
+    if with_val:
+        info["action"] = "filtered"
+        notes.append(f"下面的卡片是 SKU 里有{ask.label}款的同类商品。")
+        return _same_kind_first(with_val), info, notes
+    catalog = list(catalog)
+    scope = [p for p in catalog if kind and p.get("sub_category") in kind] or \
+            [p for p in catalog if cat and p.get("category") == cat]
+    has_any = [p for p in scope if p.get("product_id") != anchor_id and S.product_has(p, ask)]
+    ok = (constraint_fn or (lambda ps: ps))([dict(p) for p in has_any]) if has_any else []
+    if ok:
+        info["action"] = "filtered_catalog"
+        ok = sorted(ok, key=lambda p: -float(all_sims.get(p.get("product_id"), 0.0)))
+        for p in ok:
+            sig = dict(p.get("_retrieval") or {})
+            sig["source"] = "sku_catalog"
+            if p.get("product_id") in all_sims:
+                sig["clip_sim"] = round(float(all_sims[p["product_id"]]), 4)
+            p["_retrieval"] = sig
+        notes.append(f"下面的卡片是目录里 SKU 有{ask.label}款的同类商品(视觉相似度较低,但满足条件)。")
+        return _same_kind_first(ok), info, notes
+    info["action"] = "none_in_category"
+    if has_any:
+        notes.append(f"同类商品里有{ask.label}款的都不满足本轮的其他条件;下面的卡片仍是视觉最相似的商品,"
+                     f"它们都没有{ask.label}款,回复时如实说明。")
+    else:
+        notes.append(f"SKU 数据里,目录中的同类商品都没有{ask.label}款;下面的卡片仍是视觉最相似的商品,"
+                     "回复时如实说明。")
+    return ranked, info, notes

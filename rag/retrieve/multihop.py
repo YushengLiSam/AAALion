@@ -221,6 +221,91 @@ def detect_multihop(text: str, *, has_history_cards: bool = False) -> HopPlan | 
     return None
 
 
+# ---------------------------------------------------------------------------
+# 拍照找货:照片就是锚点("同品牌的 / 同价位的 / 配个什么")
+# ---------------------------------------------------------------------------
+# 文字多跳要求文字里点名锚点("跟 AirPods 同品牌的"),配图提问里锚点就是照片本身,
+# 文字只剩关系词。这里只认关系词,锚点由调用方(拍照路径)给出视觉最相似的商品,
+# 以 anchor_ordinal=1 的"会话锚点"形式交给 rag_client.multi_hop_retrieve
+# (history_products=[视觉锚点]),hop2 的派生约束 / 断言 / 归一化全部复用。
+# 价格关系("便宜点 / 贵一点")不在这里:拍照路径早就由 image_fusion.relative_bounds
+# 处理(以锚点人民币价为界),两套边界(0.95 安全边际 vs 0.01)不同,合并会改动现有评测数字。
+_PHOTO_SAME_BRAND_RE = re.compile(
+    r"同(?:一个?|个)?(?:品牌|牌子)|一样的?(?:品牌|牌子)|(?:品牌|牌子)一样|一个牌子"
+    # "这个牌子的**质量**怎么样"是在评价图里这件,不是要同品牌的别的商品:"的"后面必须是"还有 / 其他 / 别的…"
+    r"|(?:这个|这|该|它家|他家|这家)(?:品牌|牌子)的?(?:还有|还卖|其[他它]|别的|有什么|有哪些|都有|推荐)"
+)
+_PHOTO_SAME_PRICE_RE = re.compile(
+    r"同(?:一个?|个)?(?:价位|价格|档次)|(?:价位|价格|价钱|档次)(?:差不多|相近|一样|接近|相当)"
+    r"|差不多(?:价位|价格|价钱|档次)|一样(?:的)?(?:价位|价格|价钱)"
+)
+# "配件 / 配置 / 配色" 不是搭配;"这套搭配多少钱" 里的"搭配"是名词,只认"搭配什么 / 怎么搭 / 适合搭配…"
+_PHOTO_PAIR_RE = re.compile(
+    r"(?:配|搭)(?:个|双|条|件|套|点|一个|一双|一条|一件|一套|一点)?\s*(?:什么|啥)"
+    r"|搭配(?:什么|啥|一下|建议|推荐)|(?:适合|可以|能|好|用来|拿来)搭配|怎么搭|配套"
+    r"|(?:配(?:个|双|条|套|一个|一双|一条|一件|一套)|搭(?:个|双|条|件|套|一个|一双|一条|一件|一套)"
+    r"|搭配(?:个|双|条|件|套|一个|一双|一条|一件|一套))\s*(?P<target>[^,，。;；!！?？\s]{1,12})"
+)
+_PHOTO_TARGET_STRIP_RE = re.compile(r"(?:的|吗|呢|吧|好|合适|比较好|好看)+$")
+# 关系短语后面**直接**跟 "吗 / 么 / 嘛" 是在问"是不是同一个牌子 / 价格一样吗",不是要找别的商品
+# ("有同品牌的吗" 中间隔着"的",是在要商品,照常算)
+_PHOTO_ASK_SAME_RE = re.compile(r"^\s*(?:吗|么|嘛)")
+_PHOTO_TARGET_LEAD_RE = re.compile(r"^(?:的|还有|有没有|有|还|什么|啥|哪些|其[他它]|别的|一些|几款|几个|的)+")
+_PHOTO_TARGET_TAIL_RE = re.compile(r"(?:的|吗|呢|吧|么|嘛|有吗|有没有|还有吗|推荐|推荐一下|有哪些|呀|啊)+$")
+
+
+def _photo_target_after(t: str, end: int) -> str:
+    """"同品牌的**耳机** / 这个牌子还有什么**裤子**" → 目标品类词;只有目录能解析出品类时才用,否则返回空串
+    (关系检索默认在锚点品类里找)。"""
+    m = re.match(r"[^,，。;；!！?？\s]{0,12}", t[end:])
+    raw = m.group(0) if m else ""
+    raw = _PHOTO_TARGET_TAIL_RE.sub("", _PHOTO_TARGET_LEAD_RE.sub("", raw))
+    if len(raw) < 1:
+        return ""
+    try:
+        from rag.retrieve.constraints import build_retrieval_filter
+        f = build_retrieval_filter(raw, None)
+    except Exception:
+        return ""
+    if f is not None and (f.category or f.sub_category or f.sub_categories):
+        return _clean_target(raw)
+    return ""
+
+
+def detect_photo_relation(text: str) -> HopPlan | None:
+    """配图提问里的关系词 → HopPlan(锚点 = 照片,anchor_ordinal=1)。不是关系问法返回 None。
+
+    * 同品牌 / 同牌子 / 这个牌子还有什么 → same_brand
+    * 同价位 / 价格差不多 → same_price
+    * 配个什么 / 搭配 / 配双袜子 → pair(配个后面的词作为目标品类,如 "配条裤子")
+    same_brand / same_price 后面跟着能解析成品类的词("同品牌的耳机")时作为目标品类。
+    否定语境("不要同品牌的")与是非问("价格一样吗 / 是一个牌子吗")不算。"""
+    if not text or not text.strip():
+        return None
+    t = text.strip()
+
+    def _ok(m) -> bool:
+        before = t[: m.start()]
+        if re.search(r"(?:不要|别要|不想要|不需要|不考虑|别(?!的))[^，。,;；!！?？]{0,3}$", before):
+            return False
+        return not _PHOTO_ASK_SAME_RE.match(t[m.end():])
+
+    m = _PHOTO_PAIR_RE.search(t)
+    if m and _ok(m):
+        target = _PHOTO_TARGET_STRIP_RE.sub("", (m.groupdict().get("target") or "").strip())
+        return HopPlan(relation=RELATION_PAIR, anchor_text="", target_text=_clean_target(target),
+                       anchor_ordinal=1, raw=t)
+    m = _PHOTO_SAME_BRAND_RE.search(t)
+    if m and _ok(m):
+        return HopPlan(relation=RELATION_SAME_BRAND, anchor_text="", target_text=_photo_target_after(t, m.end()),
+                       anchor_ordinal=1, raw=t)
+    m = _PHOTO_SAME_PRICE_RE.search(t)
+    if m and _ok(m):
+        return HopPlan(relation=RELATION_SAME_PRICE, anchor_text="", target_text=_photo_target_after(t, m.end()),
+                       anchor_ordinal=1, raw=t)
+    return None
+
+
 def _source_currency(product: dict) -> str:
     """商品源币种;与 currency._product_currency 同规则(缺 provenance 视为 CNY)。"""
     prov = product.get("provenance")

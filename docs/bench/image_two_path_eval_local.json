@@ -1,0 +1,484 @@
+{
+  "label": "local",
+  "generated_at": "2026-10-07T09:18:11-0400",
+  "config": {
+    "IMAGE_MIN_SIM": 0.51,
+    "IMAGE_RECALL_N": 200,
+    "IMAGE_TOP_K": 3,
+    "IMAGE_PIN_SIM": 0.85,
+    "IMAGE_TEXT_PATH_K": 10,
+    "RRF_K": 60,
+    "IMAGE_TEXT_PATH_PHOTO_ONLY": true,
+    "IMAGE_PIN_PHOTO_ONLY": true,
+    "a_variants(env overrides on top of defaults)": {
+      "two_path[no photo-only pin]": {
+        "IMAGE_PIN_PHOTO_ONLY": "0"
+      }
+    },
+    "note_a": "IMAGE_TEXT_PATH_PHOTO_ONLY=0 gives exactly the cascade cards for photo-only (no text path, visual order), so it is not run separately",
+    "IMAGE_SKU_ATTRS": true,
+    "IMAGE_PHOTO_RELATIONS": true,
+    "n_catalog_images": 145,
+    "n_aug_per_image": 3,
+    "seed": 20261007,
+    "augmentation": "same as image_text_eval (crop/rotate/color jitter/downscale/JPEG)",
+    "fx": "USD→CNY 7.10 fixed",
+    "store": {
+      "backend": "chroma",
+      "image_count": 145,
+      "text_count": 1327
+    },
+    "retrieval_cache": "off (RAG_RETRIEVAL_CACHE=0)",
+    "llm_calls": 0,
+    "network_calls_blocked": 0,
+    "two_path_errors": 0,
+    "machine": "Darwin arm64 python 3.11.15",
+    "torch_device": "mps",
+    "cases_a2_b_c_d_use": "augmentation #0 of each image"
+  },
+  "pin_calibration": {
+    "n": 435,
+    "clip_top1_is_self": 0.9586,
+    "n_top1_wrong": 18,
+    "max_sim_when_top1_wrong": 0.8262,
+    "suggested_pin(max_wrong+0.02, ceil 0.01)": 0.85,
+    "configured_pin": 0.85,
+    "n_above_configured_pin": 70,
+    "top1_precision_above_configured_pin": 1.0
+  },
+  "results": {
+    "a_image_only": {
+      "cascade": {
+        "n": 435,
+        "self_hit@1": 0.9563,
+        "self_hit@3": 0.9977,
+        "same_category_precision": 0.9935,
+        "same_sub_category_precision": 0.7673,
+        "same_category_precision_excl_self": 0.9851,
+        "mean_cards": 2.2598,
+        "mean_text_path_only_cards": 0,
+        "status_counts": {
+          "visual": 434,
+          "below_floor": 1
+        }
+      },
+      "two_path": {
+        "n": 435,
+        "self_hit@1": 0.9563,
+        "self_hit@3": 0.9908,
+        "same_category_precision": 0.9958,
+        "same_sub_category_precision": 0.7926,
+        "same_category_precision_excl_self": 0.9918,
+        "mean_cards": 2.5793,
+        "mean_text_path_only_cards": 0.4138,
+        "status_counts": {
+          "visual": 434,
+          "below_floor": 1
+        }
+      },
+      "two_path[no photo-only pin]": {
+        "n": 435,
+        "self_hit@1": 0.8621,
+        "self_hit@3": 0.9908,
+        "same_category_precision": 0.9958,
+        "same_sub_category_precision": 0.7926,
+        "same_category_precision_excl_self": 0.9918,
+        "mean_cards": 2.5793,
+        "mean_text_path_only_cards": 0.4138,
+        "status_counts": {
+          "visual": 434,
+          "below_floor": 1
+        }
+      }
+    },
+    "a2_identify_zheshishenme": {
+      "cascade": {
+        "n": 145,
+        "first_card_is_clip_top1": 0.9931,
+        "self_hit@1": 0.9379
+      },
+      "two_path": {
+        "n": 145,
+        "first_card_is_clip_top1": 0.9931,
+        "self_hit@1": 0.9379
+      }
+    },
+    "b_sku_question": {
+      "cascade": {
+        "n": 142,
+        "n_truth_has": 71,
+        "n_truth_lacks": 71,
+        "question_parsed_rate": 1.0,
+        "anchor_is_self": 0.8592,
+        "answer_correct(anchor_has == truth for the photographed product)": null,
+        "answer_correct_when_anchor_is_self": null,
+        "truth_has: first_card_is_self": 0.8592,
+        "truth_lacks: all_cards_have_value": 0.0,
+        "truth_lacks: card_have_rate": 0.2053,
+        "truth_lacks: no_card_rate": 0.0282,
+        "when SKU-filtered: all cards have the value": null,
+        "when 'no product in category has it': claim true": null
+      },
+      "two_path": {
+        "n": 142,
+        "n_truth_has": 71,
+        "n_truth_lacks": 71,
+        "question_parsed_rate": 1.0,
+        "anchor_is_self": 0.8592,
+        "answer_correct(anchor_has == truth for the photographed product)": 0.9014,
+        "answer_correct_when_anchor_is_self": 0.9754,
+        "truth_has: first_card_is_self": 0.8732,
+        "truth_lacks: all_cards_have_value": 0.6197,
+        "truth_lacks: card_have_rate": 0.6715,
+        "truth_lacks: no_card_rate": 0.0282,
+        "when SKU-filtered: all cards have the value": 0.9783,
+        "when 'no product in category has it': claim true": 0.9444
+      },
+      "two_path_actions": {
+        "anchor_first": 72,
+        "filtered": 43,
+        "none_in_category": 18,
+        "filtered_catalog": 3,
+        "none": 4,
+        "anchor_unknown": 2
+      },
+      "two_path_wrong_answer_examples": [
+        {
+          "pid": "p_digital_006",
+          "text": "这个有512G的吗",
+          "truth": true,
+          "claim": false,
+          "anchor": "p_digital_012"
+        },
+        {
+          "pid": "p_digital_006",
+          "text": "这个有2TB的吗",
+          "truth": false,
+          "claim": true,
+          "anchor": "p_digital_012"
+        },
+        {
+          "pid": "p_digital_012",
+          "text": "这个有512G的吗",
+          "truth": false,
+          "claim": true,
+          "anchor": "p_digital_006"
+        },
+        {
+          "pid": "p_digital_013",
+          "text": "这个有1TB的吗",
+          "truth": false,
+          "claim": true,
+          "anchor": "p_digital_024"
+        },
+        {
+          "pid": "p_clothes_002",
+          "text": "这个有没有灰色的",
+          "truth": true,
+          "claim": null,
+          "anchor": null
+        },
+        {
+          "pid": "p_clothes_002",
+          "text": "这个有没有白色的",
+          "truth": false,
+          "claim": null,
+          "anchor": null
+        },
+        {
+          "pid": "p_clothes_002",
+          "text": "这个有M码吗",
+          "truth": true,
+          "claim": null,
+          "anchor": null
+        },
+        {
+          "pid": "p_clothes_002",
+          "text": "这个有S码吗",
+          "truth": false,
+          "claim": null,
+          "anchor": null
+        }
+      ]
+    },
+    "c_photo_relations": {
+      "same_brand": {
+        "cascade": {
+          "n": 145,
+          "relation_satisfied(all cards, vs photographed product)": 0.0,
+          "relation_satisfied(all cards, vs visual anchor)": 0.0,
+          "card_level_satisfied(vs photographed product)": 0.1481,
+          "nonempty_rate": 0.9931
+        },
+        "two_path": {
+          "n": 145,
+          "relation_satisfied(all cards, vs photographed product)": 0.9125,
+          "relation_satisfied(all cards, vs visual anchor)": 1.0,
+          "card_level_satisfied(vs photographed product)": 0.9437,
+          "nonempty_rate": 0.5517
+        },
+        "text": "有没有同品牌的",
+        "two_path_status_counts": {
+          "relation": 144,
+          "below_floor": 1
+        }
+      },
+      "same_price": {
+        "cascade": {
+          "n": 145,
+          "relation_satisfied(all cards, vs photographed product)": 0.0,
+          "relation_satisfied(all cards, vs visual anchor)": 0.0,
+          "card_level_satisfied(vs photographed product)": 0.1424,
+          "nonempty_rate": 0.9931
+        },
+        "two_path": {
+          "n": 145,
+          "relation_satisfied(all cards, vs photographed product)": 0.9375,
+          "relation_satisfied(all cards, vs visual anchor)": 1.0,
+          "card_level_satisfied(vs photographed product)": 0.9479,
+          "nonempty_rate": 0.4414
+        },
+        "text": "同价位的还有吗",
+        "two_path_status_counts": {
+          "relation": 144,
+          "below_floor": 1
+        }
+      },
+      "pair": {
+        "cascade": {
+          "n": 44,
+          "relation_satisfied(all cards, vs photographed product)": 0.0,
+          "relation_satisfied(all cards, vs visual anchor)": 0.0,
+          "card_level_satisfied(vs photographed product)": 0.0265,
+          "nonempty_rate": 1.0
+        },
+        "two_path": {
+          "n": 44,
+          "relation_satisfied(all cards, vs photographed product)": 0.9318,
+          "relation_satisfied(all cards, vs visual anchor)": 0.9318,
+          "card_level_satisfied(vs photographed product)": 0.9773,
+          "nonempty_rate": 1.0
+        },
+        "text": "这个配个什么好",
+        "two_path_status_counts": {
+          "relation": 44
+        }
+      }
+    },
+    "d_constraints": {
+      "cheaper": {
+        "cascade": {
+          "n": 145,
+          "violation_rate(any card)": 0.0207,
+          "violation_rate_vs_visual_anchor(the enforced constraint)": 0.0,
+          "same_category_rate": 0.9782,
+          "no_card_rate": 0.1034
+        },
+        "two_path": {
+          "n": 145,
+          "violation_rate(any card)": 0.0207,
+          "violation_rate_vs_visual_anchor(the enforced constraint)": 0.0,
+          "same_category_rate": 0.9859,
+          "no_card_rate": 0.1034
+        }
+      },
+      "budget_80pct": {
+        "cascade": {
+          "n": 142,
+          "violation_rate(any card)": 0.0,
+          "same_category_rate": 0.9807,
+          "no_card_rate": 0.1479
+        },
+        "two_path": {
+          "n": 142,
+          "violation_rate(any card)": 0.0,
+          "same_category_rate": 0.989,
+          "no_card_rate": 0.1479
+        }
+      },
+      "exclude_own_brand": {
+        "cascade": {
+          "n": 139,
+          "violation_rate(any card)": 0.0,
+          "same_category_rate": 0.9638,
+          "no_card_rate": 0.0072
+        },
+        "two_path": {
+          "n": 139,
+          "violation_rate(any card)": 0.0,
+          "same_category_rate": 0.9831,
+          "no_card_rate": 0.0072
+        }
+      },
+      "exclude_own_country": {
+        "cascade": {
+          "n": 73,
+          "violation_rate(any card)": 0.0,
+          "same_category_rate": 0.9421,
+          "no_card_rate": 0.0137
+        },
+        "two_path": {
+          "n": 73,
+          "violation_rate(any card)": 0.0,
+          "same_category_rate": 0.9676,
+          "no_card_rate": 0.0137
+        }
+      }
+    },
+    "e_latency_ms(fusion call only, excludes CLIP)": {
+      "clip_embed_and_search_ms": {
+        "n": 435,
+        "p50": 30.0725,
+        "p95": 42.255
+      },
+      "a_image_only": {
+        "cascade": {
+          "n": 435,
+          "p50_ms": 0.212,
+          "p95_ms": 0.8157,
+          "mean_ms": 0.3478
+        },
+        "two_path": {
+          "n": 435,
+          "p50_ms": 60.0431,
+          "p95_ms": 159.244,
+          "mean_ms": 88.6014
+        },
+        "two_path[no photo-only pin]": {
+          "n": 435,
+          "p50_ms": 57.409,
+          "p95_ms": 150.5256,
+          "mean_ms": 69.3629
+        }
+      },
+      "a2_identify": {
+        "cascade": {
+          "n": 145,
+          "p50_ms": 3.0019,
+          "p95_ms": 6.1482,
+          "mean_ms": 3.7446
+        },
+        "two_path": {
+          "n": 145,
+          "p50_ms": 74.3537,
+          "p95_ms": 187.7629,
+          "mean_ms": 89.2768
+        }
+      },
+      "b_sku": {
+        "cascade": {
+          "n": 142,
+          "p50_ms": 0.5962,
+          "p95_ms": 99.3665,
+          "mean_ms": 21.8972
+        },
+        "two_path": {
+          "n": 142,
+          "p50_ms": 111.0273,
+          "p95_ms": 313.8705,
+          "mean_ms": 125.3406
+        }
+      },
+      "c_same_brand": {
+        "cascade": {
+          "n": 145,
+          "p50_ms": 44.021,
+          "p95_ms": 195.1531,
+          "mean_ms": 58.5751
+        },
+        "two_path": {
+          "n": 145,
+          "p50_ms": 49.2251,
+          "p95_ms": 122.8475,
+          "mean_ms": 58.8964
+        }
+      },
+      "c_same_price": {
+        "cascade": {
+          "n": 145,
+          "p50_ms": 49.1078,
+          "p95_ms": 193.9422,
+          "mean_ms": 62.0655
+        },
+        "two_path": {
+          "n": 145,
+          "p50_ms": 46.3372,
+          "p95_ms": 117.7722,
+          "mean_ms": 50.371
+        }
+      },
+      "c_pair": {
+        "cascade": {
+          "n": 44,
+          "p50_ms": 70.9246,
+          "p95_ms": 234.9243,
+          "mean_ms": 82.3058
+        },
+        "two_path": {
+          "n": 44,
+          "p50_ms": 111.8725,
+          "p95_ms": 365.1484,
+          "mean_ms": 130.2447
+        }
+      },
+      "d_cheaper": {
+        "cascade": {
+          "n": 145,
+          "p50_ms": 51.5179,
+          "p95_ms": 241.0267,
+          "mean_ms": 78.6761
+        },
+        "two_path": {
+          "n": 145,
+          "p50_ms": 85.4847,
+          "p95_ms": 261.2287,
+          "mean_ms": 111.4695
+        }
+      },
+      "d_budget_80pct": {
+        "cascade": {
+          "n": 142,
+          "p50_ms": 64.931,
+          "p95_ms": 205.0313,
+          "mean_ms": 84.4724
+        },
+        "two_path": {
+          "n": 142,
+          "p50_ms": 79.5015,
+          "p95_ms": 211.0485,
+          "mean_ms": 99.0947
+        }
+      },
+      "d_exclude_own_brand": {
+        "cascade": {
+          "n": 139,
+          "p50_ms": 9.8891,
+          "p95_ms": 179.8945,
+          "mean_ms": 44.3768
+        },
+        "two_path": {
+          "n": 139,
+          "p50_ms": 72.9788,
+          "p95_ms": 190.8527,
+          "mean_ms": 82.9987
+        }
+      },
+      "d_exclude_own_country": {
+        "cascade": {
+          "n": 73,
+          "p50_ms": 21.2579,
+          "p95_ms": 176.4048,
+          "mean_ms": 54.6559
+        },
+        "two_path": {
+          "n": 73,
+          "p50_ms": 63.7646,
+          "p95_ms": 182.8866,
+          "mean_ms": 84.3038
+        }
+      }
+    }
+  },
+  "errors": [],
+  "elapsed_s": 276.9
+}

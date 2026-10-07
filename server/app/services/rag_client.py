@@ -1000,9 +1000,92 @@ def image_text_fuse_hits(
 ):
     """image_text_retrieve 的后半段:给定已召回的视觉命中,做融合 + 约束清空时的文字回退。
     拆出来是为了让离线评测(rag/eval/image_text_eval.py)复用同一份代码,
-    而不必为每个文字变体重复跑 CLIP。"""
+    而不必为每个文字变体重复跑 CLIP。
+
+    IMAGE_TWO_PATH=1(默认)走两路召回 + RRF(_image_two_path);它出任何异常都回到
+    下面的级联(_image_cascade),与 IMAGE_TWO_PATH=0 完全相同。"""
     from rag.retrieve import image_fusion as F
+
+    if F.two_path_enabled():
+        # 两路模式会读 hits 不止一遍(融合 + hit_sims),出异常回到级联时还要再读一遍:
+        # 生成器之类只能迭代一次的输入先落成列表(list / tuple 原样传,级联输入不变)。
+        if hits is not None and not isinstance(hits, (list, tuple)):
+            hits = list(hits)
+        try:
+            return _image_two_path(
+                hits, text, turn_filter=turn_filter, conversation_filter=conversation_filter,
+                user_id=user_id, k=k, rerank_fn=rerank_fn,
+            )
+        except Exception as e:  # noqa: BLE001
+            import logging
+            logging.getLogger(__name__).warning(
+                f"image two-path failed, falling back to cascade: {type(e).__name__}: {e}")
+    return _image_cascade(
+        hits, text, turn_filter=turn_filter, conversation_filter=conversation_filter,
+        user_id=user_id, k=k, rerank_fn=rerank_fn,
+    )
+
+
+def _image_strict_search(query: str, intent: str | None, flt, neg, *, k: int, user_id: str | None) -> list[dict]:
+    """拍照路径里的文字检索(约束清空后的同类回退、两路模式的文字路共用):
+    top_k(skip_topic_switch——Filter 是程序派生的权威约束;llm_free——零 LLM),
+    再严格复查本地否定与全部硬约束(兜底检索层里 国产 / X以外 是 fail-soft 的)。"""
+    from rag.retrieve import image_fusion as F
+    from app.services.currency import normalize_product_prices
+
+    found = top_k(
+        query or "",
+        k=k,
+        conversation_filter=flt,
+        intent_text=intent,
+        user_id=user_id,
+        skip_topic_switch=True,
+        llm_free=True,
+    )
+    found = normalize_product_prices(found)
+    found = F.apply_local_negation(found, neg)
+    return F.apply_constraints(found, flt, F.LocalNegation())
+
+
+def _widen_to_category(flt):
+    """细分品类 → 大类(同一组其他约束)。没有可放宽的返回 None。"""
     from rag.retrieve.query import Filter
+
+    if flt is None or not ((flt.sub_categories or flt.sub_category) and flt.category):
+        return None
+    wider = Filter(**{name: getattr(flt, name) for name in flt.__dataclass_fields__})
+    wider.sub_categories = None
+    wider.sub_category = None
+    return wider
+
+
+def _run_constraints_fallback(res, *, k: int, user_id: str | None):
+    """status=constraints_emptied:在锚点品类里按同一组约束走文字检索,细分品类没有就放宽到大类。"""
+    fb = res.fallback_filter
+    products = _image_strict_search(res.fallback_query or "", res.fallback_intent, fb, res.negation,
+                                    k=max(k, 5), user_id=user_id)
+    res.trace["fallback"] = "sub_category"
+    wider = _widen_to_category(fb) if not products else None
+    if wider is not None:
+        products = _image_strict_search(res.fallback_query or "", res.fallback_intent, wider, res.negation,
+                                        k=max(k, 5), user_id=user_id)
+        res.trace["fallback"] = "category"
+    res.products = products[:k]
+    return res
+
+
+def _image_cascade(
+    hits,
+    text: str,
+    *,
+    turn_filter=None,
+    conversation_filter=None,
+    user_id: str | None = None,
+    k: int | None = None,
+    rerank_fn=None,
+):
+    """级联(IMAGE_TWO_PATH=0 的行为):视觉 → 下限 → 硬约束 → 交叉编码器文字排序 → 约束清空回退。"""
+    from rag.retrieve import image_fusion as F
     from app.services.currency import normalize_product_prices
 
     k = k or F.image_top_k()
@@ -1016,32 +1099,194 @@ def image_text_fuse_hits(
     )
     if res.status != "constraints_emptied" or res.fallback_filter is None:
         return res
+    return _run_constraints_fallback(res, k=k, user_id=user_id)
 
-    def _search(flt) -> list[dict]:
-        found = top_k(
-            res.fallback_query or "",
-            k=max(k, 5),
-            conversation_filter=flt,
-            intent_text=res.fallback_intent,
-            user_id=user_id,
-            skip_topic_switch=True,
-            llm_free=True,
+
+def _image_two_path(
+    hits,
+    text: str,
+    *,
+    turn_filter=None,
+    conversation_filter=None,
+    user_id: str | None = None,
+    k: int | None = None,
+    rerank_fn=None,
+):
+    """两路召回 + 商品级 RRF(IMAGE_TWO_PATH=1)。全程不调 LLM。
+
+    视觉最高分低于下限 / CLIP 不可用 / 约束清空视觉候选:与级联完全相同。
+    其余情况:
+      0. 文字是"同品牌 / 同价位 / 配个什么" → 视觉锚点当多跳锚点(_photo_relation);
+      1. 视觉路 V = 级联的幸存者(纯视觉顺序,不做交叉编码器);
+      2. 文字路 T = top_k(llm_free) 在锚点细分品类族里检索(用户文字点了别的品类就跟文字走),
+         query = 去掉指代套话的文字;没有描述性内容时用视觉锚点的离线图片描述;
+         结果严格复查同一组硬约束;细分品类里一个都没有时放宽到大类;
+      3. RRF(k=60,两路等权)→ 视觉锚点钉住规则 → SKU 规格问题 → top IMAGE_TOP_K。"""
+    from rag.retrieve import image_fusion as F
+    from app.services.currency import normalize_product_prices
+
+    k = k or F.image_top_k()
+    res = F.fuse_image_candidates(
+        hits, text,
+        turn_filter=turn_filter,
+        conversation_filter=conversation_filter,
+        k=k,
+        normalize_fn=normalize_product_prices,
+        rerank_fn=rerank_fn,
+        text_rerank=False,
+    )
+    res.two_path = True
+    if res.status in ("no_visual", "below_floor") or res.anchor is None:
+        return res
+    text_n = F.normalize_question_forms(text or "")
+
+    if F.photo_relations_enabled():
+        from rag.retrieve.multihop import detect_photo_relation
+        plan = detect_photo_relation(text_n)
+        if plan is not None:
+            return _photo_relation(res, plan, turn_filter=turn_filter, user_id=user_id, k=k)
+
+    if res.status == "constraints_emptied":
+        if res.fallback_filter is None:
+            return res
+        return _run_constraints_fallback(res, k=k, user_id=user_id)
+
+    anchor = res.anchor
+    all_sims = F.hit_sims(hits)
+    flt, neg = res.filter, res.negation
+    ask = None
+    if F.sku_attrs_enabled():
+        from rag.retrieve.sku_attrs import parse_attr_ask
+        ask = parse_attr_ask(text_n)
+
+    # ---- 文字路 ----
+    textual: list[dict] = []
+    t_trace: dict = {}
+    descriptive = F.has_descriptive_intent(text_n)
+    if descriptive or F.text_path_photo_only_enabled():
+        fb, _q, intent = F.build_fallback(flt, neg, anchor, rel_max=res.rel_max, rel_min=res.rel_min,
+                                          relative=res.relative, text=text_n)
+        query, q_src = F.text_path_query(text_n, anchor, flt)
+        t_k = F.text_path_k()
+        textual = _image_strict_search(query, intent, fb, neg, k=t_k, user_id=user_id)
+        t_trace = {"query": query, "query_source": q_src, "scope": "sub_category", "n": len(textual)}
+        wider = _widen_to_category(fb) if not textual else None
+        if wider is not None:
+            textual = _image_strict_search(query, intent, wider, neg, k=t_k, user_id=user_id)
+            t_trace.update(scope="category", n=len(textual))
+    res.trace["text_path"] = t_trace or {"skipped": "no descriptive text (IMAGE_TEXT_PATH_PHOTO_ONLY=0)"}
+
+    # ---- RRF ----
+    fused = F.rrf_merge(res.survivors, textual, all_sims=all_sims)
+    anchor_id = anchor.get("product_id")
+    anchor_survived = not res.anchor_excluded
+    pin_reason = None
+    if anchor_survived:
+        if res.top_sim is not None and res.top_sim >= F.pin_sim() and not F.seeks_alternatives(text_n):
+            pin_reason = "high_sim"
+        elif F.is_deictic_only(text or "", turn_filter, neg, res.relative):
+            pin_reason = "deictic"
+        elif not (text or "").strip() and F.pin_photo_only_enabled():
+            pin_reason = "photo_only"
+    if pin_reason:
+        fused, res.pinned = F.pin_first(fused, anchor_id)
+    res.trace.update(pin=pin_reason, rrf_k=F.RRF_K, n_fused=len(fused))
+
+    # ---- SKU 规格问题 ----
+    if ask is not None:
+        def _constraints(ps: list[dict]) -> list[dict]:
+            ps = normalize_product_prices(ps)
+            return F.apply_constraints(ps, flt, neg, rel_max=res.rel_max, rel_min=res.rel_min)
+
+        from rag.retrieve.query import _product_index
+        fused, res.sku, notes = F.apply_sku_ask(
+            fused, ask, anchor, anchor_survived=anchor_survived,
+            catalog=_product_index().values(), all_sims=all_sims, constraint_fn=_constraints,
         )
-        found = normalize_product_prices(found)
-        # 兜底检索层里 国产 / X以外 是 fail-soft 的,这里再严格过一遍,保证卡片不违反约束
-        found = F.apply_local_negation(found, res.negation)
-        return F.apply_constraints(found, flt, F.LocalNegation())
+        res.notes.extend(notes)
+        if res.sku.get("action") == "anchor_first":
+            pin_reason = pin_reason or "sku"
+    res.products = fused[:k]
+    # SKU 过滤可能把钉住的锚点筛掉(它没有被问的颜色 / 尺码):pinned 以最终卡片为准
+    res.pinned = bool(pin_reason and res.products and res.products[0].get("product_id") == anchor_id)
+    res.trace["pin"] = pin_reason if res.pinned else None
+    res.reordered_by_text = [p.get("product_id") for p in res.products] != \
+        [p.get("product_id") for p in res.survivors[:k]]
+    return res
 
-    fb = res.fallback_filter
-    products = _search(fb)
-    res.trace["fallback"] = "sub_category"
-    if not products and (fb.sub_categories or fb.sub_category) and fb.category:
-        wider = Filter(**{name: getattr(fb, name) for name in fb.__dataclass_fields__})
-        wider.sub_categories = None
-        wider.sub_category = None
-        products = _search(wider)
-        res.trace["fallback"] = "category"
-    res.products = products[:k]
+
+def _photo_relation(res, plan, *, turn_filter=None, user_id: str | None = None, k: int = 3):
+    """照片当锚点:"同品牌的 / 同价位的 / 配个什么"。复用 multi_hop_retrieve(会话锚点模式,
+    history_products=[视觉锚点]),派生约束 / 断言 / 人民币归一化都是同一份代码;
+    多跳的"放宽兜底"(relaxed:不满足关系的最接近商品)在这里丢弃——卡片必须满足关系。
+    结果再过本轮的硬约束(预算 / 排除 / 否定 / 相对价格);品类与点名品牌不从会话继承
+    (关系本身决定目标品类,点名品牌只认本轮文字)。"""
+    from rag.retrieve import image_fusion as F
+    from rag.retrieve.multihop import PAIR_MAP, RELATION_PAIR, anchor_attrs, relation_label
+    from rag.retrieve.query import Filter
+    from app.services.currency import normalize_product_prices
+
+    anchor = res.anchor
+    attrs = anchor_attrs(anchor)
+    res.status = "relation"
+    res.relation = plan.relation
+    res.relation_label = relation_label(plan.relation, attrs)
+    res.products = []
+    title = (anchor.get("title") or "")[:30]
+    if plan.relation == RELATION_PAIR and not plan.target_text and not PAIR_MAP.get(anchor.get("sub_category") or ""):
+        res.trace["relation"] = {"relation": plan.relation, "skipped": "no curated pairing for sub_category"}
+        res.notes.append(f"目录的搭配表里没有「{anchor.get('sub_category') or title}」的搭配建议,本轮没有搭配商品卡。")
+        return res
+    flt = res.filter
+    rel_flt = None
+    if flt is not None:
+        rel_flt = Filter(
+            brand_include=list(turn_filter.brand_include) if turn_filter and turn_filter.brand_include else None,
+            brand_exclude=list(flt.brand_exclude) if flt.brand_exclude else None,
+            exclude_keywords=list(flt.exclude_keywords) if flt.exclude_keywords else None,
+            price_max_cny=flt.effective_price_max_cny,
+            price_min_cny=flt.effective_price_min_cny,
+        )
+        rel_flt = rel_flt if rel_flt.active else None
+
+    def _attempt(p):
+        _a, found, tr = multi_hop_retrieve(
+            p, history_products=[anchor], user_id=user_id, k=max(k, 4) + 4, llm_free=True,
+            allow_relaxed=False)
+        tr.setdefault("hops", [])
+        if tr["hops"]:
+            tr["hops"][0] = {"hop": 1, "kind": "photo_anchor", "hit": anchor.get("title"),
+                             "clip_sim": res.top_sim}
+        if tr.get("relaxed"):
+            found = []
+        # 纵深防御:_assert_relation 只断言价格 / 品牌,派生出的目标品类(搭配表 / 同类)这里再钉一次
+        target_subs = set((tr.get("derived_filter") or {}).get("sub_categories") or [])
+        if target_subs:
+            found = [x for x in found if x.get("sub_category") in target_subs]
+        found = normalize_product_prices(found)
+        found = F.apply_constraints(found, rel_flt, res.negation or F.LocalNegation(),
+                                    rel_max=res.rel_max, rel_min=res.rel_min)
+        return found, tr
+
+    results, trace = _attempt(plan)
+    # "同品牌的"没说品类时,多跳默认在锚点的细分品类里找;同品牌在这个细分品类里常常只有它自己
+    # (评测里 65% 的请求因此没有卡)。这时放宽到锚点的大类(目标词 = 大类名),仍然只要同品牌。
+    from rag.retrieve.multihop import RELATION_SAME_BRAND, HopPlan
+    if not results and plan.relation == RELATION_SAME_BRAND and not plan.target_text and anchor.get("category"):
+        wider_plan = HopPlan(relation=plan.relation, anchor_text="", target_text=anchor["category"],
+                             anchor_ordinal=1, raw=plan.raw)
+        results, trace = _attempt(wider_plan)
+        trace["widened_to_category"] = anchor["category"]
+    for p in results:
+        sig = dict(p.get("_retrieval") or {})
+        sig["source"] = f"photo_{plan.relation}"
+        p["_retrieval"] = sig
+    res.products = results[:k]
+    res.trace["relation"] = {k_: v for k_, v in trace.items() if k_ != "anchor"}
+    if res.products:
+        res.notes.append(f"卡片是与图中商品(视觉最相似的「{title}」)的关系检索结果:{res.relation_label}。")
+    else:
+        res.notes.append(f"目录里没有满足「{res.relation_label}」且符合本轮条件的商品,本轮没有商品卡。")
     return res
 
 
@@ -1071,12 +1316,18 @@ def multi_hop_retrieve(
     history_products: list[dict] | None = None,
     user_id: str | None = None,
     k: int = 4,
+    llm_free: bool = False,
+    allow_relaxed: bool = True,
 ) -> tuple[dict | None, list[dict], dict]:
     """执行两跳检索。
 
     返回 (anchor_product, hop2_products, trace)。
     - anchor_product 为 None 表示 hop1 没锚定到商品 → 调用方应回退单跳。
     - trace 是给 SSE `hop_trace` 事件用的可解释检索链。
+    - llm_free(只给拍照找货的"照片当锚点"用):各跳的 top_k 都以 llm_free=True 调用,
+      保证这条路径零 LLM。默认 False,文字多跳行为不变。
+    - allow_relaxed=False(同样只给"照片当锚点"用):hop2 为空时不做"放宽兜底"检索——
+      调用方本来就会丢掉不满足关系的结果,省掉一次带交叉编码器的 top_k。默认 True 行为不变。
     """
     from rag.retrieve.multihop import (
         anchor_attrs, derive_filter, relation_label, RELATION_PAIR, PAIR_MAP,
@@ -1100,7 +1351,8 @@ def multi_hop_retrieve(
         })
     else:
         hits = top_k(plan.anchor_text, k=3, intent_text=plan.anchor_text,
-                     user_id=user_id, relevance_gate=False)
+                     user_id=user_id, relevance_gate=False,
+                     **({"llm_free": True} if llm_free else {}))
         anchor = hits[0] if hits else None
         trace["hops"].append({
             "hop": 1, "kind": "retrieval", "query": plan.anchor_text,
@@ -1163,7 +1415,8 @@ def multi_hop_retrieve(
     # 召回变少、频繁掉进 relaxed 兜底。
     results = top_k(target_text, k=k + 8, conversation_filter=hop2_filter,
                     intent_text=target_text, user_id=user_id, relevance_gate=False,
-                    skip_topic_switch=True)
+                    skip_topic_switch=True,
+                    **({"llm_free": True} if llm_free else {}))
     # Bug 1 修复:hop2 候选也统一归一化成人民币,断言/排序只比较 CNY。
     from app.services.currency import normalize_product_prices
     results = normalize_product_prices(results)
@@ -1194,9 +1447,10 @@ def multi_hop_retrieve(
     # 约束下确实没有 → 放宽兜底:同品类里取最接近的,并在 trace 标记,
     # prompt 会据此如实说明"没有完全符合的,最接近的是…"(与单跳预算兜底同策略)
     relaxed = False
-    if not results:
+    if not results and allow_relaxed:
         widened = top_k(target_text, k=k + 4, intent_text=target_text,
-                        user_id=user_id, relevance_gate=False)
+                        user_id=user_id, relevance_gate=False,
+                        **({"llm_free": True} if llm_free else {}))
         widened = [p for p in widened if not _is_anchor(p)]
         anchor_price = attrs.get("price_cny")
         if anchor_price and plan.relation in _PRICE_RELATIONS:

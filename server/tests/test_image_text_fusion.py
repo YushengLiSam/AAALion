@@ -79,6 +79,8 @@ def _no_llm(monkeypatch):
         raise AssertionError("network/LLM call attempted in image fusion test")
 
     monkeypatch.setattr(urllib.request, "urlopen", _boom)
+    # 本文件测的是级联(IMAGE_TWO_PATH=0 的行为);两路召回见 test_image_two_path.py。
+    monkeypatch.setenv("IMAGE_TWO_PATH", "0")
     monkeypatch.delenv("IMAGE_TEXT_FUSION", raising=False)
     monkeypatch.delenv("IMAGE_MIN_SIM", raising=False)
     monkeypatch.delenv("IMAGE_CROSS_CAT_MARGIN", raising=False)

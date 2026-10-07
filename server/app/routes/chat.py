@@ -228,6 +228,14 @@ def _product_card_event(p: dict) -> dict:
             "rerank_rank": raw_retrieval.get("rerank_rank"),
             "rerank_model": raw_retrieval.get("rerank_model"),
         }
+        # 拍照找货两路召回(IMAGE_TWO_PATH):每张卡在视觉路 / 文字路里的名次(从 0 起,
+        # 与 dense_rank 同口径;不在那一路为 null)和 CLIP 相似度;此时 rrf_score 是两路的
+        # 商品级 RRF 分。只在拍照卡片上出现,纯文字请求的字段集合不变(iOS 解码忽略未知键)。
+        if "visual_rank" in raw_retrieval or "text_rank" in raw_retrieval:
+            retrieval_signals["visual_rank"] = raw_retrieval.get("visual_rank")
+            retrieval_signals["text_rank"] = raw_retrieval.get("text_rank")
+            retrieval_signals["clip_sim"] = raw_retrieval.get("clip_sim")
+            retrieval_signals["source"] = raw_retrieval.get("source")
     return {
         "type": "product_card",
         "product": {
@@ -930,18 +938,38 @@ def _image_addendum(outcome, products: list[dict]) -> str:
     a_title = (anchor.get("title") or "")[:40]
     a_price = anchor.get("price_cny")
     a_price_txt = f"(¥{a_price})" if a_price is not None else ""
+    notes = [n for n in (getattr(outcome, "notes", None) or []) if n]
+    facts = ("\n以下是检索层确定的事实(来自商品 SKU / 目录数据,不是猜测),回复必须与之一致:"
+             + "".join(f"\n- {n}" for n in notes)) if notes else ""
     if status == "visual":
-        s = ("\n\n11. **本轮是拍照找货**: 下面的商品卡是按图片的**视觉相似度**从目录里检索的"
-             + (",并结合了用户的文字描述排序" if getattr(outcome, "reordered_by_text", False) else "")
-             + "。图中商品不一定在目录里:只有你的视觉判断(品牌+品类)确实与某张卡一致时才确认是同款,"
-             "否则说『目录里最相似的是…』。")
+        if getattr(outcome, "two_path", False):
+            s = ("\n\n11. **本轮是拍照找货**: 下面的商品卡由两路检索融合而成——图片的**视觉相似度**,"
+                 "加上在同一品类里按用户文字(只发图时用图中商品的外观描述)做的文字检索。")
+        else:
+            s = ("\n\n11. **本轮是拍照找货**: 下面的商品卡是按图片的**视觉相似度**从目录里检索的"
+                 + (",并结合了用户的文字描述排序" if getattr(outcome, "reordered_by_text", False) else "")
+                 + "。")
+        s += ("图中商品不一定在目录里:只有你的视觉判断(品牌+品类)确实与某张卡一致时才确认是同款,"
+              "否则说『目录里最相似的是…』。")
         if enforced:
             s += (f"\n已在商品卡上**强制执行**用户的条件:{enforced}。每张卡都已满足这些条件——"
                   "回复里**不要**说某张卡超预算、属于被排除的品牌/产地或不符合条件。")
         if getattr(outcome, "anchor_excluded", False) and a_title:
             s += (f"\n视觉上最相似的「{a_title}」{a_price_txt}不满足上述条件,已从卡片中排除;"
                   "如果用户问的就是它,如实说明它不符合条件。")
-        return s
+        return s + facts
+    if status == "relation":
+        label = getattr(outcome, "relation_label", None) or ""
+        s = (f"\n\n11. **拍照找货:以图中商品为参照**: 图片在目录里视觉最相似的是「{a_title}」{a_price_txt},"
+             f"用户要的是与它相关的商品({label})。")
+        if products:
+            s += ("下面的商品卡是按这个关系从目录里检索的(不是图中商品本身):先用一句话说明参照的是哪款"
+                  "(视觉判断不一致时说『目录里最相似的是…』),再逐条说明每张卡与它的关系。")
+            if enforced:
+                s += f"卡片已满足用户的条件:{enforced}。"
+        else:
+            s += "本轮没有商品卡:请如实说明没有找到满足该关系和条件的商品,不要编造商品。(此为纪律第二条的例外)"
+        return s + facts
     if status == "constraints_emptied":
         s = (f"\n\n11. **拍照找货:视觉相似的商品不满足用户条件**: 图片在目录里视觉最相似的是"
              f"「{a_title}」{a_price_txt},但视觉相似的商品都不满足用户提出的条件"
@@ -1156,7 +1184,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
         # 按条件检索过 / 低于视觉下限且没有可检索的文字(如实说没有相似商品,不出随机卡)。
         # 低于下限但文字有内容 → 照常走下面的文字检索。no_visual(CLIP 不可用)也照旧兜底。
         image_handled = image_outcome is not None and (
-            image_outcome.status in ("visual", "constraints_emptied")
+            image_outcome.status in ("visual", "constraints_emptied", "relation")
             or (image_outcome.status == "below_floor"
                 and not _image_text_searchable(real_user_text))
         )
@@ -1280,6 +1308,9 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     # 拍照找货:融合路径与旧纯 CLIP 路径(开关切换)的响应不能互相回放。
     if image_outcome is not None:
         path_token += f"|img={image_outcome.status}"
+        # 两路召回与级联(IMAGE_TWO_PATH 切换)的卡片不同,响应不能互相回放;关闭时 key 不变。
+        if getattr(image_outcome, "two_path", False):
+            path_token += "|img2"
     cache_key = make_key(
         system_prompt=f"{_PROMPT[:128]}|fx={pricing_cache_token(products)}|pref={pref_token}{path_token}",
         messages_json=req.model_dump_json(),
