@@ -60,6 +60,7 @@ struct RepurchaseService {
             throw FetchError.http(-1, "bad URL")
         }
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.timeoutInterval = 60
         req.setValue("application/json", forHTTPHeaderField: "Accept")
 
@@ -100,6 +101,7 @@ struct RepurchaseService {
     ) async throws -> PurchaseRecordResponse {
         let url = baseURL.appendingPathComponent("repurchase/purchase")
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")

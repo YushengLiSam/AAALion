@@ -25,6 +25,7 @@ struct PriceWatchService {
     func startWatch(userId: String, productId: String, targetPriceCNY: Double) async throws -> WatchResponse {
         let url = baseURL.appendingPathComponent("price_watch/watch")
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.timeoutInterval = 30
@@ -60,6 +61,7 @@ struct PriceWatchService {
         components?.queryItems = items
         guard let url = components?.url else { throw FetchError.http(-1) }
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.timeoutInterval = 30
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
@@ -86,6 +88,7 @@ struct PriceWatchService {
         components?.queryItems = [URLQueryItem(name: "user_id", value: userId)]
         guard let url = components?.url else { throw FetchError.http(-1) }
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "DELETE"
         req.timeoutInterval = 30
         let (_, response) = try await URLSession.shared.data(for: req)

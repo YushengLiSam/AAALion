@@ -23,6 +23,7 @@ struct PreferenceService {
     func sendFeedback(userId: String, productId: String, signal: Int) async throws {
         let url = baseURL.appendingPathComponent("preferences/feedback")
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.timeoutInterval = 30
@@ -43,6 +44,7 @@ struct PreferenceService {
         comp?.queryItems = [URLQueryItem(name: "user_id", value: userId)]
         guard let url = comp?.url else { throw FetchError.http(-1) }
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.timeoutInterval = 30
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
@@ -67,6 +69,7 @@ struct PreferenceService {
         comp?.queryItems = [URLQueryItem(name: "user_id", value: userId)]
         guard let url = comp?.url else { throw FetchError.http(-1) }
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "DELETE"
         req.timeoutInterval = 30
         let (_, response) = try await URLSession.shared.data(for: req)

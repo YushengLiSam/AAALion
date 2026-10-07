@@ -23,6 +23,7 @@ struct GroupBuyService {
     func createGroup(userId: String, productId: String, targetSize: Int = 3) async throws -> GroupBuy {
         let url = baseURL.appendingPathComponent("groupbuy/create")
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.timeoutInterval = 30
@@ -35,6 +36,7 @@ struct GroupBuyService {
     func getGroup(groupId: String) async throws -> GroupBuy {
         let url = baseURL.appendingPathComponent("groupbuy/\(groupId)")
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.timeoutInterval = 30
         return try await send(req)
     }
@@ -42,6 +44,7 @@ struct GroupBuyService {
     func joinGroup(groupId: String, userId: String) async throws -> GroupBuy {
         let url = baseURL.appendingPathComponent("groupbuy/\(groupId)/join")
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.timeoutInterval = 30
@@ -57,6 +60,7 @@ struct GroupBuyService {
         comp?.queryItems = [URLQueryItem(name: "user_id", value: userId)]
         guard let url = comp?.url else { throw FetchError.http(-1) }
         var req = URLRequest(url: url)
+        req.attachSessionJWT()
         req.timeoutInterval = 30
         do {
             let (data, response) = try await URLSession.shared.data(for: req)

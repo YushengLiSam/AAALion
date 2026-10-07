@@ -81,9 +81,16 @@ struct AuthService {
 
     // MARK: - migrate anonymous data on first sign-in
 
-    func migrate(from: String, to: String) async {
+    func migrate(from: String, to: String, jwt: String? = nil) async {
         let url = baseURL.appendingPathComponent("auth/migrate")
         var req = URLRequest(url: url)
+        // P0.0 — the backend checks the JWT's sub == to_user_id (owner-only).
+        // Prefer the token passed in from signIn (the freshly issued one).
+        if let jwt, !jwt.isEmpty {
+            req.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        } else {
+            req.attachSessionJWT()
+        }
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.timeoutInterval = 30
@@ -198,6 +205,20 @@ struct AuthService {
     }
 }
 
+extension URLRequest {
+    /// P0.0 — attach the signed session JWT (`AuthUser.jwt`, issued at login)
+    /// as `Authorization: Bearer <jwt>` when the user is signed in. The
+    /// backend requires it (sub == user_id) for account ids such as
+    /// `phone:…` / `apple:…` on /preferences, /price_watch, /repurchase,
+    /// /groupbuy and /auth/me|migrate. No-op for anonymous (IDFV) users,
+    /// whose requests stay token-free.
+    mutating func attachSessionJWT() {
+        if let jwt = AuthState.shared.user?.jwt, !jwt.isEmpty {
+            setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        }
+    }
+}
+
 struct PhoneStartResult: Codable {
     let sent: Bool
     let devCode: String?
@@ -272,7 +293,7 @@ final class AuthState {
         persist()
         // Re-key anonymous data to the account (fire-and-forget).
         if previousAnon != u.userId {
-            Task { await AuthService().migrate(from: previousAnon, to: u.userId) }
+            Task { await AuthService().migrate(from: previousAnon, to: u.userId, jwt: u.jwt) }
         }
         // R11 — the cart + favorites are per-account; make them follow the
         // account (carry the anonymous ones in on first sign-in).
