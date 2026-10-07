@@ -189,3 +189,23 @@ python -m pytest server/tests/test_image_text_fusion.py -q
   `RAG_REWRITE=1` 时零请求、并有对照断言证明默认文字路径在同样输入下确实会去请求);全量 `server/tests` 通过。
 * **未验证**:线上 VM(Milvus 后端、Python 3.10、单进程 CPU)上的端到端请求与延迟;真实用户照片;
   真实 LLM 对新附加段的遵从程度(测试里 LLM 全部打桩)。
+
+## 做法 A:离线图片描述写进文本索引(2026-10-07)
+
+高星项目(RAGFlow、RAG-Anything、kotaemon)的主流做法是"图转文":入库时给每张图写一段描述,存进文本索引,
+之后按普通文本走 BM25 / 向量 / 重排 / 硬约束。狮选照此补上:
+
+- **生成**:`tools/caption_images.py`,本地 Qwen3-VL-2B-Instruct(Apache-2.0,transformers + Apple MPS,M4 上
+  每张约 15–40 s,145 张一次性生成,**不调任何付费接口**)。提示词只让模型描述看得见的外观,不猜品牌 / 价格 / 功效。
+  产物 `data/derived/image_captions.jsonl` 带模型修订号和提示词版本。145/145 解析成功(2 张图文字太多、输出被截断,
+  按字段抢救)。
+- **进索引的内容**:外观 + 颜色 + 材质 + 风格(chunk_type=`image_caption`)。**图中文字默认不进索引**
+  (`RAG_CAPTION_INCLUDE_TEXT=0`):抽检看原图发现 2B 模型会编图里没有的字(帐篷图写出 "Tent" 和一串 "1000",
+  插线板写出 "CUBO" "USB"),而品牌 / 型号本来就在商品 JSON 里。外观描述抽检准确(帐篷、插线板、跑鞋、耳机等)。
+- **SKU 规格块**(chunk_type=`sku`):颜色 / 尺码 / 容量等结构化规格汇总成一段文字。"有没有黑色的"这类问题
+  应该查结构化 SKU,不该靠看图——每个商品只有一张图,图里只看得到一种颜色。
+- **评测(CI 同设置,无 LLM)**:文本索引 1082 → 1372 条;golden 92 不变(recall@5 0.929 / MRR 0.863);
+  compositional 61 recall@5 0.821 → 0.830、MRR 0.878 → 0.886,变化的 2 个 case 都是变好
+  (三款手机对比 0.67 → 1.0;"华为以外的智能手机" 0.4 → 0.6),没有任何 case 变差。基线已按此刷新。
+  幅度很小,不要夸大;它的主要价值是让"只发照片"的请求以后可以走文本那一路(见 PLAN 的做法 C)。
+- **BM25 不加这两块**:`RAG_BM25_EXTRA_FIELDS=sku,caption` 实测无收益(golden MRR −0.002),保持默认关闭。

@@ -96,7 +96,13 @@ def image_caption_text(product_id: str) -> str | None:
     parts = []
     if c.get("appearance"):
         parts.append(f"外观:{c['appearance']}")
-    for key, label in (("colors", "颜色"), ("materials", "材质"), ("style", "风格"), ("visible_text", "图中文字")):
+    # visible_text 默认不进索引(RAG_CAPTION_INCLUDE_TEXT=1 才进):抽检发现 2B 模型会编图里没有的字
+    # (帐篷图写出 "Tent" 和一串 "1000",插线板写出 "CUBO" "USB"),而品牌 / 型号本来就在商品 JSON 里,
+    # 这一项新增信息少、幻觉风险高。数据文件里照样保留,方便复核。
+    keys = [("colors", "颜色"), ("materials", "材质"), ("style", "风格")]
+    if _flag("RAG_CAPTION_INCLUDE_TEXT", "0"):
+        keys.append(("visible_text", "图中文字"))
+    for key, label in keys:
         vals = [v for v in c.get(key) or [] if v]
         if vals:
             parts.append(f"{label}:{'、'.join(vals)}")

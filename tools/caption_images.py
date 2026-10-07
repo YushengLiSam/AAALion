@@ -48,10 +48,22 @@ PROMPT = (
 
 
 def _iter_images() -> list[tuple[str, Path]]:
-    out = []
-    for img in sorted(SEED.glob("*/images/*.jpg")):
-        out.append((img.stem, img))
-    return out
+    """(product_id, 图片路径)。与图片索引用同一套文件名 → 商品 ID 规则
+    (rag.ingest.embed_image.iter_product_images:p_xxx_live.jpg → p_xxx),否则带 _live 后缀的
+    图片会和商品对不上。"""
+    sys.path.insert(0, str(REPO_ROOT))
+    from rag.ingest.embed_image import iter_product_images
+
+    return sorted(iter_product_images(SEED), key=lambda t: str(t[1]))
+
+
+def _normalize_id(row: dict) -> str:
+    """旧版本用文件名 stem 当 ID(带 _live);读回时按图片路径换算成真正的商品 ID。"""
+    sys.path.insert(0, str(REPO_ROOT))
+    from rag.ingest.embed_image import _product_id
+
+    img = row.get("image")
+    return (_product_id(REPO_ROOT / img) if img else None) or row["product_id"]
 
 
 def _load_model():
@@ -101,6 +113,22 @@ def _parse_json(text: str) -> dict | None:
     }
 
 
+def _salvage(text: str) -> dict | None:
+    """输出被 max_new_tokens 截断时(图里文字很多,模型逐条抄 visible_text 抄到上限,
+    例如配料表、表盘刻度),逐字段抢救已经写完的部分;没有 appearance 就放弃。"""
+    m = re.search(r'"appearance"\s*:\s*"([^"]*)"', text or "")
+    if not m:
+        return None
+
+    def _arr(key: str, n: int) -> list[str]:
+        mm = re.search(r'"%s"\s*:\s*\[(.*?)(?:\]|$)' % key, text, flags=re.S)
+        vals = re.findall(r'"([^"\n]+)"', mm.group(1)) if mm else []
+        return list(dict.fromkeys(v.strip() for v in vals if v.strip()))[:n]
+
+    return {"appearance": m.group(1).strip()[:80], "colors": _arr("colors", 3), "materials": _arr("materials", 4),
+            "style": _arr("style", 4), "visible_text": _arr("visible_text", 6)}
+
+
 def _caption(model, processor, device, path: Path) -> tuple[dict | None, str]:
     import torch
     from PIL import Image
@@ -117,7 +145,7 @@ def _caption(model, processor, device, path: Path) -> tuple[dict | None, str]:
     with torch.no_grad():
         out = model.generate(**inputs, max_new_tokens=256, do_sample=False)
     raw = processor.batch_decode(out[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)[0]
-    return _parse_json(raw), raw
+    return _parse_json(raw) or _salvage(raw), raw
 
 
 def main() -> int:
@@ -135,6 +163,7 @@ def main() -> int:
         for line in args.out.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 row = json.loads(line)
+                row["product_id"] = _normalize_id(row)
                 if row.get("caption"):
                     done[row["product_id"]] = row
     todo = [(pid, p) for pid, p in images if pid not in done]

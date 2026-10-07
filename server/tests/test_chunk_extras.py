@@ -44,7 +44,10 @@ def test_caption_chunk_from_file(tmp_path, monkeypatch):
         "appearance": "白色短袖", "colors": ["白色"], "materials": [], "style": ["运动"], "visible_text": ["DRY"]}}])
     monkeypatch.setenv("RAG_IMAGE_CAPTIONS_PATH", str(p))
     text = chunk_mod.image_caption_text("p_test_1")
-    assert text == "外观:白色短袖;颜色:白色;风格:运动;图中文字:DRY"
+    assert text == "外观:白色短袖;颜色:白色;风格:运动"            # 图中文字默认不进索引
+    monkeypatch.setenv("RAG_CAPTION_INCLUDE_TEXT", "1")
+    assert chunk_mod.image_caption_text("p_test_1").endswith(";图中文字:DRY")
+    monkeypatch.delenv("RAG_CAPTION_INCLUDE_TEXT")
     types = [c.chunk_type for c in chunk_mod.chunks_from_product(_PRODUCT)]
     assert types[-2:] == ["sku", "image_caption"]
 
