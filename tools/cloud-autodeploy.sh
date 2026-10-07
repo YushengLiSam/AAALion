@@ -1,70 +1,298 @@
 #!/usr/bin/env bash
 # cloud-autodeploy.sh — pull origin/main onto the prod VM and restart, with
-# a ready-check rollback guard. Driven by lionpick-autodeploy.timer (every
-# ~2 min). Safe to run by hand too.
+# a CI gate in front and a ready-check rollback guard behind. Driven by
+# lionpick-autodeploy.timer (every ~2 min). Safe to run by hand too.
 #
 # Behaviour:
 #   1. git fetch. If origin/main == current HEAD → nothing to do, exit.
-#   2. If origin/main is a KNOWN-BAD commit (last deploy failed its
-#      ready-check) → skip, so we don't loop redeploy→fail→rollback every
-#      2 min. Cleared automatically when origin/main advances past it.
-#   3. Otherwise: reset --hard origin/main, restart lionpick, wait for
-#      /ready. If ready → done. If NOT ready within ~40 s → roll back to
-#      the previous good commit, restart, record the bad SHA.
+#   2. If origin/main is a KNOWN-BAD commit (CI failed, or a prior deploy
+#      failed its ready-check) → skip, so we don't loop every 2 min.
+#      Cleared automatically when origin/main advances past it (or by hand:
+#      rm ~/.lionpick-autodeploy-bad-sha, e.g. after re-running a flaky CI).
+#   3. CI 门禁(P0.6):查公开的 GitHub check-runs API(不需要 token,
+#      curl --max-time),要求 CI workflow 的每个必需 job 都 completed + success:
+#        success     → 继续部署
+#        pending     → 本轮跳过(记日志),下一轮再查
+#        failure     → 写 bad-SHA 标记并跳过
+#        unreachable → 跳过并记日志 —— 永远不"盲部署"
+#      紧急情况可用 AUTODEPLOY_REQUIRE_CI=0 跳过这一步(会记一条 WARNING)。
+#   4. reset --hard origin/main;把仓库管理的 systemd drop-in
+#      (deploy/systemd/lionpick.service.d/*.conf)同步进
+#      /etc/systemd/system/lionpick.service.d/,有变化就 daemon-reload;
+#      然后 restart lionpick,等 /ready 返回 2xx。
+#      If NOT ready within ~150 s → roll back to the previous commit AND the
+#      previous drop-ins, daemon-reload, restart, record the bad SHA.
+#
+# Drop-in 同步规则:
+#   * 只处理仓库目录里存在的 *.conf;jwt.conf 等机器本地文件永远不碰
+#     (jwt.conf 即使被误提交进仓库也拒绝安装)。
+#   * 记录"由本脚本安装过的文件名"(STATE_DIR/.lionpick-autodeploy-dropins);
+#     仓库里删掉的 drop-in,只有在这个清单里才会从 /etc 删除。
+#   * 部署前给这些文件拍快照;回滚时按快照恢复(内容和"有/无"都恢复)。稳态下快照
+#     就等于上一个 SHA 树里的 drop-in;首次接管手工装的文件时也不会误删它们。
 #
 # Runs as the deploy user (git uses ~/.ssh/config github-lionpick alias +
 # read-only deploy key). Needs passwordless sudo for `systemctl restart
-# lionpick` (see the sudoers drop-in installed alongside).
+# lionpick`, `systemctl daemon-reload`, and install/rm under the drop-in dir
+# (see docs/RUNBOOK_OPS.md §3).
+#
+# 测试:server/tests/test_cloud_autodeploy.py 用临时 git 仓库 + 假 curl/systemctl
+# 跑这个脚本(所有路径和命令都能用环境变量重定向,见下面的配置块)。
 set -uo pipefail
 
+# ---- 配置(环境变量可覆盖;测试靠这些把一切重定向到临时目录) ----------------
 REPO="${LIONPICK_REPO:-$HOME/AAALion-}"
-READY_URL="http://127.0.0.1:8000/ready"
-BAD_MARKER="$HOME/.lionpick-autodeploy-bad-sha"
-LOG_TAG="lionpick-autodeploy"
+READY_URL="${AUTODEPLOY_READY_URL:-http://127.0.0.1:8000/ready}"
+STATE_DIR="${AUTODEPLOY_STATE_DIR:-$HOME}"
+BAD_MARKER="$STATE_DIR/.lionpick-autodeploy-bad-sha"
+MANAGED_LIST="$STATE_DIR/.lionpick-autodeploy-dropins"
+DROPIN_SRC_REL="deploy/systemd/lionpick.service.d"
+DROPIN_DIR="${AUTODEPLOY_DROPIN_DIR:-/etc/systemd/system/lionpick.service.d}"
+SUDO="${AUTODEPLOY_SUDO-sudo}"
+PYTHON="${AUTODEPLOY_PYTHON:-python3}"
+REQUIRE_CI="${AUTODEPLOY_REQUIRE_CI:-1}"
+GITHUB_API="${AUTODEPLOY_GITHUB_API:-https://api.github.com}"
+GITHUB_REPO="${AUTODEPLOY_GITHUB_REPO:-YushengLiSam/AAALion}"
+CI_API_TIMEOUT="${AUTODEPLOY_CI_API_TIMEOUT:-10}"
+# 必须与 .github/workflows/ci.yml 的 job 名一致(测试里有一致性检查)。
+REQUIRED_CHECKS="${AUTODEPLOY_REQUIRED_CHECKS:-pytest (py3.10),pytest (py3.11),retrieval eval gate}"
+# Ready-check: warmup loads BOTH cross-encoder rerankers + CLIP + embeddings;
+# under CPU contention this can take ~60 s (measured; restart → /ready 200 is
+# 21–40 s on Milvus), so allow a generous 150 s (75 × 2 s). A too-tight window
+# FALSE-rolls-back a good-but-slow-warming deploy and marks it known-bad.
+READY_POLLS="${AUTODEPLOY_READY_POLLS:-75}"
+READY_INTERVAL="${AUTODEPLOY_READY_INTERVAL:-2}"
+PROTECTED_DROPINS="jwt.conf"
 
-log() { echo "$(date -Is) $*"; }
+log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
 
-cd "$REPO" 2>/dev/null || { log "repo not found: $REPO"; exit 1; }
+# ---- CI 门禁 -------------------------------------------------------------------
+# 输出一行:"<success|pending|failure|unreachable> <说明>"。
+ci_status() {
+  local sha="$1" body code
+  body="$(mktemp)"
+  code="$(curl -sS -o "$body" -w '%{http_code}' --max-time "$CI_API_TIMEOUT" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "$GITHUB_API/repos/$GITHUB_REPO/commits/$sha/check-runs?per_page=100" 2>/dev/null)" || code="000"
+  if [ "$code" != "200" ]; then
+    rm -f "$body"
+    echo "unreachable http=$code"
+    return 0
+  fi
+  "$PYTHON" - "$body" "$REQUIRED_CHECKS" <<'PY'
+import json, sys
+path, required = sys.argv[1], [s.strip() for s in sys.argv[2].split(",") if s.strip()]
+try:
+    with open(path, encoding="utf-8") as fh:
+        runs = json.load(fh).get("check_runs") or []
+except Exception as exc:  # 响应不是预期的 JSON → 当作查不到
+    print(f"unreachable bad-json: {type(exc).__name__}")
+    sys.exit(0)
+# 默认 filter=latest 已经是每个名字最新的一次;保险起见同名取 id 最大的。
+latest = {}
+for r in runs:
+    name = r.get("name")
+    if name in required and (name not in latest or (r.get("id") or 0) > (latest[name].get("id") or 0)):
+        latest[name] = r
+FAIL = {"failure", "timed_out", "action_required", "startup_failure", "neutral"}
+pending, failed = [], []
+for name in required:
+    r = latest.get(name)
+    if r is None:
+        pending.append(f"{name}=missing")
+    elif r.get("status") != "completed":
+        pending.append(f"{name}={r.get('status')}")
+    elif r.get("conclusion") == "success":
+        continue
+    elif r.get("conclusion") in FAIL:
+        failed.append(f"{name}={r.get('conclusion')}")
+    else:  # cancelled / skipped / stale:可能被重跑,先当 pending
+        pending.append(f"{name}={r.get('conclusion')}")
+if failed:
+    print("failure " + " ".join(failed))
+elif pending:
+    print("pending " + " ".join(pending))
+else:
+    print("success " + " ".join(f"{n}=success" for n in required))
+PY
+  rm -f "$body"
+}
 
-# 1) Fetch. Network blip → skip this round quietly (timer retries soon).
-git fetch origin -q 2>/dev/null || { log "fetch failed (network?), skipping"; exit 0; }
+# ---- drop-in 同步 --------------------------------------------------------------
+_valid_dropin_name() {
+  case "$1" in
+    *[!A-Za-z0-9._-]*|"") return 1 ;;
+  esac
+  case "$1" in *.conf) ;; *) return 1 ;; esac
+  for p in $PROTECTED_DROPINS; do [ "$1" = "$p" ] && return 1; done
+  return 0
+}
 
-local_sha="$(git rev-parse HEAD)"
-remote_sha="$(git rev-parse origin/main)"
+# 仓库工作区里(= 当前 HEAD 树)受管的 drop-in 文件名,每行一个。
+repo_dropins() {
+  local d="$REPO/$DROPIN_SRC_REL" f name
+  [ -d "$d" ] || return 0
+  for f in "$d"/*.conf; do
+    [ -f "$f" ] || continue
+    name="$(basename "$f")"
+    if _valid_dropin_name "$name"; then echo "$name"; else log "WARNING: refusing to manage drop-in '$name'" >&2; fi
+  done
+}
 
-# Up to date.
-[ "$local_sha" = "$remote_sha" ] && exit 0
+managed_dropins() {
+  [ -f "$MANAGED_LIST" ] || return 0
+  local name
+  while IFS= read -r name; do
+    _valid_dropin_name "$name" && echo "$name"
+  done < "$MANAGED_LIST"
+}
 
-# 2) Known-bad guard — don't keep redeploying a commit that already failed.
-if [ -f "$BAD_MARKER" ] && [ "$(cat "$BAD_MARKER")" = "$remote_sha" ]; then
-  log "origin/main $remote_sha is known-bad (a prior deploy failed ready-check); skipping until it advances"
-  exit 0
-fi
+# 部署前拍快照:受管 + 仓库里的每个文件名 → 有就复制,没有就记 absent。
+SNAP_DIR=""
+snapshot_dropins() {
+  SNAP_DIR="$(mktemp -d)"
+  local name
+  { repo_dropins; managed_dropins; } | sort -u > "$SNAP_DIR/.names"
+  : > "$SNAP_DIR/.absent"
+  while IFS= read -r name; do
+    if [ -f "$DROPIN_DIR/$name" ]; then cp -p "$DROPIN_DIR/$name" "$SNAP_DIR/$name"
+    else echo "$name" >> "$SNAP_DIR/.absent"; fi
+  done < "$SNAP_DIR/.names"
+  if [ -f "$MANAGED_LIST" ]; then cp -p "$MANAGED_LIST" "$SNAP_DIR/.managed"; fi
+}
 
-log "deploying $local_sha -> $remote_sha"
-git reset --hard origin/main -q
-sudo systemctl restart lionpick
+# 把当前工作区的 drop-in 同步到 DROPIN_DIR。改了东西就 daemon-reload。
+# 返回非 0 表示安装失败(调用方按部署失败处理)。
+sync_dropins() {
+  local changed=0 name src new_list
+  new_list="$(mktemp)"
+  repo_dropins | sort -u > "$new_list"
+  # 不用 install -D(BSD install 没有 -D;测试在 macOS 上跑),目录单独建。
+  if [ -s "$new_list" ] && [ ! -d "$DROPIN_DIR" ]; then
+    $SUDO mkdir -p "$DROPIN_DIR" || { log "cannot create $DROPIN_DIR"; rm -f "$new_list"; return 1; }
+  fi
+  while IFS= read -r name; do
+    src="$REPO/$DROPIN_SRC_REL/$name"
+    if ! cmp -s "$src" "$DROPIN_DIR/$name" 2>/dev/null; then
+      $SUDO install -m 644 "$src" "$DROPIN_DIR/$name" || { log "drop-in install failed: $name"; rm -f "$new_list"; return 1; }
+      log "drop-in installed: $name"
+      changed=1
+    fi
+  done < "$new_list"
+  # 仓库里删掉的、且曾由本脚本安装的 → 删除;其它(jwt.conf 等)不碰。
+  while IFS= read -r name; do
+    if ! grep -qxF "$name" "$new_list" && [ -f "$DROPIN_DIR/$name" ]; then
+      $SUDO rm -f "$DROPIN_DIR/$name" || { log "drop-in remove failed: $name"; rm -f "$new_list"; return 1; }
+      log "drop-in removed (no longer in repo): $name"
+      changed=1
+    fi
+  done < <(managed_dropins)
+  cp "$new_list" "$MANAGED_LIST"
+  rm -f "$new_list"
+  if [ "$changed" = "1" ]; then
+    $SUDO systemctl daemon-reload || { log "daemon-reload failed"; return 1; }
+    log "systemd daemon-reload (drop-ins changed)"
+  fi
+  return 0
+}
 
-# 3) Ready-check. Warmup loads BOTH cross-encoder rerankers + CLIP +
-# embeddings; under CPU contention this can take ~60 s (measured), so allow
-# a generous 150 s before declaring the deploy failed. A too-tight window
-# FALSE-rolls-back a good-but-slow-warming deploy and marks it known-bad —
-# strictly worse than a slightly delayed rollback of a genuinely broken one
-# (rare, since we build/test before pushing). Was 40 s; that tripped on
-# 7c77ad1 whose warmup hit ~60 s under load.
-ok=0
-for _ in $(seq 1 75); do
-  sleep 2
-  if curl -sf "$READY_URL" 2>/dev/null | grep -q 'ready'; then ok=1; break; fi
-done
+# 按快照恢复 drop-in(回滚用)。
+restore_dropins() {
+  [ -n "$SNAP_DIR" ] && [ -d "$SNAP_DIR" ] || return 0
+  local name changed=0
+  while IFS= read -r name; do
+    if [ -f "$SNAP_DIR/$name" ]; then
+      if ! cmp -s "$SNAP_DIR/$name" "$DROPIN_DIR/$name" 2>/dev/null; then
+        $SUDO install -m 644 "$SNAP_DIR/$name" "$DROPIN_DIR/$name" && changed=1
+      fi
+    elif grep -qxF "$name" "$SNAP_DIR/.absent" && [ -f "$DROPIN_DIR/$name" ]; then
+      $SUDO rm -f "$DROPIN_DIR/$name" && changed=1
+    fi
+  done < "$SNAP_DIR/.names"
+  if [ -f "$SNAP_DIR/.managed" ]; then cp -p "$SNAP_DIR/.managed" "$MANAGED_LIST"; else rm -f "$MANAGED_LIST"; fi
+  if [ "$changed" = "1" ]; then
+    $SUDO systemctl daemon-reload
+    log "drop-ins restored from pre-deploy snapshot; daemon-reload"
+  fi
+}
 
-if [ "$ok" = "1" ]; then
-  log "deploy OK — now at $remote_sha"
-  rm -f "$BAD_MARKER"
-else
-  log "deploy FAILED ready-check — rolling back $remote_sha -> $local_sha"
-  echo "$remote_sha" > "$BAD_MARKER"
-  git reset --hard "$local_sha" -q
-  sudo systemctl restart lionpick
-  log "rolled back to $local_sha"
+wait_ready() {
+  local _
+  for _ in $(seq 1 "$READY_POLLS"); do
+    sleep "$READY_INTERVAL"
+    # -f:非 2xx(包括门控 enforce 的 503)不输出 → grep 失败 → 继续等。
+    if curl -sf --max-time 15 "$READY_URL" 2>/dev/null | grep -q 'ready'; then return 0; fi
+  done
+  return 1
+}
+
+main() {
+  cd "$REPO" 2>/dev/null || { log "repo not found: $REPO"; exit 1; }
+
+  # 1) Fetch. Network blip → skip this round quietly (timer retries soon).
+  git fetch origin -q 2>/dev/null || { log "fetch failed (network?), skipping"; exit 0; }
+
+  local local_sha remote_sha
+  local_sha="$(git rev-parse HEAD)"
+  remote_sha="$(git rev-parse origin/main)"
+
+  # Up to date.
+  [ "$local_sha" = "$remote_sha" ] && exit 0
+
+  # 2) Known-bad guard.
+  if [ -f "$BAD_MARKER" ] && [ "$(cat "$BAD_MARKER")" = "$remote_sha" ]; then
+    log "origin/main $remote_sha is known-bad (CI failed or a prior deploy failed ready-check); skipping until it advances"
+    exit 0
+  fi
+
+  # 3) CI gate.
+  if [ "$REQUIRE_CI" = "0" ]; then
+    log "WARNING: AUTODEPLOY_REQUIRE_CI=0 — deploying $remote_sha WITHOUT checking CI"
+  else
+    local status verdict
+    status="$(ci_status "$remote_sha")"
+    verdict="${status%% *}"
+    case "$verdict" in
+      success) log "CI green for $remote_sha: ${status#* }" ;;
+      pending) log "CI pending for $remote_sha (${status#* }); skipping this tick"; exit 0 ;;
+      failure)
+        log "CI FAILED for $remote_sha (${status#* }); marking known-bad, not deploying"
+        echo "$remote_sha" > "$BAD_MARKER"
+        exit 0 ;;
+      *) log "CI status unavailable for $remote_sha (${status#* }); NOT deploying blind, will retry"; exit 0 ;;
+    esac
+  fi
+
+  # 4) Deploy: code + drop-ins + restart + ready-check.
+  log "deploying $local_sha -> $remote_sha"
+  git reset --hard "$remote_sha" -q
+  # 快照放在 reset 之后:文件名集合 = 新树里的 drop-in ∪ 已受管清单,这样新版本
+  # "新增"的文件在快照里记为 absent,回滚时会被删掉。
+  snapshot_dropins
+  local ok=0
+  if sync_dropins; then
+    $SUDO systemctl restart lionpick
+    wait_ready && ok=1
+  else
+    log "drop-in sync failed"
+  fi
+
+  if [ "$ok" = "1" ]; then
+    log "deploy OK — now at $remote_sha"
+    rm -f "$BAD_MARKER"
+  else
+    log "deploy FAILED ready-check — rolling back $remote_sha -> $local_sha"
+    echo "$remote_sha" > "$BAD_MARKER"
+    git reset --hard "$local_sha" -q
+    restore_dropins
+    $SUDO systemctl restart lionpick
+    log "rolled back to $local_sha"
+  fi
+  rm -rf "$SNAP_DIR"
+}
+
+# 被 source 时(测试)只定义函数,不执行。
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
 fi
