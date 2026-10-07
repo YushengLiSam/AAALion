@@ -356,11 +356,19 @@ flowchart TD
 | Bug 1 / Bug 2 机理 | ✅ 读码，复现单测 ⬜ | rag_client.py:1002/1021/833 |
 | 安全洞（dev_code、IDOR、无限流） | ✅ 读码（10-05） | user_store.py:249/384；routes/*；grep 无 limiter |
 | 多跳示例跑出错误结果 | ✅ 实跑（09-28，本地） | 锚点 $249 被当 ¥249，放宽后结果全更贵 |
-| P0 各项 | ⬜ | — |
+| P0.0 安全止血 | ✅ 线上（10-07） | DEMO_MODE=0（验证码接口 503，响应里没有 dev_code）；越权校验 report 模式（违规计数可见）；进程内限流；docs/SECURITY.md |
+| P0.2 只监听本机 | ✅ 线上（10-07） | ss 只见 127.0.0.1:8000；外网直连不通；隧道 URL 不变，/health /ready 200 |
+| P0.3 用户库备份 | ✅ 线上（10-07） | lionpick-backup.timer 每日；首份备份 integrity ok；restore_drill --strict ok |
+| P0.6 CI 门禁 | ✅ 线上（10-07） | GitHub Actions pytest py3.10/3.11 + 检索评测门禁；autodeploy 只部署 CI 全绿的 SHA（已实测 CI pending → green → deploy） |
+| P0.7 配置进 git | ✅ 线上（10-07） | deploy/systemd/lionpick.service.d/*，autodeploy 同步 drop-in + daemon-reload |
+| P0.1 固定域名 / P0.5 外部探活告警 | ⬜ 机主决定暂缓 | quick tunnel 仍在；整机 reboot 演练同样暂缓 |
+| 多模态：拍照 + 文字条件生效 | ✅ 线上（10-07） | VM 实测：不要耐克的 → 无耐克；有没有便宜点的 → 全部更便宜；全程不调 LLM |
+| 做法 A：离线图片描述 + SKU 规格入索引 | ✅ 线上（10-07） | 本地 Qwen3-VL-2B 生成 145/145；索引 1327 条；parity 0 条更差；回放门槛 PASS；compositional 0.821→0.830 |
 | Milvus 上线、演练 | ✅ 线上实跑（10-07） | 线上 RAG_STORE=milvus（Standalone v3.0.2）；回放门槛 1410 次 PASS；故障演练 503 → 兜底 → 自动恢复；npz 重建 + 别名回滚；见 docs/RUNBOOK_MILVUS.md「线上实跑记录」。**未做：reboot 演练（quick tunnel 会换 URL）、监控告警** |
 | 智能体路 | ✅ 实现 + 线上评测（10-07），**按数据决定不开** | 快路 31/34 vs 智能体 21/34（pass^2，修复后）；见 docs/AGENT.md §12.1 |
 
 ## 9. 进度日志
+- 2026-10-07（夜）：**P0 主体 + 多模态 + 做法 A 上线**。安全止血（DEMO_MODE=0、越权 report、限流、默认密钥保护）、uvicorn 只听 127.0.0.1（隧道不变）、SQLite 每日备份 + 恢复演练、CI（pytest + 检索门禁）+ autodeploy 只部署 CI 全绿 SHA、systemd drop-in 进 git；拍照找货改为"视觉召回 → 文字硬约束 → 文字排序 → 约束清空时同品类文字检索"，召回改全量排名再掩码；本地 Qwen3-VL-2B 给 145 张图写外观描述（图中文字因幻觉不进索引）+ SKU 规格块入索引。第一版规格块里 45 个完全相同的"规格:标准"让 Milvus HNSW 结果残缺，被 store_parity 拦下、别名秒级回滚；修复后重建（1327 条），parity 0 条更差、回放门槛 1410 次 PASS。全程未调用付费 LLM。未做：固定域名、外部探活告警、reboot 演练、越权切 enforce（需新版 iOS 上机）。
 - 2026-10-07：**P2 复测**。修复后智能体 pass^2 21/34（多跳 9/13、美元锚点 5/6、对比 4/7、跨币种 3/3、配套 0/5），p50/p95 5.3/8.0 s；快路 31/34（多跳 13/13、美元锚点 6/6、对比 7/7、跨币种 3/3、配套 2/5）。快路每一类都不输，线上保持 AGENT_PATH=off。下一步若要继续：配套类做并行检索/专用工具，规划换更快的模型。
 - 2026-10-07：**P1 上线**。VM 装 Docker 29.1.3，起 Milvus Standalone v3.0.2（首次启动因数据目录属主报 FATAL，chown 999 后正常）；bootstrap 账号，app 只读权限经实测；旁建 v2 Chroma + npz（119 s），迁移进版本化集合 + 别名（7 s）；store_parity 通过；回放门槛 1410 次、错误 0、PASS（Milvus p50/p95 11.5/34 ms，Chroma 17.8/70.9 ms）；正向影子 15 次 0 错误；**影子只跑了几分钟，没等 48 小时**，改用切换后反向影子 + 14 天兜底；切换 RAG_STORE=milvus，门控 enforce；故障演练与 npz 重建 + 别名回滚通过。每次重启到 /ready 200 实测 21–40 s。发现：线上 golden recall@5 是 0.924（.env 里 RERANK_INPUT_CAP=10、RERANK_MAX_LENGTH=128），本机默认参数是 0.947。
 - 2026-10-07：**P2 实现并评测，未上线**。LangGraph 智能体路径 + 多跳两个 bug 修复已部署（AGENT_PATH 默认 off）；多跳修复默认生效。VM 生产 key 工具调用自检通过（1.75 s / 1.05 s）。首轮真模型评测：快路 pass^1 31/34，智能体 pass^2 15/34，失败主要是 8 s 预算超时（每次带工具的 LLM 调用约 3 s）和"对比完不调 submit_products"导致 no_citable_products；后者已修（兜底引用 + 对比类 compare 后直接收尾），复测见下一条。预算配套（bundle）类 20 s 也超时，属于设计问题，需要并行检索或专用工具。
