@@ -80,6 +80,13 @@ class ScriptedToolLLM:
             raise RuntimeError("scripted upstream failure")
         allowed = {t["function"]["name"] for t in tools or []}
         step = self.script[idx] if idx < len(self.script) else [{"submit": "auto"}]
+        # {"answer": "..."}:模拟真模型"不调任何工具、直接文字作答"(线上 haiku 常见),
+        # 不做下面的自动 submit —— 否则这种分支在单测里永远测不到。
+        answer = next((item["answer"] for item in step if "answer" in item), None)
+        if answer is not None:
+            return {"content": answer, "tool_calls": [], "usage": {"prompt_tokens": 0, "completion_tokens": 0,
+                                                                  "total_tokens": 0},
+                    "finish_reason": "stop", "model": "fake-scripted"}
         tool_calls = []
         for j, item in enumerate(step):
             if "submit" in item:

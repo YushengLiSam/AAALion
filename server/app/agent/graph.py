@@ -143,7 +143,26 @@ def _add_usage(total: dict, usage: dict | None) -> dict:
     return out
 
 
-def build_graph(provider, ctx: ToolContext, limits: AgentLimits, deadline: float):
+def _implicit_citation(ctx: ToolContext) -> tuple[list[str], str]:
+    """LLM 没调 submit_products、正文里也没写 ID 时的兜底引用。
+
+    2026-10-07 VM 实测(claude-haiku-4-5 via TokenRouter):对比类问题里模型搜完、对比完
+    常常直接用文字作答,不调 submit_products —— 结果被当成 no_citable_products 回退快路。
+    优先用最后一次成功的 compare(用户要比的就是这几件),其次按检索先后取工具结果;
+    ID 仍要经过 backfill 的"本轮检索到 + 满足会话约束"校验,LLM 注入不了目录外商品。"""
+    last_compare = next((c for c in reversed(ctx.calls)
+                         if c.get("name") == "compare" and not c.get("error") and c.get("result_ids")), None)
+    if last_compare is not None:
+        return [str(i) for i in last_compare["result_ids"]][:MAX_SUBMIT], "implicit_submit:compare"
+    ids: list[str] = []
+    for c in ctx.calls:
+        if c.get("error") or c.get("name") == "compare":
+            continue
+        ids.extend(str(i) for i in c.get("result_ids") or [])
+    return list(dict.fromkeys(ids))[:MAX_SUBMIT], ("implicit_submit:search" if ids else "")
+
+
+def build_graph(provider, ctx: ToolContext, limits: AgentLimits, deadline: float, route_reason: str = ""):
     """每个请求编译一张图(闭包里持有 provider / ToolContext / 截止时间)。"""
     from langgraph.graph import END, START, StateGraph
 
@@ -219,6 +238,16 @@ def build_graph(provider, ctx: ToolContext, limits: AgentLimits, deadline: float
                 result = await asyncio.to_thread(execute_tool, ctx, c.get("name") or "", c.get("arguments"))
             msgs.append({"role": "tool", "tool_call_id": c["id"],
                          "content": json.dumps(result, ensure_ascii=False, default=str)[:6000]})
+            # 对比类问题:compare 已经确定了要展示的商品,不再为"写一句结论"多花一次
+            # LLM 调用(VM 上每次约 3 s;8 s 预算只够两次)。回答文字由快路同一个流式
+            # 生成阶段写,这里只交商品。
+            if (route_reason == "comparison" and c.get("name") == "compare"
+                    and isinstance(result, dict) and not result.get("error")
+                    and len(result.get("rows") or []) >= 2):
+                ids = [str(r.get("id")) for r in result["rows"]][:MAX_SUBMIT]
+                return {"messages": msgs, "pending": [], "rounds": state.get("rounds", 0) + 1,
+                        "submitted": ids, "stop_reason": "compared",
+                        "note": "finalized_after_compare"}
         return {"messages": msgs, "pending": [], "rounds": state.get("rounds", 0) + 1}
 
     def after_agent(state: AgentState) -> str:
@@ -237,7 +266,11 @@ def build_graph(provider, ctx: ToolContext, limits: AgentLimits, deadline: float
         if state.get("submitted"):
             return {"cited": list(state["submitted"])}
         # 没走 submit 但在正文里引用了 ID:按出现顺序取
-        return {"cited": _ID_RE.findall(state.get("final_content") or "")}
+        cited = _ID_RE.findall(state.get("final_content") or "")
+        if cited:
+            return {"cited": cited}
+        ids, note = _implicit_citation(ctx)
+        return {"cited": ids, "note": note} if ids else {"cited": []}
 
     g = StateGraph(AgentState)
     g.add_node("agent", agent_node)
@@ -294,7 +327,7 @@ async def run_agent(
             # 用 values 流逐步拿状态快照:超时被取消时 trace 里仍有已发生的
             # LLM 调用数 / token / 工具轮数,而不是全零。
             nonlocal final
-            graph = build_graph(provider, ctx, limits, deadline)
+            graph = build_graph(provider, ctx, limits, deadline, route_reason=route_reason)
             async for snapshot in graph.astream(
                 state, config={"recursion_limit": limits.recursion_limit}, stream_mode="values",
             ):

@@ -308,3 +308,65 @@ def test_bundle_budget_parsing():
     assert bundle_budget("给我搭配一套5000元以内的通勤穿搭") == 5000
     assert bundle_budget("1万配齐露营装备") == 10000
     assert bundle_budget("推荐一套护肤品") is None
+
+
+# --------------------------------------------------------------------------- #
+#  2026-10-07 VM 实测发现:模型对比完直接文字作答、不调 submit_products
+# --------------------------------------------------------------------------- #
+
+def _by_text_top_k(mapping):
+    def fake_top_k(text, k=5, filters=None, **kw):
+        for key, pid in mapping.items():
+            if key in text:
+                return [_catalog(pid)]
+        return []
+    return fake_top_k
+
+
+def test_text_only_answer_after_compare_cites_compared_ids(monkeypatch):
+    monkeypatch.setattr(rag_client, "top_k", _by_text_top_k({"iPhone": "p_digital_001", "小米": "p_digital_008"}))
+    llm = ScriptedToolLLM([
+        [{"name": "search_products", "arguments": {"query": "iPhone 17 Pro", "k": 1}},
+         {"name": "search_products", "arguments": {"query": "小米17 Ultra", "k": 1}}],
+        [{"name": "compare", "arguments": {"product_ids": ["p_digital_001", "p_digital_008"]}}],
+        [{"answer": "两款各有优势……"}],
+    ])
+    res = _run(run_agent("iPhone 17 Pro和小米17 Ultra哪个好", provider=llm, ctx=ToolContext(), route_reason="x"))
+    assert res.error is None
+    assert res.product_ids == ["p_digital_001", "p_digital_008"]
+    assert res.trace["note"] == "implicit_submit:compare"
+    assert res.trace["tool_calls"][-1]["result_ids"] == ["p_digital_001", "p_digital_008"]
+
+
+def test_text_only_answer_without_compare_cites_search_results(monkeypatch):
+    monkeypatch.setattr(rag_client, "top_k", _by_text_top_k({"iPhone": "p_digital_001"}))
+    llm = ScriptedToolLLM([
+        [{"name": "search_products", "arguments": {"query": "iPhone 17 Pro"}}],
+        [{"answer": "推荐 iPhone 17 Pro"}],
+    ])
+    res = _run(run_agent("推荐iPhone", provider=llm, ctx=ToolContext(), route_reason="x"))
+    assert res.error is None and res.product_ids == ["p_digital_001"]
+    assert res.trace["note"] == "implicit_submit:search"
+
+
+def test_implicit_citation_still_goes_through_backfill(monkeypatch):
+    # 兜底引用的 ID 也只认本轮检索到的;什么都没检索到时仍判 no_citable_products
+    monkeypatch.setattr(rag_client, "top_k", lambda *a, **k: [])
+    llm = ScriptedToolLLM([[{"name": "search_products", "arguments": {"query": "x"}}], [{"answer": "没找到"}]])
+    res = _run(run_agent("x", provider=llm, ctx=ToolContext(), route_reason="x"))
+    assert res.error == "no_citable_products" and res.products == []
+
+
+def test_comparison_route_finalizes_right_after_compare(monkeypatch):
+    monkeypatch.setattr(rag_client, "top_k", _by_text_top_k({"iPhone": "p_digital_001", "小米": "p_digital_008"}))
+    llm = ScriptedToolLLM([
+        [{"name": "search_products", "arguments": {"query": "iPhone 17 Pro", "k": 1}},
+         {"name": "search_products", "arguments": {"query": "小米17 Ultra", "k": 1}}],
+        [{"name": "compare", "arguments": {"product_ids": ["p_digital_001", "p_digital_008"]}}],
+        [{"answer": "不该走到这一步"}],
+    ])
+    res = _run(run_agent("iPhone 17 Pro和小米17 Ultra哪个好", provider=llm, ctx=ToolContext(),
+                         route_reason="comparison"))
+    assert len(llm.calls) == 2                       # 对比完直接收尾,省掉第三次 LLM 调用
+    assert res.error is None and res.product_ids == ["p_digital_001", "p_digital_008"]
+    assert res.trace["stop_reason"] == "compared"

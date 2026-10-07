@@ -531,6 +531,10 @@ def execute_tool(ctx: ToolContext, name: str, raw_args: dict | None) -> dict:
     if isinstance(result, dict):
         if "results" in result:
             record["result_ids"] = [r.get("id") for r in result.get("results") or []]
+        elif name == "compare" and "rows" in result:
+            # 对比工具也记下实际对比了哪些商品:LLM 不调 submit_products 直接文字作答时,
+            # graph.finalize 用它做兜底引用(线上实测 haiku 对比完常常直接作答)。
+            record["result_ids"] = [r.get("id") for r in result.get("rows") or []]
         if result.get("notes"):
             record["notes"] = result["notes"]
     ctx.calls.append(record)
