@@ -5,7 +5,9 @@
   * ``DELETE /preferences``          — wipe a user's preferences ("我变了").
 
 Sync DB calls wrapped in asyncio.to_thread, same as repurchase /
-price_watch. user_id is the anonymous iOS identifierForVendor.
+price_watch. user_id is the anonymous iOS identifierForVendor — or, once
+signed in, an account id (phone:… / apple:… / pw:…), which is enumerable:
+P0.0 起账号 id 必须带 sub 匹配的 JWT(app.security.Caller,AUTH_ENFORCE_MODE)。
 """
 
 from __future__ import annotations
@@ -13,9 +15,10 @@ from __future__ import annotations
 import asyncio
 import re
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.security import Caller, get_caller
 from app.services.preferences_db import (
     get_weights,
     list_preferences,
@@ -36,9 +39,10 @@ class FeedbackRequest(BaseModel):
 
 
 @router.post("/feedback")
-async def feedback_endpoint(req: FeedbackRequest) -> dict:
+async def feedback_endpoint(req: FeedbackRequest, caller: Caller = Depends(get_caller)) -> dict:
     if not _USER_ID_RE.fullmatch(req.user_id):
         raise HTTPException(status_code=400, detail="invalid user_id")
+    caller.authorize(req.user_id, route="preferences.feedback")
     if req.signal == 0:
         raise HTTPException(status_code=400, detail="signal must be +1 or -1")
     try:
@@ -51,17 +55,25 @@ async def feedback_endpoint(req: FeedbackRequest) -> dict:
 
 
 @router.get("")
-async def get_endpoint(user_id: str = Query(min_length=8, max_length=64)) -> dict:
+async def get_endpoint(
+    user_id: str = Query(min_length=8, max_length=64),
+    caller: Caller = Depends(get_caller),
+) -> dict:
     if not _USER_ID_RE.fullmatch(user_id):
         raise HTTPException(status_code=400, detail="invalid user_id")
+    caller.authorize(user_id, route="preferences.get")
     weights = await asyncio.to_thread(get_weights, user_id)
     items = await asyncio.to_thread(list_preferences, user_id)
     return {"weights": weights, "items": items}
 
 
 @router.delete("")
-async def delete_endpoint(user_id: str = Query(min_length=8, max_length=64)) -> dict:
+async def delete_endpoint(
+    user_id: str = Query(min_length=8, max_length=64),
+    caller: Caller = Depends(get_caller),
+) -> dict:
     if not _USER_ID_RE.fullmatch(user_id):
         raise HTTPException(status_code=400, detail="invalid user_id")
+    caller.authorize(user_id, route="preferences.delete")
     removed = await asyncio.to_thread(reset_preferences, user_id)
     return {"removed": removed}

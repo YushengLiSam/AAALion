@@ -12,7 +12,9 @@ from app.services import user_store as us  # noqa: E402
 
 
 @pytest.fixture()
-def store(tmp_path):
+def store(tmp_path, monkeypatch):
+    # P0.0:dev_code 只在 DEMO_MODE=1 时返回(DEMO_MODE=0 的行为见 test_demo_mode.py)。
+    monkeypatch.setenv("DEMO_MODE", "1")
     us.DB_PATH = tmp_path / "users_test.db"
     us._conn = None
     us.init_schema()

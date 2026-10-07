@@ -34,8 +34,18 @@ if _SECRET.decode(errors="replace") == _DEFAULT_SECRET:
     logging.getLogger("lionpick").warning(
         "LIONPICK_JWT_SECRET is unset — using the public default secret. "
         "Session JWTs are forgeable; /auth/delete protection is NOT effective "
-        "until a real secret is configured."
+        "until a real secret is configured. With AUTH_ENFORCE_MODE=enforce "
+        "every session JWT is treated as INVALID (fail closed)."
     )
+
+
+def using_default_secret() -> bool:
+    """当前签名密钥是否仍是源码里的公开默认值。
+
+    公开默认值 = 任何人都能伪造 JWT。app/security.py 在 AUTH_ENFORCE_MODE=enforce
+    时据此拒绝所有 token(否则"强制校验"只是摆设)。只以布尔形式对外暴露,
+    绝不打印密钥本身。读模块级 _SECRET,测试可以 monkeypatch 它。"""
+    return hmac.compare_digest(_SECRET, _DEFAULT_SECRET.encode())
 
 
 def _b64u(raw: bytes) -> str:

@@ -17,6 +17,8 @@ factory `get_user_store()` chosen by env:
 `LocalUserStore` is the self-contained demo implementation (SQLite at
 data/users.db; SMS codes are MOCKED — generated locally and returned in
 the API response so the demo completes on one phone, never a real SMS).
+P0.0: the mocked code is returned ONLY when DEMO_MODE=1; with the default
+DEMO_MODE=0 the SMS/reset start calls raise SmsNotConfiguredError (→ 503).
 
 `CloudUserStore` is a thin HTTP proxy to Sam's service. The exact HTTP
 contract it expects is documented in
@@ -47,6 +49,29 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = REPO_ROOT / "data" / "users.db"
 
 SMS_CODE_TTL_SEC = 300          # a code is valid 5 minutes
+
+
+# ---------------------------------------------------------------------------
+# P0.0 — DEMO_MODE 开关:验证码只在演示模式下随响应返回
+# ---------------------------------------------------------------------------
+# 过去本地后端把 dev_code 直接放在 /auth/phone/start 和密码重置 start 的响应里:
+# 知道手机号就能拿到验证码、接管账号。现在默认 DEMO_MODE=0:本地后端没有真实
+# 短信网关,于是这两个接口**不生成也不返回**验证码,而是抛 SmsNotConfiguredError,
+# 路由层转成 503 + error="sms_not_configured",App 据此提示"请用密码 / Apple 登录"。
+# 只有显式设置 DEMO_MODE=1(演示/答辩环境)才恢复旧行为。密码登录、Apple 登录不受影响。
+
+
+def demo_mode_enabled() -> bool:
+    """每次调用读环境变量(便宜;测试可 monkeypatch)。只认显式的真值。"""
+    return os.getenv("DEMO_MODE", "0").strip().lower() in ("1", "true", "yes", "on")
+
+
+class SmsNotConfiguredError(Exception):
+    """本地后端 + DEMO_MODE=0:没有短信网关,不能发验证码。
+    故意不继承 ValueError——路由层把 ValueError 映射成 400,这里要的是 503。"""
+
+    def __init__(self, message: str = "短信服务未配置,请使用密码或 Apple 登录 / SMS is not configured on this server") -> None:
+        super().__init__(message)
 # Tables whose rows are keyed by user_id and should follow a user when
 # they sign in (anonymous device id → account id). Used by migrate().
 _REKEY_TABLES = (
@@ -234,6 +259,9 @@ class LocalUserStore:
         return self._upsert(f"apple:{sub}", "apple", display_name)
 
     def start_phone(self, phone: str) -> dict[str, Any]:
+        if not demo_mode_enabled():
+            # 没有真实短信网关:不生成、不存、不返回验证码(见 DEMO_MODE 说明)。
+            raise SmsNotConfiguredError()
         code = _gen_code()
         ts = int(time.time())
         conn = _connection()
@@ -243,9 +271,9 @@ class LocalUserStore:
                 "ON CONFLICT(phone) DO UPDATE SET code=excluded.code, expires_at=excluded.expires_at",
                 (phone, code, ts + SMS_CODE_TTL_SEC),
             )
-        # DEMO: return the code so the flow completes without a real SMS.
-        # The cloud store sends an SMS and returns {"sent": true} with NO
-        # `dev_code` field.
+        # DEMO_MODE=1 only: return the code so the flow completes without a
+        # real SMS. The cloud store sends an SMS and returns {"sent": true}
+        # with NO `dev_code` field.
         return {"sent": True, "dev_code": code, "demo": True}
 
     def verify_phone(self, phone: str, code: str) -> dict[str, Any]:
@@ -367,6 +395,11 @@ class LocalUserStore:
         ident = _normalize_identifier(identifier)
         if not ident:
             raise ValueError("identifier must be an email or phone number")
+        if not demo_mode_enabled():
+            # 不论账号是否存在都同样报"未配置"——既不泄露验证码,也不泄露账号是否存在。
+            raise SmsNotConfiguredError(
+                "邮件/短信服务未配置,暂不支持找回密码 / password reset delivery is not configured on this server"
+            )
         conn = _connection()
         with _conn_lock:
             exists = conn.execute(

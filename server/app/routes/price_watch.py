@@ -10,6 +10,8 @@ asyncio.to_thread so the FastAPI event loop stays responsive.
 
 Empty state on /alerts is not an error: a new user with no due
 watches returns ``{"alerts": []}`` with 200. iOS hides the banner.
+
+P0.0:账号 id(phone:… 等,可枚举)必须带 sub 匹配的 JWT,见 app.security.Caller。
 """
 
 from __future__ import annotations
@@ -17,9 +19,10 @@ from __future__ import annotations
 import asyncio
 import re
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.security import Caller, get_caller
 from app.services.price_watch_db import (
     DEFAULT_SNOOZE_HOURS,
     compute_due_alerts,
@@ -48,9 +51,10 @@ class WatchResponse(BaseModel):
 
 
 @router.post("/watch", response_model=WatchResponse)
-async def watch_endpoint(req: WatchRequest) -> WatchResponse:
+async def watch_endpoint(req: WatchRequest, caller: Caller = Depends(get_caller)) -> WatchResponse:
     if not _USER_ID_RE.fullmatch(req.user_id):
         raise HTTPException(status_code=400, detail="invalid user_id")
+    caller.authorize(req.user_id, route="price_watch.watch")
     try:
         row = await asyncio.to_thread(
             record_watch,
@@ -68,9 +72,11 @@ async def alerts_endpoint(
     user_id: str = Query(min_length=8, max_length=64),
     limit: int | None = Query(default=None, ge=1, le=20),
     snooze_hours: int = Query(default=DEFAULT_SNOOZE_HOURS, ge=0, le=720),
+    caller: Caller = Depends(get_caller),
 ) -> dict:
     if not _USER_ID_RE.fullmatch(user_id):
         raise HTTPException(status_code=400, detail="invalid user_id")
+    caller.authorize(user_id, route="price_watch.alerts")
     rows = await asyncio.to_thread(
         compute_due_alerts,
         user_id,
@@ -88,8 +94,13 @@ async def alerts_endpoint(
 
 
 @router.delete("/watch/{product_id}")
-async def remove_watch_endpoint(product_id: str, user_id: str = Query(...)) -> dict:
+async def remove_watch_endpoint(
+    product_id: str,
+    user_id: str = Query(...),
+    caller: Caller = Depends(get_caller),
+) -> dict:
     if not _USER_ID_RE.fullmatch(user_id):
         raise HTTPException(status_code=400, detail="invalid user_id")
+    caller.authorize(user_id, route="price_watch.remove")
     removed = await asyncio.to_thread(remove_watch, user_id, product_id)
     return {"removed": removed}

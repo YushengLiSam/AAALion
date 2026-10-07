@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.routes import auth, cache_stats, chat, currency, group_buy, preferences, price_watch, products, health, repurchase
+from app.services.ratelimit import RateLimitMiddleware
 
 log = logging.getLogger("startup")
 
@@ -80,6 +81,9 @@ def create_app() -> FastAPI:
     app.state.retrieval_ready = False
     app.state.retrieval_warmup = {"status": "starting"}
 
+    # P0.0 — /chat/stream 每 IP + 每用户限流(进程内,见 app/services/ratelimit.py)。
+    # 先注册 → 位于 CORS 内层,429 响应同样带 CORS 头。
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

@@ -13,6 +13,8 @@ items returns ``{"reminders": []}`` with 200. Callers (iOS open-screen)
 render nothing in that case.
 
 Full design: ``docs/REPURCHASE_PLAN.md``.
+
+P0.0:账号 id(phone:… 等,可枚举)必须带 sub 匹配的 JWT,见 app.security.Caller。
 """
 
 from __future__ import annotations
@@ -20,9 +22,10 @@ from __future__ import annotations
 import asyncio
 import re
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.security import Caller, get_caller
 from app.services.repurchase_db import compute_due_items, record_purchase
 
 router = APIRouter(prefix="/repurchase", tags=["repurchase"])
@@ -48,10 +51,11 @@ class PurchaseResponse(BaseModel):
 
 
 @router.post("/purchase", response_model=PurchaseResponse)
-async def record_repurchase(req: PurchaseRequest) -> PurchaseResponse:
+async def record_repurchase(req: PurchaseRequest, caller: Caller = Depends(get_caller)) -> PurchaseResponse:
     """Persist a purchase. 400 on unknown product_id or malformed user_id."""
     if not _USER_ID_RE.match(req.user_id):
         raise HTTPException(status_code=400, detail="user_id must be a UUID-ish 8-64 char identifier")
+    caller.authorize(req.user_id, route="repurchase.purchase")
     try:
         result = await asyncio.to_thread(
             record_purchase,
@@ -70,6 +74,7 @@ async def get_reminders(
     user_id: str = Query(..., min_length=8, max_length=64),
     limit: int | None = Query(default=None, ge=1, le=50),
     snooze_hours: int = Query(default=24, ge=0, le=720),
+    caller: Caller = Depends(get_caller),
 ) -> dict:
     """Return the list of currently-due repurchase reminders for a user.
 
@@ -80,6 +85,7 @@ async def get_reminders(
     """
     if not _USER_ID_RE.match(user_id):
         raise HTTPException(status_code=400, detail="user_id must be a UUID-ish 8-64 char identifier")
+    caller.authorize(user_id, route="repurchase.reminders")
     items = await asyncio.to_thread(
         compute_due_items,
         user_id,

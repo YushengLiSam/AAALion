@@ -35,9 +35,16 @@ def client(tmp_path_factory):
     us._store = None
     us.DB_PATH = tmp_path_factory.mktemp("authz") / "users.db"
     us.init_schema()
+    # P0.0:dev_code 只在 DEMO_MODE=1 时返回;本测试靠它注册手机号账号。
+    old_demo = os.environ.get("DEMO_MODE")
+    os.environ["DEMO_MODE"] = "1"
     app = FastAPI()
     app.include_router(auth_route.router)
     yield TestClient(app)
+    if old_demo is None:
+        os.environ.pop("DEMO_MODE", None)
+    else:
+        os.environ["DEMO_MODE"] = old_demo
     us._reset_for_tests()
     us._store = None
 
