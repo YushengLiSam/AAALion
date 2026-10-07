@@ -52,9 +52,9 @@ Last touched: **R11 (2026-06-02) — login/sign-up page + account profile; docs 
 | Thing | Where | How to reach |
 |---|---|---|
 | Repo | `~/Desktop/rag/AAALion-/` on Shufeng's Mac | local |
-| **Backend (prod)** | **GCP VM (Yusheng), `systemd`-managed, public HTTPS via Cloudflare tunnel** | tunnel URL baked into `Config.swift`; **ephemeral — changes on tunnel restart**, Yusheng re-broadcasts. Swagger at `/docs`. |
+| **Backend (prod)** | **GCP VM (Yusheng), `systemd`-managed, public HTTPS via Cloudflare *quick* tunnel** | `lionpick-tunnel` runs `cloudflared tunnel --url http://localhost:8000` (quick tunnel: random `*.trycloudflare.com` URL, no SLA). URL baked into `Config.swift`; **ephemeral — changes on every tunnel restart / VM reboot**, Yusheng re-broadcasts — so never restart the tunnel casually (verify it with `curl` instead, see `docs/RUNBOOK_OPS.md` §5). Tunnel traffic reaches uvicorn from loopback; the real client IP is only in the `CF-Connecting-IP` header. Port 8000 was also directly reachable from the internet; `deploy/systemd/lionpick.service.d/30-bind-localhost.conf` binds uvicorn to `127.0.0.1` to close it. Swagger at `/docs`. |
 | Backend (local dev) | `uvicorn` on Mac, port `8000`, bound `0.0.0.0` | `aaalion backend`; point the sim at it with `PUBLIC_BACKEND_URL=http://localhost:8000` |
-| Cloud sync | **the VM is a GIT CLONE with auto-deploy (R10 CD)** — `lionpick-autodeploy.timer` runs `tools/cloud-autodeploy.sh` every ~2 min: `git fetch` → if `origin/main` advanced, `reset --hard` + `systemctl restart lionpick` + `/ready` check, **rolling back** on failure. **A merge to main is live on the cloud within ~2 min, hands-free** (gitignored `.env` / `data/.chroma` / `data/*.db` survive a `reset --hard`). Manual redeploy if needed: SSH in, `git pull && sudo systemctl restart lionpick`. VM external IP `34.139.88.204`. |
+| Cloud sync | **the VM is a GIT CLONE with auto-deploy (R10 CD)** — `lionpick-autodeploy.timer` runs `tools/cloud-autodeploy.sh` every ~2 min: `git fetch` → if `origin/main` advanced, `reset --hard` + `systemctl restart lionpick` + `/ready` check, **rolling back** on failure. **A merge to main is live on the cloud within ~2 min, hands-free** (gitignored `.env` / `data/.chroma` / `data/*.db` survive a `reset --hard`). Manual redeploy if needed: SSH in, `git pull && sudo systemctl restart lionpick`. VM external IP **`34.73.32.90`** (the reachable one — used for the 2026-10-05/07 SSH sessions in PLAN.md; `34.139.88.204` is the OLD IP — do not use). Deploys now wait for CI to be green and also sync repo-managed systemd drop-ins — see `docs/RUNBOOK_OPS.md`. |
 | Mac LAN IP | run `ipconfig getifaddr en0` each session | overridable from the in-app Settings sheet at runtime (long-press gear 1.5 s → dev mode) |
 | iOS app | iPhone 13 Pro UDID `7310469E-E396-5197-9408-FF1AD58D4CF2` | `aaalion ios-device` |
 | Vector store | **pluggable (R15)**: Chroma in-process by default (`data/.chroma/`, gitignored); Milvus via `RAG_STORE=milvus` + `RAG_MILVUS_URI` (Lite file, `tools/milvus-lite-server.sh`, or Standalone) | see [`docs/VECTOR_STORE.md`](docs/VECTOR_STORE.md); index schema/version shown in `/ready` |
@@ -210,9 +210,9 @@ Full teammate-onboarding guide: [`docs/DEPLOY_GUIDE.md`](docs/DEPLOY_GUIDE.md).
    prompt during non-interactive execution"** — the wisc.edu account has a
    reauth security policy that needs an interactive prompt the agent shell
    can't show. **Bypass: SSH directly to the VM's external IP** (gcloud
-   already installed the key):
-   `ssh -i ~/.ssh/google_compute_engine yushengli@34.139.88.204 '<cmd>'`
-   and `scp -i ~/.ssh/google_compute_engine <file> yushengli@34.139.88.204:~/`.
+   already installed the key; `34.73.32.90` — the old `34.139.88.204` no longer answers):
+   `ssh -i ~/.ssh/google_compute_engine yushengli@34.73.32.90 '<cmd>'`
+   and `scp -i ~/.ssh/google_compute_engine <file> yushengli@34.73.32.90:~/`.
 7. **VM is a git clone with auto-deploy** — see §3 Cloud sync. Push to main
    and `lionpick-autodeploy.timer` deploys it within ~2 min (fetch → reset
    --hard → restart → `/ready` check → roll back on failure). `.env` (LLM
