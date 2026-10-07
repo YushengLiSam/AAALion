@@ -47,6 +47,10 @@ docker compose version
 
 # 1.2 数据目录 + 密码
 sudo mkdir -p /srv/milvus/{etcd,milvus,minio}
+# milvusdb/milvus:v3.0.2 以 uid/gid 999(milvus)运行,不是 root。数据目录必须交给它,
+# 否则启动即 FATAL "mkdir /var/lib/milvus/data: permission denied",容器以退出码 134 反复重启
+# (2026-10-06 在 VM 上实际踩到)。
+sudo chown -R 999:999 /srv/milvus/milvus
 cd ~/AAALion-/deploy/milvus
 cp .env.example .env && chmod 600 .env && $EDITOR .env   # 三个不同的 12–72 字节密码
 
@@ -107,7 +111,8 @@ RAG_CHROMA_DIR=data/.chroma_v2 .venv/bin/python -m rag.store.migrate --from chro
 
 # 3.3 一致性:exit 0 才继续
 RAG_CHROMA_DIR=data/.chroma_v2 .venv/bin/python -m rag.eval.store_parity
-# 两个后端上评测逐字相同(diff 为空),多跳 34/34
+# 两个后端上评测的质量列(recall/MRR/反选/无货)必须相同;延迟列每次都不同,不比。
+# 唯一允许的差异是 dense 行,且方向必须是 Milvus 更接近精确解(以 store_parity 的结论为准)。
 RAG_CHROMA_DIR=data/.chroma_v2 RAG_STORE=chroma .venv/bin/python -m rag.eval.run > /tmp/eval_chroma.txt
 RAG_STORE=milvus .venv/bin/python -m rag.eval.run > /tmp/eval_milvus.txt && diff /tmp/eval_chroma.txt /tmp/eval_milvus.txt
 ```
@@ -254,5 +259,28 @@ Attu 不常驻,需要时 `ssh -L` 临时开。
 - `docker compose config` 校验 compose 文件(默认与 `--profile minio` 两种);`10-milvus.conf` 的 ExecStartPre 脚本按 systemd 的转义规则(`$$`→`$`、`%%`→`%`)还原后用 `sh` 跑过(Milvus 未起时按截止时间退出、非 milvus 时直接跳过)。
 - 依赖解析:`uv pip compile` Py3.10 / 3.11、linux x86_64。
 
-**没有验证的**:真实 Milvus Standalone v3.0.2(本机没起 Docker 镜像)、鉴权与权限组的实际效果、
+**当时(10-06)没有验证的**:真实 Milvus Standalone v3.0.2(本机没起 Docker 镜像)、鉴权与权限组的实际效果、
 systemd drop-in 在真实 systemd 上的行为、VM 上的任何步骤、MinIO profile(没有可拉取的镜像)。
+
+## 线上实跑记录(2026-10-07,GCP VM lionpick-demo,Milvus Standalone v3.0.2)
+
+上面"没有验证的"大部分已在 VM 上跑过,证据如下(数字均来自当天实跑输出):
+
+| 步骤 | 结果 |
+|---|---|
+| 1. 资源准备 | Ubuntu 源 `docker.io` 29.1.3 + `docker-compose-v2` 2.40.3;镜像 `milvusdb/milvus:v3.0.2`(amd64);**首次启动 FATAL `mkdir /var/lib/milvus/data: permission denied`,容器退出码 134 反复重启——镜像以 uid 999 运行,`chown -R 999:999 /srv/milvus/milvus` 后 10 s healthy**(已补进 §1.2);端口只监听 127.0.0.1:19530 / :9091;日志 `Hook avx for go simd` |
+| 2. 账号 | bootstrap + `--check` OK;app 账号:读 `count(*)`=1082 成功,`drop_collection` / `create_alias` / `alter_alias` 均 `permission deny`;admin 账号完成迁移和切别名 |
+| 3. 离线一致性 | 旁建 v2 Chroma(`data/.chroma_v2`)+ npz,119 s;迁移 7.3 s / 6.5 s,不重算向量;`store_parity`:对精确解 Milvus 更好 48 条、更差 0 条,exit 0;评测质量列:生产路径(hybrid_rerank)两边完全相同,只有 dense 行 Milvus 略高(0.762 vs 0.755) |
+| 4. 回放门槛 | 1410 次调用,错误 0,top-10 一致 0.9894,含精确解解释 1.0000,PASS;延迟 Chroma p50/p95 17.8/70.9 ms,Milvus 11.5/34.0 ms(`docs/bench/replay_gate_vm-20261007.json`) |
+| 5. 影子 | 正向影子 + 10 条真实 `/chat/stream` 请求:15 次影子查询,错误 0、超时 0;filtered 11 次 overlap 1.0,unfiltered 3 次 0.989,image 1 次 1.0。**只跑了几分钟,没等 48 小时**(线上几乎没有真实流量,48 小时攒不出新信息;改用切换后的反向影子 + 14 天兜底补足) |
+| 6. 门控 | report → `ok: true`;enforce 后 `/ready` 200;每次重启到 `/ready` 200 实测 21–40 s |
+| 6.2 故障演练 | `docker stop milvus-standalone` 后约 18 s `/ready` → 503;停机期间 `/chat/stream` 正常出 5 张卡(`served_by_fallback=2, primary_errors=1`,冷却生效);`docker start` 后约 27 s 自动回到 200,API 未重启 |
+| 7. 切换 | `RAG_STORE=milvus` + 反向影子 + `RAG_STORE_FALLBACK=chroma`(截止 2026-10-21),兜底与反向影子读 `data/.chroma_v2`(同一份种子、同一 schema);旧 `data/.chroma` 原样保留。配置在 VM 的 `/etc/systemd/system/lionpick.service.d/20-vector-store.conf`(**还不在 git 里,见 PLAN P0.7**) |
+| 9. npz 重建 + 别名 | 从 npz 重建 text 10 s,别名切到新物理集合;`--rollback` 一条命令切回;全程 API 不重启、门控 ok |
+
+**还没做 / 已知限制**:
+- reboot 演练没做:公网入口仍是 Cloudflare quick tunnel,VM 重启会换 URL,iOS 写死的地址立即失效。先做 PLAN P0.1(named tunnel)再补。
+- 监控告警(§10)没落地:没有告警通道。
+- `/ready` 里的 `physical` 是启动时的快照,切别名后不会更新(查询走别名,不受影响)。
+- 生产 `server/.env` 设了 `RERANK_INPUT_CAP=10`、`RERANK_MAX_LENGTH=128`(R10 为 CPU 延迟做的取舍),所以 VM 上 golden recall@5 是 **0.924**,本机默认参数是 0.947;两个向量库在这一点上结果相同。
+

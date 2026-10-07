@@ -74,7 +74,11 @@ def main(argv: list[str] | None = None, store=None) -> int:
         except Exception as exc:
             print(f"switch failed: {exc}", file=sys.stderr)
             return 1
-        print(f"switched: {args.switch} (previous: {previous})")
+        # 目标没变时 switch_alias 不发任何 RPC(所以连权限都不会检查),别报成"switched"误导人。
+        if previous == args.switch:
+            print(f"unchanged: alias already points to {args.switch} (no RPC sent)")
+        else:
+            print(f"switched: {args.switch} (previous: {previous})")
         return 0
 
     labels = ("text", "image") if args.collection == "all" else (args.collection,)

@@ -2,6 +2,7 @@
 #
 #   cd deploy/milvus && cp .env.example .env && chmod 600 .env && $EDITOR .env
 #   sudo mkdir -p /srv/milvus/{etcd,milvus,minio}
+#   sudo chown -R 999:999 /srv/milvus/milvus     # the v3.0.2 image runs as uid 999 (milvus), not root
 #   sudo docker compose up -d                      # etcd + milvus, local-disk storage (default)
 #   sudo docker compose --profile minio up -d      # + MinIO object storage (needs MINIO_IMAGE, see below)
 #
