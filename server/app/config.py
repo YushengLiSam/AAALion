@@ -23,14 +23,9 @@ class Settings:
     doubao_model_id: str = os.getenv("DOUBAO_MODEL_ID", "ep-20260514111645-lmgt2")
     doubao_api_key: str = os.getenv("DOUBAO_API_KEY", "")
 
-    # 注意:仓库里从来没有 Qdrant 实现,下面三项没有任何代码读取。
-    # 向量库由环境变量 RAG_STORE 选择(chroma / milvus),见 rag/store/__init__.py。
-    qdrant_url: str = os.getenv("QDRANT_URL", "http://localhost:6333")
-    qdrant_text_collection: str = os.getenv("QDRANT_COLLECTION_TEXT", "products_text")
-    qdrant_image_collection: str = os.getenv("QDRANT_COLLECTION_IMAGE", "products_image")
-
-    server_host: str = os.getenv("SERVER_HOST", "0.0.0.0")
-    server_port: int = int(os.getenv("SERVER_PORT", "8000"))
+    # P0.9 清理:删掉了从未被读取的 qdrant_* 和 server_host / server_port。
+    # 向量库由环境变量 RAG_STORE 选择(chroma / milvus),见 rag/store/__init__.py;
+    # 监听地址 / 端口只由 uvicorn 命令行决定(线上见 deploy/systemd/lionpick.service.d/30-bind-localhost.conf)。
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
     repo_root: Path = Path(__file__).resolve().parents[2]

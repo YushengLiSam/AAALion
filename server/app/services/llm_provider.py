@@ -274,6 +274,8 @@ def _build_provider() -> LLMProvider:
             name="tokenrouter",
             api_key=key,
             base_url=os.getenv("TOKENROUTER_BASE_URL", "https://api.tokenrouter.com/v1"),
-            model=os.getenv("TOKENROUTER_MODEL", "claude-sonnet-4-6"),
+            # 默认与线上一致(server/.env: TOKENROUTER_MODEL=claude-haiku-4-5),也与
+            # rag/retrieve/negation.py 的默认值一致;要换模型就在 .env 里显式设置。
+            model=os.getenv("TOKENROUTER_MODEL", "claude-haiku-4-5"),
         )
     return EchoProvider()

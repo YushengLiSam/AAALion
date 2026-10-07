@@ -1,19 +1,11 @@
+# 向量库是进程内 Chroma(数据在 ../data/.chroma,随 volume 挂载);Milvus 见 deploy/milvus/。
+# 历史上这里还有一个从未被代码使用的 qdrant 服务,P0.9 已删除。
 services:
-  qdrant:
-    image: qdrant/qdrant:v1.11.0
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_storage:/qdrant/storage
-
   backend:
     build:
       context: ..
       dockerfile: Dockerfile.rag
     command: ["bash", "-lc", "cd /app/server && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
-    depends_on:
-      - qdrant
     env_file:
       - .env
     environment:
@@ -29,6 +21,3 @@ services:
       start_period: 10s
     volumes:
       - ../data:/app/data
-
-volumes:
-  qdrant_storage:
