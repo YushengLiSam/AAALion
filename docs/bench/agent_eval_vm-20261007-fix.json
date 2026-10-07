@@ -1,0 +1,1878 @@
+{
+ "mode": "agent",
+ "fake_llm": false,
+ "k": 2,
+ "n_cases": 34,
+ "paths": {
+  "agent": {
+   "cases": [
+    {
+     "id": "mh01",
+     "kind": "multihop",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh02",
+     "kind": "multihop",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:APITimeoutError"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_beauty_023",
+        "p_beauty_006"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_beauty_023",
+       "anchor_ok": true,
+       "relation": [
+        1,
+        1
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh03",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_010",
+        "p_clothes_009",
+        "p_clothes_007"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": "p_clothes_010",
+       "anchor_ok": true,
+       "relation": [
+        2,
+        2
+       ],
+       "constraint": [
+        2,
+        2
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_clothes_010",
+        "p_clothes_009",
+        "p_clothes_007"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": "p_clothes_010",
+       "anchor_ok": true,
+       "relation": [
+        2,
+        2
+       ],
+       "constraint": [
+        2,
+        2
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh04",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_025",
+        "p_digital_013",
+        "p_digital_024"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": "p_digital_001",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_001",
+        "p_digital_025",
+        "p_digital_013",
+        "p_digital_024"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_digital_001",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh05",
+     "kind": "multihop",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh06",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_023",
+        "p_digital_020",
+        "p_digital_022",
+        "p_digital_006"
+       ],
+       "n": 4,
+       "relaxed": true,
+       "anchor_id": "p_digital_004",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_023",
+        "p_digital_020",
+        "p_digital_022",
+        "p_digital_006"
+       ],
+       "n": 4,
+       "relaxed": true,
+       "anchor_id": "p_digital_004",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh07",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_01",
+       "anchor_ok": true,
+       "relation": [
+        1,
+        1
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_01",
+       "anchor_ok": true,
+       "relation": [
+        1,
+        1
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh08",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_005",
+        "p_digital_021"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_005",
+        "p_digital_021"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh09",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_1_intl_02",
+        "p_beauty_001",
+        "p_beauty_009",
+        "p_1_real_02",
+        "p_beauty_005"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_1_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_1_intl_02",
+        "p_beauty_009",
+        "p_beauty_001",
+        "p_1_real_02",
+        "p_beauty_005"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_1_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh10",
+     "kind": "multihop",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh11",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_009",
+        "p_clothes_010",
+        "p_clothes_007",
+        "p_8_real_02"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_clothes_009",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_clothes_009",
+        "p_clothes_010",
+        "p_clothes_007",
+        "p_8_real_02"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_clothes_009",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh12",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_beauty_007",
+        "p_beauty_012",
+        "p_beauty_008"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": "p_beauty_007",
+       "anchor_ok": true,
+       "relation": [
+        2,
+        2
+       ],
+       "constraint": [
+        2,
+        2
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_beauty_007",
+        "p_beauty_012",
+        "p_beauty_008"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": "p_beauty_007",
+       "anchor_ok": true,
+       "relation": [
+        2,
+        2
+       ],
+       "constraint": [
+        2,
+        2
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh13",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_04",
+        "p_2_intl_01",
+        "p_digital_018",
+        "p_digital_007",
+        "p_2_intl_02"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_04",
+       "anchor_ok": true,
+       "relation": [
+        4,
+        4
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_04",
+        "p_2_intl_01",
+        "p_digital_018",
+        "p_digital_007",
+        "p_2_intl_02"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_04",
+       "anchor_ok": true,
+       "relation": [
+        4,
+        4
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh14",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_020",
+        "p_digital_006",
+        "p_digital_012"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_020",
+        "p_digital_006",
+        "p_digital_012"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh15",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_011",
+        "p_digital_025",
+        "p_digital_005",
+        "p_digital_021",
+        "p_digital_013"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_digital_011",
+       "anchor_ok": true,
+       "relation": [
+        4,
+        4
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_011",
+        "p_digital_025",
+        "p_digital_005",
+        "p_digital_021",
+        "p_digital_013"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_digital_011",
+       "anchor_ok": true,
+       "relation": [
+        4,
+        4
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "u01",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_018",
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_018",
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "u02",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_04",
+        "p_2_intl_01"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_04",
+       "anchor_ok": true,
+       "relation": [
+        1,
+        1
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_04",
+        "p_2_intl_01"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_04",
+       "anchor_ok": true,
+       "relation": [
+        1,
+        1
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "u03",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_1_intl_02",
+        "p_beauty_001",
+        "p_beauty_009",
+        "p_1_real_02",
+        "p_beauty_005"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_1_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_1_intl_02",
+        "p_beauty_001",
+        "p_beauty_009",
+        "p_1_real_02",
+        "p_beauty_005"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_1_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "u04",
+     "kind": "usd_anchor",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": "p_1_real_05",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "anchor_id": "p_1_real_05",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c01",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_001",
+        "p_digital_008"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_001",
+        "p_digital_008"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c02",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_018",
+        "p_digital_007"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_digital_018",
+        "p_digital_007"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c03",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c04",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_009",
+        "p_clothes_010"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_clothes_009",
+        "p_clothes_010"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c05",
+     "kind": "comparison",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [
+        "p_1_intl_02",
+        "p_beauty_002"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:RateLimitError"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c06",
+     "kind": "comparison",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:RateLimitError"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:RateLimitError"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c07",
+     "kind": "comparison",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:RateLimitError"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:RateLimitError"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b01",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b02",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b03",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b04",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b05",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:llm_error:APITimeoutError"
+       ],
+       "route_ok": true
+      },
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "x01",
+     "kind": "cross_currency",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_018"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_018"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "x02",
+     "kind": "cross_currency",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_01",
+        "p_digital_007"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_2_intl_01",
+        "p_digital_007"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "x03",
+     "kind": "cross_currency",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_1_intl_03",
+        "p_1_real_05",
+        "p_beauty_003"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      },
+      {
+       "ids": [
+        "p_1_intl_03",
+        "p_1_real_05",
+        "p_beauty_003"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    }
+   ],
+   "pass_k": "21/34",
+   "pass_k_rate": 0.618,
+   "relation_correctness": "59/59",
+   "constraint_satisfaction": "92/107",
+   "hit_at_k": "44/68",
+   "trajectory_ok": "44/68",
+   "latency_ms_p50": 5332.0,
+   "latency_ms_p95": 8021.3,
+   "llm_calls_per_request": 2.18,
+   "tokens_per_request": 7776.1
+  }
+ },
+ "fx_rate": "live"
+}

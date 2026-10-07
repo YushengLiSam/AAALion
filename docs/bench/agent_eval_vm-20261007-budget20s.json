@@ -1,0 +1,991 @@
+{
+ "mode": "both",
+ "fake_llm": false,
+ "k": 1,
+ "n_cases": 16,
+ "paths": {
+  "fast": {
+   "cases": [
+    {
+     "id": "mh01",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_007",
+        "p_digital_018",
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 5,
+       "relaxed": true,
+       "anchor_id": "p_2_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "mh03",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_010",
+        "p_3_intl_02",
+        "p_clothes_007",
+        "p_clothes_009"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_clothes_010",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "mh05",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_010",
+        "p_2_intl_04",
+        "p_digital_007",
+        "p_2_intl_02",
+        "p_digital_018"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "anchor_id": "p_digital_010",
+       "anchor_ok": true,
+       "relation": [
+        4,
+        4
+       ],
+       "constraint": [
+        4,
+        4
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "u01",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_2_intl_04",
+        "p_digital_018",
+        "p_2_intl_01"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "u04",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_1_real_05",
+        "p_beauty_003"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_1_real_05",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "c01",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_008",
+        "p_digital_001",
+        "p_digital_003",
+        "p_digital_009",
+        "p_digital_010"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "c02",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_007",
+        "p_digital_018",
+        "p_2_intl_02",
+        "p_digital_005",
+        "p_digital_021"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "c06",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_005",
+        "p_digital_025",
+        "p_digital_021",
+        "p_digital_004",
+        "p_digital_013"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "c07",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_023",
+        "p_digital_020",
+        "p_digital_022",
+        "p_digital_006",
+        "p_digital_025"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "b01",
+     "kind": "bundle",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_021",
+        "p_clothes_010",
+        "p_8_real_02",
+        "p_clothes_020",
+        "p_clothes_023"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "bundle_total_cny": 1925.0,
+       "constraint": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "b02",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [
+        "p_8_real_04"
+       ],
+       "n": 1,
+       "relaxed": false,
+       "bundle_total_cny": 699.0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": false
+      }
+     ]
+    },
+    {
+     "id": "b03",
+     "kind": "bundle",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_002",
+        "p_3_intl_03",
+        "p_clothes_001",
+        "p_clothes_021",
+        "p_clothes_018"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "bundle_total_cny": 2707.35,
+       "constraint": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "b04",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_012",
+        "p_clothes_019",
+        "p_clothes_002",
+        "p_clothes_013",
+        "p_clothes_023"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "bundle_total_cny": 2645.0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": false
+      }
+     ]
+    },
+    {
+     "id": "b05",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_023",
+        "p_digital_011",
+        "p_digital_025",
+        "p_digital_004",
+        "p_digital_013"
+       ],
+       "n": 5,
+       "relaxed": false,
+       "bundle_total_cny": 30395.0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": false
+      }
+     ]
+    },
+    {
+     "id": "x01",
+     "kind": "cross_currency",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_018"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true
+      }
+     ]
+    },
+    {
+     "id": "x02",
+     "kind": "cross_currency",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_007",
+        "p_digital_018",
+        "p_2_intl_04",
+        "p_2_intl_01"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true
+      }
+     ]
+    }
+   ],
+   "pass_k": "13/16",
+   "pass_k_rate": 0.812,
+   "relation_correctness": "10/10",
+   "constraint_satisfaction": "26/29",
+   "hit_at_k": "16/16",
+   "trajectory_ok": null,
+   "latency_ms_p50": 1273.0,
+   "latency_ms_p95": 8742.0,
+   "llm_calls_per_request": 0,
+   "tokens_per_request": 0
+  },
+  "agent": {
+   "cases": [
+    {
+     "id": "mh01",
+     "kind": "multihop",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": true,
+       "anchor_id": "p_2_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh03",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_clothes_010",
+        "p_clothes_007",
+        "p_clothes_009"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": "p_clothes_010",
+       "anchor_ok": true,
+       "relation": [
+        2,
+        2
+       ],
+       "constraint": [
+        2,
+        2
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "mh05",
+     "kind": "multihop",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_007",
+        "p_2_intl_02",
+        "p_2_intl_04"
+       ],
+       "n": 3,
+       "relaxed": false,
+       "anchor_id": null,
+       "anchor_ok": null,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "u01",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_2_intl_02",
+        "p_digital_018",
+        "p_2_intl_01",
+        "p_2_intl_04"
+       ],
+       "n": 4,
+       "relaxed": false,
+       "anchor_id": "p_2_intl_02",
+       "anchor_ok": true,
+       "relation": [
+        3,
+        3
+       ],
+       "constraint": [
+        3,
+        3
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "u04",
+     "kind": "usd_anchor",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_1_real_05",
+        "p_beauty_003"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "anchor_id": "p_1_real_05",
+       "anchor_ok": true,
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        0
+       ],
+       "hit": true,
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c01",
+     "kind": "comparison",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c02",
+     "kind": "comparison",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c06",
+     "kind": "comparison",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "c07",
+     "kind": "comparison",
+     "pass_all_runs": true,
+     "runs": [
+      {
+       "ids": [
+        "p_digital_020",
+        "p_digital_023"
+       ],
+       "n": 2,
+       "relaxed": false,
+       "hit": true,
+       "coverage": [
+        2,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        1,
+        1
+       ],
+       "pass": true,
+       "trajectory_ok": true,
+       "trajectory_problems": [],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b01",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b02",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b03",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b04",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "b05",
+     "kind": "bundle",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "bundle_total_cny": 0,
+       "constraint": [
+        1,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "hit": false,
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "x01",
+     "kind": "cross_currency",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:timeout"
+       ],
+       "route_ok": true
+      }
+     ]
+    },
+    {
+     "id": "x02",
+     "kind": "cross_currency",
+     "pass_all_runs": false,
+     "runs": [
+      {
+       "ids": [],
+       "n": 0,
+       "relaxed": false,
+       "hit": false,
+       "coverage": [
+        0,
+        2
+       ],
+       "relation": [
+        0,
+        0
+       ],
+       "constraint": [
+        0,
+        1
+       ],
+       "pass": false,
+       "trajectory_ok": false,
+       "trajectory_problems": [
+        "error:no_citable_products"
+       ],
+       "route_ok": true
+      }
+     ]
+    }
+   ],
+   "pass_k": "5/16",
+   "pass_k_rate": 0.312,
+   "relation_correctness": "8/8",
+   "constraint_satisfaction": "14/24",
+   "hit_at_k": "6/16",
+   "trajectory_ok": "5/16",
+   "latency_ms_p50": 15321.5,
+   "latency_ms_p95": 20009.5,
+   "llm_calls_per_request": 2.38,
+   "tokens_per_request": 9084.4
+  }
+ },
+ "fx_rate": "live"
+}
