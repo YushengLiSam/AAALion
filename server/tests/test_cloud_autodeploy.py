@@ -416,7 +416,7 @@ class AutodeployConfigTests(unittest.TestCase):
             "RAG_STORE_SHADOW=chroma",
             "RAG_STORE_FALLBACK=chroma",
             "RAG_STORE_FALLBACK_UNTIL=2026-10-21",
-            "RAG_CHROMA_DIR=data/.chroma_v2",
+            "RAG_CHROMA_DIR=data/.chroma_v3",
         ])
 
     def test_bind_localhost_resets_execstart_first(self) -> None:

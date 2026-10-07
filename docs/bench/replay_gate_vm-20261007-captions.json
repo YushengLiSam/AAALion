@@ -1,0 +1,182 @@
+{
+  "label": "vm-20261007-captions",
+  "generated_at": "2026-10-07T07:16:09+00:00",
+  "platform": "linux-x86_64",
+  "a": {
+    "name": "chroma",
+    "backend": "chroma",
+    "path": "data/.chroma_v3",
+    "text": {
+      "count": 1327,
+      "schema_version": 2
+    },
+    "image": {
+      "count": 145,
+      "schema_version": 2
+    }
+  },
+  "b": {
+    "name": "milvus",
+    "backend": "milvus",
+    "mode": "server",
+    "uri": "http://127.0.0.1:19530",
+    "index_type": "HNSW",
+    "versioned": false,
+    "text": {
+      "count": 1327,
+      "schema_version": 2,
+      "physical": "products_text__v2_202610070713"
+    },
+    "image": {
+      "count": 145,
+      "schema_version": 2,
+      "physical": "products_image__v2_202610062349"
+    }
+  },
+  "config": {
+    "k_text": 60,
+    "top": 10,
+    "min_calls": 1000,
+    "rounds": 3,
+    "min_agreement": 0.99,
+    "p95_max_ms": null,
+    "filter_pushdown": true,
+    "score_eps": 0.0001
+  },
+  "counts": {
+    "a_text": 1327,
+    "b_text": 1327,
+    "a_image": 145,
+    "b_image": 145,
+    "calls": 1410,
+    "text_calls_per_round": 325,
+    "image_calls_per_round": 145,
+    "unique_text_queries": 165
+  },
+  "errors": {
+    "count": 0,
+    "calls_with_errors": 0,
+    "sample": []
+  },
+  "agreement": {
+    "top10_agreement": 0.9872,
+    "explained_by_exact": 18,
+    "unexplained": 0,
+    "agreement_incl_explained": 1.0,
+    "b_better_than_a_vs_exact": 252,
+    "b_nondeterministic_repeats": 0,
+    "unexplained_sample": []
+  },
+  "slices": {
+    "text_none": {
+      "calls": 501,
+      "top10_agreement": 0.982,
+      "explained_by_exact": 9,
+      "unexplained": 0,
+      "a_recall10_vs_exact": 0.9982,
+      "b_recall10_vs_exact": 1.0,
+      "max_score_diff": 6.556510925292969e-07
+    },
+    "text_prod_filter": {
+      "calls": 474,
+      "top10_agreement": 1.0,
+      "explained_by_exact": 0,
+      "unexplained": 0,
+      "a_recall10_vs_exact": 1.0,
+      "b_recall10_vs_exact": 1.0,
+      "max_score_diff": 5.960464477539062e-07
+    },
+    "text_stress_e2e": {
+      "calls": 84,
+      "top10_agreement": 1.0,
+      "explained_by_exact": 0,
+      "unexplained": 0,
+      "a_recall10_vs_exact": 1.0,
+      "b_recall10_vs_exact": 1.0,
+      "max_score_diff": 5.960464477539062e-07
+    },
+    "image": {
+      "calls": 435,
+      "top10_agreement": 0.9793,
+      "explained_by_exact": 9,
+      "unexplained": 0,
+      "a_recall10_vs_exact": 0.9979,
+      "b_recall10_vs_exact": 1.0,
+      "max_score_diff": 7.748603820800781e-07
+    }
+  },
+  "latency_ms": {
+    "a": {
+      "text": {
+        "n": 975,
+        "p50_ms": 39.25,
+        "p95_ms": 78.14,
+        "p99_ms": 88.11,
+        "mean_ms": 38.1
+      },
+      "image": {
+        "n": 435,
+        "p50_ms": 13.7,
+        "p95_ms": 17.07,
+        "p99_ms": 20.44,
+        "mean_ms": 14.09
+      },
+      "all": {
+        "n": 1410,
+        "p50_ms": 21.46,
+        "p95_ms": 76.51,
+        "p99_ms": 84.85,
+        "mean_ms": 30.69
+      }
+    },
+    "b": {
+      "text": {
+        "n": 975,
+        "p50_ms": 13.98,
+        "p95_ms": 32.89,
+        "p99_ms": 48.59,
+        "mean_ms": 17.28
+      },
+      "image": {
+        "n": 435,
+        "p50_ms": 8.14,
+        "p95_ms": 9.99,
+        "p99_ms": 14.94,
+        "mean_ms": 8.37
+      },
+      "all": {
+        "n": 1410,
+        "p50_ms": 11.77,
+        "p95_ms": 30.51,
+        "p99_ms": 45.48,
+        "mean_ms": 14.53
+      }
+    },
+    "exact": {
+      "text": {
+        "n": 325,
+        "p50_ms": 3.41,
+        "p95_ms": 7.64,
+        "p99_ms": 9.68,
+        "mean_ms": 3.7
+      },
+      "image": {
+        "n": 145,
+        "p50_ms": 0.29,
+        "p95_ms": 0.46,
+        "p99_ms": 0.62,
+        "mean_ms": 0.32
+      },
+      "all": {
+        "n": 470,
+        "p50_ms": 0.83,
+        "p95_ms": 7.3,
+        "p99_ms": 9.22,
+        "mean_ms": 2.66
+      }
+    }
+  },
+  "wall_s": 65.3,
+  "verdict": "PASS",
+  "reasons": []
+}

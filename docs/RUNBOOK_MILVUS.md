@@ -284,3 +284,13 @@ systemd drop-in 在真实 systemd 上的行为、VM 上的任何步骤、MinIO p
 - `/ready` 里的 `physical` 是启动时的快照,切别名后不会更新(查询走别名,不受影响)。
 - 生产 `server/.env` 设了 `RERANK_INPUT_CAP=10`、`RERANK_MAX_LENGTH=128`(R10 为 CPU 延迟做的取舍),所以 VM 上 golden recall@5 是 **0.924**,本机默认参数是 0.947;两个向量库在这一点上结果相同。
 
+
+### 2026-10-07 第二次索引重建(SKU 规格块 + 离线图片描述)
+
+- 第一版(1372 条)切别名后 `store_parity` 判不通过:45 个完全相同的"规格:标准"规格块让泛化查询的结果被占满,
+  Milvus HNSW 只返回 45 条。**别名一条命令回滚**,线上无感知。修复规格块(跳过无信息的单值规格、加商品标题)后重建。
+- 第二版(1327 条 = 1082 + 100 规格 + 145 图片描述):`store_parity` 对精确解 Milvus 更好 74 条、更差 0 条;
+  回放门槛 1410 次、错误 0、一致率 0.9872、含精确解解释 1.0000,PASS
+  (`docs/bench/replay_gate_vm-20261007-captions.json`);Milvus p50/p95 11.8/30.5 ms。
+- 别名现在指向 `products_text__v2_202610070713`;上一版 `products_text__v2_202610062349`(1082)保留用于回滚。
+  兜底 / 反向影子改读同内容的 `data/.chroma_v3`(`20-vector-store.conf`)。
