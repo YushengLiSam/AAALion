@@ -440,6 +440,12 @@ class AutodeployConfigTests(unittest.TestCase):
         self.assertNotIn("Environment=DEMO_MODE=1", text)
         self.assertIn("Environment=AUTH_ENFORCE_MODE=report", text)
 
+    def test_image_dropin(self) -> None:
+        text = (REPO_ROOT / DROPIN_REL / "50-image.conf").read_text(encoding="utf-8")
+        # VM 实测文字路让只发照片的请求多出 1.5 s(p95 6.5 s),生产只在有描述性文字时跑文字路
+        envs = [ln for ln in text.splitlines() if ln.startswith("Environment=")]
+        self.assertEqual(envs, ["Environment=IMAGE_TEXT_PATH_PHOTO_ONLY=0"])
+
 
 def _has_yaml() -> bool:
     try:

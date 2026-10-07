@@ -119,7 +119,7 @@ final = clip_sim + λ · ce_score        λ = IMAGE_TEXT_WEIGHT = 0.10
 | `IMAGE_CROSS_CAT_MARGIN` | `0.03` | 品类钉住的近似并列余量;负数 = 关闭品类钉住 |
 | `IMAGE_TWO_PATH` | `1` | 两路召回 + 商品级 RRF(见文末「做法 C」);`0` → 本节以上描述的级联。两路模式任何异常也回到级联 |
 | `IMAGE_TEXT_PATH_K` | `10` | 文字路取多少个商品参与 RRF |
-| `IMAGE_TEXT_PATH_PHOTO_ONLY` | `1` | 只发照片 / 没有描述性文字时也跑文字路(用视觉锚点的离线图片描述当 query) |
+| `IMAGE_TEXT_PATH_PHOTO_ONLY` | `1`(**生产 `0`**,见文末 VM 实测) | 只发照片 / 没有描述性文字时也跑文字路(用视觉锚点的离线图片描述当 query) |
 | `IMAGE_PIN_SIM` | `0.85` | 视觉最高分 ≥ 此值时锚点钉在第 1 位(用户在要"别的 / 其他款"时不钉) |
 | `IMAGE_PIN_PHOTO_ONLY` | `1` | 只发照片时锚点钉在第 1 位 |
 | `IMAGE_SKU_ATTRS` | `1` | "有没有黑色的 / 有XL码吗"走 SKU 数据(仅两路模式) |
@@ -303,6 +303,22 @@ python -m pytest server/tests/test_image_text_fusion.py -q
 
 **延迟**(本机,只计融合调用,不含 CLIP 编码 + 检索的 p50 30 ms):只发照片 p50 / p95 从 0.2 / 0.8 ms
 变成 60 / 159 ms,"这是什么" 3 / 6 → 74 / 188 ms,SKU 问法 0.6 / 99 → 111 / 314 ms——多出来的是一次带重排的
-文字检索。**VM(4 vCPU、无 GPU)上的延迟还没有实测**,上线后按 `docs/SLO.md` 的口径补测;不达标就把
-`IMAGE_TEXT_PATH_PHOTO_ONLY=0`(只发照片不跑文字路),或整体 `IMAGE_TWO_PATH=0` 回到级联。
+文字检索。
+
+**VM 实测**(2026-10-07,上线 c3b75ac 之后;线上 VM 4 vCPU、无 GPU,`nice -n 19` 跑在一份 Chroma 副本上,
+不碰线上索引,不调用 LLM;30 张商品图 × 1 个变体,样本小;`docs/bench/image_two_path_eval_vm-20261007-sample.json`):
+
+| 请求(融合调用,不含 CLIP 编码 + 检索的 p50 162 ms) | 级联 p50 / p95 | 两路 p50 / p95 |
+|---|---:|---:|
+| 只发照片 | 0.8 / 1.2 ms | **1539 / 6548 ms** |
+| "这是什么" | 6 / 8 ms | **1555 / 2482 ms** |
+| "有没有便宜点的" | 1347 / 2915 ms | 1733 / 3018 ms |
+| "不要这个牌子" | 907 / 2510 ms | 1300 / 2389 ms |
+| "有没有同品牌的" | 654 / 1103 ms | 523 / 995 ms |
+
+本机上 60 ms 的文字路,在 VM 的 CPU 上要 1.5 s 左右。只发照片 p95 6.5 s,超出首字 p95 ≤ 3 s 的目标
+(`docs/SLO.md`);而本机评测里这类请求第 1 名不变、前 3 名还略降。所以**生产设 `IMAGE_TEXT_PATH_PHOTO_ONLY=0`**
+(`deploy/systemd/lionpick.service.d/50-image.conf`):没有描述性文字的请求(只发照片、"这是什么"、只带约束的)
+卡片与级联完全相同;带描述性文字的请求、SKU 规格问答、照片锚点关系问法仍走两路。
+上表"便宜点 / 不要这个牌子"的两路数字是开着 PHOTO_ONLY 时测的,生产上这两类现在走级联。
 
