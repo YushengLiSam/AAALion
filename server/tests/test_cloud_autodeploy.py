@@ -435,7 +435,9 @@ class AutodeployConfigTests(unittest.TestCase):
 
     def test_demo_mode_dropin(self) -> None:
         text = (REPO_ROOT / DROPIN_REL / "40-demo-mode.conf").read_text(encoding="utf-8")
-        self.assertIn("Environment=DEMO_MODE=1", text)
+        # 2026-10-07 机主决定生产关闭 dev_code
+        self.assertIn("Environment=DEMO_MODE=0", text)
+        self.assertNotIn("Environment=DEMO_MODE=1", text)
         self.assertIn("Environment=AUTH_ENFORCE_MODE=report", text)
 
 

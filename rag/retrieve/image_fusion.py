@@ -82,7 +82,15 @@ def fusion_enabled() -> bool:
 
 
 def recall_n() -> int:
-    return _env_int("IMAGE_RECALL_N", 20)
+    # 默认 200 ≥ 目录规模(145):拿到全量 CLIP 排名后再按硬约束掩码,硬约束再严也不会因为
+    # "只召回前 20"而滤空(高星向量库的做法都是预过滤,145 件全量排名在 Milvus 上只是一次检索)。
+    return _env_int("IMAGE_RECALL_N", 200)
+
+
+def rerank_pool() -> int:
+    # 交叉编码器只排视觉分最高的前 N 个幸存候选(其余保持视觉顺序接在后面):
+    # 全量召回后幸存者可能上百个,CPU 上逐个过交叉编码器太慢。
+    return _env_int("IMAGE_RERANK_POOL", 20)
 
 
 def max_query_images() -> int:
@@ -915,21 +923,23 @@ def fuse_image_candidates(
     reordered = False
     if len(survivors) > 1 and has_descriptive_intent(text_n):
         query = strip_constraint_phrases(text_n)
+        pool, rest = survivors[: rerank_pool()], survivors[rerank_pool():]
         try:
-            scores = (rerank_fn or default_rerank)(query, survivors) if query else {}
+            scores = (rerank_fn or default_rerank)(query, pool) if query else {}
         except Exception:
             scores = {}
         if scores:
-            fused = fuse_scores({p["product_id"]: sims[p["product_id"]] for p in survivors},
+            fused = fuse_scores({p["product_id"]: sims[p["product_id"]] for p in pool},
                                 scores, weight)
-            order = {pid: i for i, pid in enumerate(p["product_id"] for p in survivors)}
-            new = sorted(survivors, key=lambda p: (-fused[p["product_id"]], order[p["product_id"]]))
+            order = {pid: i for i, pid in enumerate(p["product_id"] for p in pool)}
+            new = sorted(pool, key=lambda p: (-fused[p["product_id"]], order[p["product_id"]]))
             for p in new:
                 p["_retrieval"]["text_score"] = round(float(scores.get(p["product_id"], 0.0)), 4)
                 p["_retrieval"]["fused_score"] = round(fused[p["product_id"]], 4)
-            reordered = [p["product_id"] for p in new] != [p["product_id"] for p in survivors]
-            survivors = new
+            reordered = [p["product_id"] for p in new] != [p["product_id"] for p in pool]
+            survivors = new + rest
             trace["rerank_query"] = query
+            trace["rerank_pool"] = len(pool)
 
     return ImageFusionResult(
         status="visual", products=survivors[:k], enforced=labels, anchor=anchor,

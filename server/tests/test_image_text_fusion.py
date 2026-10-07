@@ -797,3 +797,28 @@ def test_constraints_emptied_fallback_with_real_top_k_makes_no_llm_call(monkeypa
     assert res.status == "constraints_emptied"
     assert all(p["price_cny"] <= 500 for p in res.products)
     assert _no_llm == []
+
+
+def test_full_recall_default_and_rerank_pool_cap(monkeypatch):
+    """全量召回(默认 200 ≥ 目录规模)后,交叉编码器只看视觉分最高的前 IMAGE_RERANK_POOL 个。"""
+    from rag.retrieve import image_fusion as f
+
+    monkeypatch.delenv("IMAGE_RECALL_N", raising=False)
+    assert f.recall_n() >= 145
+    monkeypatch.setenv("IMAGE_RERANK_POOL", "2")
+    assert f.rerank_pool() == 2
+
+
+def test_rerank_only_sees_top_pool_survivors(monkeypatch):
+    monkeypatch.setenv("IMAGE_RERANK_POOL", "2")
+    seen = []
+
+    def fake_rerank(q, products):
+        seen.append([p["product_id"] for p in products])
+        return {p["product_id"]: 0.0 for p in products}
+
+    res = _fuse("有没有降噪好的", rerank_fn=fake_rerank, k=5)
+    assert seen and len(seen[0]) == 2                       # 只把视觉前 2 个送进交叉编码器
+    assert seen[0] == _ids(res)[:2]
+    assert len(_ids(res)) > 2                               # 池外的幸存者按视觉顺序接在后面,不丢
+    assert res.trace["rerank_pool"] == 2
